@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -62,6 +62,7 @@ export const CustomerProfileSetup: React.FC = () => {
     try {
       // Build payload depending on customer type
       let payload = {};
+      console.log(payload);
       if (customerType === 'school') {
         payload = {
           school_name: formData.schoolName,
