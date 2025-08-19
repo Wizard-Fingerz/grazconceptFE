@@ -1,0 +1,82 @@
+/* src/components/SidebarItem.css */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .sidebar-item:hover {
+    background-color: #e2e8f0; /* Light gray background on hover */
+  }
+  
+  .sidebar-item-icon {
+    font-size: 1.25rem; /* Icon size */
+  }
+  
+  .sidebar-item-label {
+    margin-left: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .sidebar-item-count {
+    background-color: #38a169; /* Green background */
+    color: #fff;
+    font-size: 0.75rem;
+    border-radius: 9999px; /* Circular badge */
+    padding: 0.25rem 0.5rem;
+  }
+  
+
+  /* src/components/Sidebar.css */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 256px; /* Adjust width as needed */
+    background-color: #fff;
+    transition: width 0.3s;
+    overflow-y: auto;
+  }
+  
+  .sidebar.closed {
+    width: 64px; /* Adjust width for closed state */
+  }
+  
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+  }
+  
+  .sidebar-profile {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+  }
+  
+  .sidebar-profile img {
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .profile-info {
+    margin-left: 0.5rem;
+  }
+  
+  .sidebar-footer {
+    position: absolute;
+    bottom: 1rem;
+    width: 100%;
+    padding: 0 1rem;
+  }
+  
+  .sidebar nav {
+    margin-top: 2rem;
+  }
+  
