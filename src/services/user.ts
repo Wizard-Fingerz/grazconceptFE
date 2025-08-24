@@ -60,14 +60,39 @@ const userServices = {
     return response.data;
   },
 
+  async getAllDocumentType() {
+    const response = await api.get('/definitions/by-table-name/?table_name=document_type');
+    return response.data;
+  },
+
 
   async updateExamProgress(examId: number, data: Partial<ExamProgress>) {
     const response = await api.put(`/progress/exam/${examId}/`, data);
     return response.data;
   },
 
+
+  /**
+   * Upload a client document.
+   * @param formData - FormData containing file, client, and type fields.
+   * @returns The uploaded document data from the API.
+   */
+  async uploadClientDocument(formData: FormData) {
+    const response = await api.post(`/clients-document/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
   async getAllClient() {
     const response = await api.get('/clients/');
+    return response.data;
+  },
+
+  async getAllClientsDocument() {
+    const response = await api.get('/clients-document/');
     return response.data;
   },
 
