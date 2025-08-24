@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Box, Chip, MenuItem, Paper, Stack, TextField, Typography, Button, InputAdornment, IconButton } from '@mui/material';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Box, Chip, MenuItem, Paper, Stack, TextField, Typography, Button, InputAdornment, IconButton, CircularProgress, Alert } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -7,9 +7,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 import CustomDataTable from '../../../components/CustomTable/mui';
 import type { GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
+import userServices from '../../../services/user';
 
 type LeadStatus = 'New' | 'Contacted' | 'Qualified' | 'Disqualified';
-type LeadService = 'Study' | 'Visa' | 'Car' | 'Property' | 'Loans' | 'Docs';
+type LeadService = string; // Use string to allow dynamic mapping
 
 interface LeadRow {
   id: string;
@@ -20,11 +21,6 @@ interface LeadRow {
   source?: string;
   nextStep?: string;
 }
-
-const mockLeads: LeadRow[] = [
-  { id: 'l1', name: 'Mary Jane', email: 'mary@example.com', status: 'New', service: 'Study', source: 'Website', nextStep: 'Call' },
-  { id: 'l2', name: 'Chidi Okafor', email: 'chidi@example.com', status: 'Contacted', service: 'Visa', source: 'Referral', nextStep: 'Docs' },
-];
 
 const statusColors: Record<LeadStatus, 'default' | 'success' | 'warning' | 'info' | 'error' | 'primary' | 'secondary'> = {
   New: 'info',
@@ -40,15 +36,107 @@ export const LeadsPage: React.FC = () => {
   const [service, setService] = useState<LeadService | ''>('');
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 10 });
 
+  const [leads, setLeads] = useState<LeadRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // For mapping ids to names (service_of_interest, etc.)
+  const [serviceOfInterestMap, setServiceOfInterestMap] = useState<Record<number, string>>({});
+
+  // Fetch definitions for mapping ids to names
+  useEffect(() => {
+    let mounted = true;
+    const fetchDefinitions = async () => {
+      try {
+        const serviceOfInterestRes = await userServices.getAllServiceOfInterestType();
+        const serviceOfInterestObj: Record<number, string> = {};
+        (serviceOfInterestRes.results || []).forEach((s: any) => {
+          serviceOfInterestObj[s.id] = s.term || s.label || s.name || s.value || String(s.id);
+        });
+        if (mounted) {
+          setServiceOfInterestMap(serviceOfInterestObj);
+        }
+      } catch (err) {
+        // ignore for now
+      }
+    };
+    fetchDefinitions();
+    return () => { mounted = false; };
+  }, []);
+
+  // Fetch all clients and filter for is_prospect === true
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+    userServices.getAllClient()
+      .then((data: any) => {
+        if (!mounted) return;
+        // Only keep is_prospect === true
+        const prospects = (data.results || data || []).filter((c: any) => c.is_prospect === true);
+        // Map API client object to LeadRow
+        const mapped: LeadRow[] = prospects.map((c: any) => {
+          // Compose name
+          const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || c.id;
+          // Map service_of_interest (array of ids) to string for display
+          let serviceLabel: string = '-';
+          if (Array.isArray(c.service_of_interest) && c.service_of_interest.length > 0) {
+            serviceLabel = c.service_of_interest
+              .map((sid: number) => serviceOfInterestMap[sid] || String(sid))
+              .join(', ');
+          }
+          // Status: try to use c.status, fallback to 'New'
+          let statusValue: LeadStatus = 'New';
+          if (c.status && ['New','Contacted','Qualified','Disqualified'].includes(c.status)) {
+            statusValue = c.status;
+          }
+          return {
+            id: String(c.id),
+            name,
+            email: c.email || '',
+            status: statusValue,
+            service: serviceLabel,
+            source: c.source || c.lead_source || '-',
+            nextStep: c.next_step || '-',
+          };
+        });
+        setLeads(mapped);
+      })
+      .catch((err: any) => {
+        setError(
+          err?.response?.data?.detail ||
+          err?.response?.data?.error ||
+          'Failed to load leads.'
+        );
+      })
+      .finally(() => setLoading(false));
+    return () => { mounted = false; };
+    // eslint-disable-next-line
+  }, [serviceOfInterestMap]);
+
+  // Get unique services for filter dropdown
+  const uniqueServices = useMemo(() => {
+    const all: string[] = [];
+    leads.forEach(l => {
+      if (l.service) {
+        l.service.split(',').forEach(s => {
+          const trimmed = s.trim();
+          if (trimmed && !all.includes(trimmed)) all.push(trimmed);
+        });
+      }
+    });
+    return all;
+  }, [leads]);
+
   const filtered = useMemo(() => {
-    return mockLeads.filter((l) => {
+    return leads.filter((l) => {
       const term = search.trim().toLowerCase();
       const matchesTerm = !term || l.name.toLowerCase().includes(term) || l.email.toLowerCase().includes(term);
       const matchesStatus = !status || l.status === status;
-      const matchesService = !service || l.service === service;
+      const matchesService = !service || (l.service && l.service.split(',').map(s => s.trim()).includes(service));
       return matchesTerm && matchesStatus && matchesService;
     });
-  }, [search, status, service]);
+  }, [search, status, service, leads]);
 
   return (
     <Box sx={{ p: 2 }}>
@@ -90,14 +178,19 @@ export const LeadsPage: React.FC = () => {
             SelectProps={{ displayEmpty: true, renderValue: (v) => (v as string) || 'Service' }}
           >
             <MenuItem value="">Service</MenuItem>
-            {(['Study','Visa','Car','Property','Loans','Docs'] as LeadService[]).map(s => (
+            {uniqueServices.map(s => (
               <MenuItem key={s} value={s}>{s}</MenuItem>
             ))}
           </TextField>
         </Stack>
       </Paper>
 
-      {(() => {
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {loading ? (
+        <Stack alignItems="center" sx={{ mt: 4 }}>
+          <CircularProgress />
+        </Stack>
+      ) : (() => {
         const columns: GridColDef[] = [
           {
             field: 'name',
@@ -151,5 +244,3 @@ export const LeadsPage: React.FC = () => {
 };
 
 export default LeadsPage;
-
-

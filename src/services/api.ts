@@ -2,14 +2,18 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8002/api';
 
+// Get token from localStorage (if available) to set initial Authorization header
+const token = localStorage.getItem('token');
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   },
 });
 
-// Add request interceptor to add auth token
+// Add request interceptor to add auth token (in case token changes after initialization)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
