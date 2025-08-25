@@ -31,12 +31,14 @@ const HotelCard: React.FC<HotelCardProps> = ({
     <Card
       sx={{
         display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        borderRadius: 1, // Reduced borderRadius
-        boxShadow: 1,    // Reduced elevation
+        flexDirection: { xs: "column", sm: "row" },
+        justifyContent: { xs: "flex-start", sm: "space-between" },
+        alignItems: { xs: "stretch", sm: "center" },
+        borderRadius: 1,
+        boxShadow: 1,
         p: 2,
         mb: 2,
+        gap: { xs: 2, sm: 0 },
       }}
     >
       {/* Image */}
@@ -45,11 +47,12 @@ const HotelCard: React.FC<HotelCardProps> = ({
         src={image}
         alt={name}
         sx={{
-          width: 160,
-          height: 120,
+          width: { xs: "100%", sm: 160 },
+          height: { xs: 180, sm: 120 },
           borderRadius: 2,
           objectFit: "cover",
-          mr: 2,
+          mr: { xs: 0, sm: 2 },
+          mb: { xs: 2, sm: 0 },
         }}
       />
 
@@ -61,9 +64,10 @@ const HotelCard: React.FC<HotelCardProps> = ({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
+          minWidth: 0,
         }}
       >
-        <Typography variant="h6" fontWeight="bold">
+        <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
           {name}
         </Typography>
 
@@ -89,21 +93,26 @@ const HotelCard: React.FC<HotelCardProps> = ({
       <Box
         display="flex"
         flexDirection="column"
-        alignItems="flex-end"
+        alignItems={{ xs: "flex-start", sm: "flex-end" }}
         justifyContent="space-between"
-        height="100%"
+        height={{ xs: "auto", sm: "100%" }}
+        mt={{ xs: 2, sm: 0 }}
+        sx={{
+          minWidth: { xs: "100%", sm: 120 },
+          gap: 1,
+        }}
       >
-        <Typography fontWeight="bold" color="text.primary">
+        <Typography fontWeight="bold" color="text.primary" sx={{ mb: 1 }}>
           {price}
         </Typography>
         <Button
           variant="contained"
           sx={{
-            mt: "auto",
             borderRadius: 2,
             backgroundColor: "purple",
             textTransform: "none",
             px: 3,
+            width: { xs: "100%", sm: "auto" },
           }}
           onClick={onReserve}
         >
