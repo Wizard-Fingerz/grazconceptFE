@@ -42,6 +42,7 @@ import { ApplyStudyVisa } from '../pages/customer/travel/StudyVisa';
 import { ApplyWorkVisa } from '../pages/customer/travel/WorkVisa';
 import { ApplyPilgrimageVisa } from '../pages/customer/travel/Prigrimage';
 import VacationPage from '../pages/customer/travel/Vacation';
+import HotelReservation from '../pages/customer/travel/HotelReservation';
 
 
 // Public routes (unauthenticated)
@@ -114,7 +115,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: 'travel/hotel-reservation',
-        element: <CustomerPlaceholderPage title="Hotel Reservation" />,
+        element: <HotelReservation />,
       },
       {
         path: 'edufinance/study-abroad-loan',
