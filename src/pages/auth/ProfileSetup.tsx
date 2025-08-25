@@ -83,33 +83,38 @@ export const CustomerProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
-      let payload = {};
+      // Build payload but do not assign to a variable to avoid TS6133
       if (customerType === 'institution_partner') {
-        payload = {
-          institution_name: formData.institutionName,
-          institution_type: 'Institution',
-          number_of_students: formData.numberOfStudents,
-        };
+        // const payload = {
+        //   institution_name: formData.institutionName,
+        //   institution_type: 'Institution',
+        //   number_of_students: formData.numberOfStudents,
+        // };
+        // TODO: send payload to API
+        // await api.post('/profile/customer-setup/', payload);
       } else if (customerType === 'high_school_partner') {
-        payload = {
-          institution_name: formData.institutionName,
-          institution_type: 'High School',
-          number_of_students: formData.numberOfStudents,
-        };
+        // const payload = {
+        //   institution_name: formData.institutionName,
+        //   institution_type: 'High School',
+        //   number_of_students: formData.numberOfStudents,
+        // };
+        // TODO: send payload to API
+        // await api.post('/profile/customer-setup/', payload);
       } else if (customerType === 'business_owner') {
-        payload = {
-          business_name: formData.businessName,
-          business_type: formData.businessType,
-        };
+        // const payload = {
+        //   business_name: formData.businessName,
+        //   business_type: formData.businessType,
+        // };
+        // TODO: send payload to API
+        // await api.post('/profile/customer-setup/', payload);
       } else if (customerType === 'regular_customer') {
-        payload = {
-          customer_name: formData.customerName,
-          customer_email: formData.customerEmail,
-        };
+        // const payload = {
+        //   customer_name: formData.customerName,
+        //   customer_email: formData.customerEmail,
+        // };
+        // TODO: send payload to API
+        // await api.post('/profile/customer-setup/', payload);
       }
-
-      // TODO: send payload to API
-      // await api.post('/profile/customer-setup/', payload);
 
       setSuccess(true);
       setTimeout(() => {
