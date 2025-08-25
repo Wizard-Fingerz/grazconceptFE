@@ -1,23 +1,28 @@
 import { createTheme } from '@mui/material/styles';
 
+// App theme colors from the login gradient and style:
+// Primary: #b66aed (rgba(182,106,237,1))
+// Secondary/Accent: #ffae49 (rgba(255,174,73,1))
+// Gradient hover: #ac60e3 (rgba(172,96,227,1)), #f5a43f (rgba(245,164,63,1))
+
 export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#3f51b5', // Modern indigo
-      light: '#757de8',
-      dark: '#002984',
-      contrastText: '#ffffff',
+      main: '#b66aed', // Main purple
+      light: '#cfa5f2', // Lighter purple
+      dark: '#ac60e3',  // Darker purple (from hover)
+      contrastText: '#fff',
     },
     secondary: {
-      main: '#4caf50', // Modern green
-      light: '#80e27e',
-      dark: '#087f23',
-      contrastText: '#ffffff',
+      main: '#ffae49', // Main orange
+      light: '#ffd59c', // Lighter orange
+      dark: '#f5a43f',  // Darker orange (from hover)
+      contrastText: '#fff',
     },
     background: {
       default: '#f8f9fa',
-      paper: '#ffffff',
+      paper: '#fff',
     },
     text: {
       primary: '#2c3e50',
@@ -27,11 +32,25 @@ export const theme = createTheme({
       main: '#2ecc71',
       light: '#4cd787',
       dark: '#1b7943',
+      contrastText: '#fff',
     },
     error: {
       main: '#e74c3c',
       light: '#ff7961',
       dark: '#ba000d',
+      contrastText: '#fff',
+    },
+    warning: {
+      main: '#ffae49',
+      light: '#ffd59c',
+      dark: '#f5a43f',
+      contrastText: '#fff',
+    },
+    info: {
+      main: '#b66aed',
+      light: '#cfa5f2',
+      dark: '#ac60e3',
+      contrastText: '#fff',
     },
   },
   typography: {
@@ -97,7 +116,10 @@ export const theme = createTheme({
         },
         contained: {
           boxShadow: 'none',
+          background: 'linear-gradient(90deg, #b66aed 0%, #ffae49 100%)',
+          color: '#fff',
           '&:hover': {
+            background: 'linear-gradient(90deg, #ac60e3 0%, #f5a43f 100%)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
           },
         },
@@ -123,7 +145,7 @@ export const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#fff',
           color: '#2c3e50',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
         },
@@ -135,13 +157,13 @@ export const theme = createTheme({
           borderRadius: 8,
           margin: '4px 8px',
           '&.Mui-selected': {
-            backgroundColor: 'rgba(63, 81, 181, 0.08)',
+            backgroundColor: 'rgba(182, 106, 237, 0.08)',
             '&:hover': {
-              backgroundColor: 'rgba(63, 81, 181, 0.12)',
+              backgroundColor: 'rgba(182, 106, 237, 0.12)',
             },
           },
         },
       },
     },
   },
-}); 
+});

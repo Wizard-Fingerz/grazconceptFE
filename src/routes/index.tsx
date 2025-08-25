@@ -35,6 +35,8 @@ import { AuthLayout } from '../pages/auth/AuthLayout';
 import { ForgotPassword } from '../pages/auth/ForgotPassword';
 import { Login } from '../pages/auth/Login';
 import { Register } from '../pages/auth/Register';
+import PerformanceAnalytics from '../pages/staff/PerformanceAnalytics';
+import ServiceUsageSummary from '../pages/staff/ServiceUsageSummary';
 
 
 
@@ -91,8 +93,8 @@ export const protectedRoutes: RouteObject[] = [
       },
       // Staff routes
       { path: 'staff/dashboard', element: <AgentDashboard /> },
-      { path: 'staff/analytics', element: <PlaceholderPage title="Performance Analytics" /> },
-      { path: 'staff/usage-summary', element: <PlaceholderPage title="Service Usage Summary" /> },
+      { path: 'staff/analytics', element: <PerformanceAnalytics/> },
+      { path: 'staff/usage-summary', element: <ServiceUsageSummary/> },
 
       { path: 'staff/clients', element: <ClientsPage /> },
       { path: 'staff/leads', element: <LeadsPage /> },
