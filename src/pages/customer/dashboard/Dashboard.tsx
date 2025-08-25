@@ -13,7 +13,8 @@ import {
   Box,
   Stack,
 } from "@mui/material";
-import { Chat, Call, AirplaneTicket, Hotel, School, Savings } from "@mui/icons-material";
+import { Chat, AirplaneTicket, Hotel, School, Savings } from "@mui/icons-material";
+import { CustomerPageHeader } from '../../../components/CustomerPageHeader';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -21,23 +22,20 @@ export const Dashboard: React.FC = () => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const isSm = useMediaQuery(theme.breakpoints.down('md'));
+  console.log(isXs, isSm)
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
       {/* Welcome Header */}
-      <Paper
-        sx={{
-          backgroundColor: theme.palette.secondary.light,
-          p: { xs: 2, sm: 4 },
-          mb: 3,
-          borderRadius: 0,
-        }}
-        elevation={0}
-      >
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+      
+      <CustomerPageHeader>
+  {/* Page Header */}
+  
+  <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
           Welcome, {user?.first_name}!
         </Typography>
-      </Paper>
+</CustomerPageHeader>
+
 
       {/* Top Section */}
       <Stack

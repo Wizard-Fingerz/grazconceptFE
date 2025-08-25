@@ -38,6 +38,10 @@ import { Login } from '../pages/auth/Login';
 import { Register } from '../pages/auth/Register';
 import PerformanceAnalytics from '../pages/staff/PerformanceAnalytics';
 import ServiceUsageSummary from '../pages/staff/ServiceUsageSummary';
+import { ApplyStudyVisa } from '../pages/customer/travel/StudyVisa';
+import { ApplyWorkVisa } from '../pages/customer/travel/WorkVisa';
+import { ApplyPilgrimageVisa } from '../pages/customer/travel/Prigrimage';
+import VacationPage from '../pages/customer/travel/Vacation';
 
 
 // Public routes (unauthenticated)
@@ -94,19 +98,19 @@ export const protectedRoutes: RouteObject[] = [
       // Register customer placeholder routes
       {
         path: 'travel/study-visa',
-        element: <CustomerPlaceholderPage title="Study Visa" />,
+        element: <ApplyStudyVisa />,
       },
       {
         path: 'travel/work-visa',
-        element: <CustomerPlaceholderPage title="Work Visa" />,
+        element: <ApplyWorkVisa/>,
       },
       {
         path: 'travel/pilgrimage',
-        element: <CustomerPlaceholderPage title="Pilgrimage" />,
+        element: <ApplyPilgrimageVisa />,
       },
       {
         path: 'travel/vacation',
-        element: <CustomerPlaceholderPage title="Vacation" />,
+        element: <VacationPage />,
       },
       {
         path: 'travel/hotel-reservation',

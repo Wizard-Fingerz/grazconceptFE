@@ -10,8 +10,10 @@ import {
   Box,
   useMediaQuery,
   useTheme,
+  Stack,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
+import { ImageCard } from "../../../components/ImageCard";
 
 /**
  * ApplicationCard - Reusable card for displaying application info.
@@ -53,13 +55,14 @@ export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
 );
 
 /**
- * ApplyStudyVisa - Page for applying for a study visa.
+ * ApplyPilgrimageVisa - Page for applying for a Pilgrimage visa.
  * Uses reusable ApplicationCard and GuideCard components.
  */
-export const ApplyStudyVisa: React.FC = () => {
+export const ApplyPilgrimageVisa: React.FC = () => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const isSm = useMediaQuery(theme.breakpoints.down('md'));
+
   console.log(isXs, isSm)
 
   return (
@@ -70,7 +73,7 @@ export const ApplyStudyVisa: React.FC = () => {
     Apply for
   </Typography>
   <Typography variant="h4" className="font-bold mb-6">
-    Study visa
+    Pilgrimage visa
   </Typography>
 </CustomerPageHeader>
 
@@ -120,31 +123,22 @@ export const ApplyStudyVisa: React.FC = () => {
             <Typography variant="subtitle1" className="font-semibold mb-2" sx={{ fontSize: '1rem' }}>
               Program Type
             </Typography>
-            <RadioGroup defaultValue="undergraduate">
+            <RadioGroup defaultValue="fully-funded">
               <FormControlLabel
-                value="undergraduate"
+                value="fully-funded"
                 control={<Radio />}
                 label={
                   <Typography sx={{ fontSize: '0.95rem' }}>
-                    Undergraduate
+                    Fully Funded
                   </Typography>
                 }
               />
               <FormControlLabel
-                value="postgraduate"
+                value="partially-funded"
                 control={<Radio />}
                 label={
                   <Typography sx={{ fontSize: '0.95rem' }}>
-                    Post graduate
-                  </Typography>
-                }
-              />
-              <FormControlLabel
-                value="language"
-                control={<Radio />}
-                label={
-                  <Typography sx={{ fontSize: '0.95rem' }}>
-                    Language Courses
+                    Partially Funded
                   </Typography>
                 }
               />
@@ -161,6 +155,23 @@ export const ApplyStudyVisa: React.FC = () => {
       >
         Start Application
       </Button>
+
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={3}
+        sx={{ mt: 4 }}
+      >
+        <Box sx={{ flex: 1 }}>
+          <ImageCard title="Summer in London 20% Off" />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <ImageCard title="Apply for Study Visa" />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <ImageCard title="Apply for Vacation Visa" />
+        </Box>
+      </Stack>
+
 
       {/* Recent Applications */}
       <Typography
@@ -194,8 +205,8 @@ export const ApplyStudyVisa: React.FC = () => {
         Guide and Resources
       </Typography>
       <div className="flex flex-col md:flex-row gap-4">
-        <GuideCard title="Study visa Requirements" />
-        <GuideCard title="Ultimate guide to study abroad" />
+        <GuideCard title="Pilgrimage visa Requirements" />
+        <GuideCard title="Ultimate guide to Pilgrimage abroad" />
       </div>
     </Box>
   );

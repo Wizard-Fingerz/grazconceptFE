@@ -20,12 +20,12 @@ type CustomerType =
   | 'business_owner'
   | 'regular_customer';
 
-const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
-  institution_partner: 'Institution Partner',
-  high_school_partner: 'High School Partner',
-  business_owner: 'Business Owner',
-  regular_customer: 'Individual Customer',
-};
+// const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
+//   institution_partner: 'Institution Partner',
+//   high_school_partner: 'High School Partner',
+//   business_owner: 'Business Owner',
+//   regular_customer: 'Individual Customer',
+// };
 
 export const CustomerProfileSetup: React.FC = () => {
   const [step, setStep] = useState(1);

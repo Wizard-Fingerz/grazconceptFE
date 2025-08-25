@@ -155,7 +155,7 @@ export const ClientsPage: React.FC = () => {
         // Wait for mapping data to be loaded before mapping clients
         setClients(apiClients.map(mapApiClientToRow));
       })
-      .catch((err) => {
+      .catch((_err) => {
         if (mounted) setError('Failed to load clients');
       })
       .finally(() => {

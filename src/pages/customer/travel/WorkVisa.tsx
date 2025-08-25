@@ -4,15 +4,17 @@ import {
   Card,
   CardContent,
   Typography,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   Box,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
+import ActionCard from "../../../components/ActionCard";
 
+import PublicIcon from "@mui/icons-material/Public";
+import EventIcon from "@mui/icons-material/Event";
+import TrackChangesIcon from "@mui/icons-material/TrackChanges";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 /**
  * ApplicationCard - Reusable card for displaying application info.
  */
@@ -53,10 +55,10 @@ export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
 );
 
 /**
- * ApplyStudyVisa - Page for applying for a study visa.
+ * ApplyWorkVisa - Page for applying for a Work visa.
  * Uses reusable ApplicationCard and GuideCard components.
  */
-export const ApplyStudyVisa: React.FC = () => {
+export const ApplyWorkVisa: React.FC = () => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const isSm = useMediaQuery(theme.breakpoints.down('md'));
@@ -64,13 +66,15 @@ export const ApplyStudyVisa: React.FC = () => {
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
+
+
 <CustomerPageHeader>
   {/* Page Header */}
   <Typography variant="h4" className="font-bold mb-2">
     Apply for
   </Typography>
   <Typography variant="h4" className="font-bold mb-6">
-    Study visa
+    Work visa
   </Typography>
 </CustomerPageHeader>
 
@@ -89,70 +93,28 @@ export const ApplyStudyVisa: React.FC = () => {
       </div>
 
       {/* Application Form */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Destination */}
-        <Card className="rounded-2xl shadow-md">
-          <CardContent className="flex flex-col items-center justify-center" sx={{ height: { xs: 180, sm: 200, md: 220 } }}>
-            <Typography variant="subtitle1" className="font-semibold mb-2">
-              Destination
-            </Typography>
-            <Button className="bg-[#f5ebe1] rounded-xl normal-case">
-              Choose a country &gt;
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Institution */}
-        <Card className="rounded-2xl shadow-md">
-          <CardContent className="flex flex-col items-center justify-center" sx={{ height: { xs: 180, sm: 200, md: 220 } }}>
-            <Typography variant="subtitle1" className="font-semibold mb-2">
-              Institution
-            </Typography>
-            <Button className="bg-[#f5ebe1] rounded-xl normal-case">
-              Select Institution
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Program Type */}
-        <Card className="rounded-2xl shadow-md">
-          <CardContent className="flex flex-col justify-center" sx={{ height: { xs: 180, sm: 200, md: 220 } }}>
-            <Typography variant="subtitle1" className="font-semibold mb-2" sx={{ fontSize: '1rem' }}>
-              Program Type
-            </Typography>
-            <RadioGroup defaultValue="undergraduate">
-              <FormControlLabel
-                value="undergraduate"
-                control={<Radio />}
-                label={
-                  <Typography sx={{ fontSize: '0.95rem' }}>
-                    Undergraduate
-                  </Typography>
-                }
-              />
-              <FormControlLabel
-                value="postgraduate"
-                control={<Radio />}
-                label={
-                  <Typography sx={{ fontSize: '0.95rem' }}>
-                    Post graduate
-                  </Typography>
-                }
-              />
-              <FormControlLabel
-                value="language"
-                control={<Radio />}
-                label={
-                  <Typography sx={{ fontSize: '0.95rem' }}>
-                    Language Courses
-                  </Typography>
-                }
-              />
-            </RadioGroup>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <ActionCard
+          icon={<PublicIcon fontSize="inherit" />}
+          title="View Available Countries and Jobs"
+          description="Complete your work visa application"
+        />
+        <ActionCard
+          icon={<EventIcon fontSize="inherit" />}
+          title="Schedule Interview"
+          description="Book a date for your Job interview"
+        />
+        <ActionCard
+          icon={<TrackChangesIcon fontSize="inherit" />}
+          title="Track Progress"
+          description="Monitor the status of the application"
+        />
+        <ActionCard
+          icon={<AssignmentIcon fontSize="inherit" />}
+          title="Submit CV And Apply"
+          description="Upload your CV and apply for the job."
+        />
       </div>
-
       {/* Start Application Button */}
       <Button
         variant="contained"
@@ -194,8 +156,8 @@ export const ApplyStudyVisa: React.FC = () => {
         Guide and Resources
       </Typography>
       <div className="flex flex-col md:flex-row gap-4">
-        <GuideCard title="Study visa Requirements" />
-        <GuideCard title="Ultimate guide to study abroad" />
+        <GuideCard title="Work visa Requirements" />
+        <GuideCard title="Ultimate guide to Work abroad" />
       </div>
     </Box>
   );

@@ -34,6 +34,8 @@ export const ServiceUsageSummary: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  console.log(isMobile)
+
   return (
     <Box sx={{ p: { xs: 1, sm: 3, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
           <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
