@@ -12,46 +12,69 @@ import {
   FormControlLabel,
   Radio,
   FormLabel,
-  MenuItem,
-  Select,
-  InputLabel,
-  FormControl,
 } from '@mui/material';
 
-type CustomerType = 'school' | 'student' | 'tourist';
+type CustomerType =
+  | 'institution_partner'
+  | 'high_school_partner'
+  | 'business_owner'
+  | 'regular_customer';
+
+const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
+  institution_partner: 'Institution Partner',
+  high_school_partner: 'High School Partner',
+  business_owner: 'Business Owner',
+  regular_customer: 'Individual Customer',
+};
 
 export const CustomerProfileSetup: React.FC = () => {
-  const [customerType, setCustomerType] = useState<CustomerType>('school');
+  const [step, setStep] = useState(1);
+  const [customerType, setCustomerType] = useState<CustomerType | ''>('');
   const [formData, setFormData] = useState({
-    schoolName: '',
+    institutionName: '',
+    institutionType: '',
     numberOfStudents: '',
-    studentName: '',
-    studentGrade: '',
-    touristOrigin: '',
-    touristPurpose: '',
+    businessName: '',
+    businessType: '',
+    customerName: '',
+    customerEmail: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Handle customer type change
+  // Step 1: Choose customer type
   const handleCustomerTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCustomerType(event.target.value as CustomerType);
-    // Reset form data on type change if needed
-    setFormData({
-      schoolName: '',
-      numberOfStudents: '',
-      studentName: '',
-      studentGrade: '',
-      touristOrigin: '',
-      touristPurpose: '',
-    });
+    let value = event.target.value as CustomerType | 'skip';
+    // If user selects "skip", treat as "regular_customer"
+    if (value === 'skip') {
+      value = 'regular_customer';
+    }
+    setCustomerType(value as CustomerType);
+    setError(null);
   };
 
-  // Handle input changes for all fields
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Step 2: Handle input changes for all fields
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }>
+  ) => {
     const { name, value } = event.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name as string]: value }));
+  };
+
+  // Step navigation
+  const handleNext = () => {
+    if (!customerType) {
+      setError('Please select a customer type.');
+      return;
+    }
+    setStep(2);
+    setError(null);
+  };
+
+  const handleBack = () => {
+    setStep(1);
+    setError(null);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -60,23 +83,28 @@ export const CustomerProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
-      // Build payload depending on customer type
       let payload = {};
-      console.log(payload);
-      if (customerType === 'school') {
+      if (customerType === 'institution_partner') {
         payload = {
-          school_name: formData.schoolName,
+          institution_name: formData.institutionName,
+          institution_type: 'Institution',
           number_of_students: formData.numberOfStudents,
         };
-      } else if (customerType === 'student') {
+      } else if (customerType === 'high_school_partner') {
         payload = {
-          student_name: formData.studentName,
-          student_grade: formData.studentGrade,
+          institution_name: formData.institutionName,
+          institution_type: 'High School',
+          number_of_students: formData.numberOfStudents,
         };
-      } else if (customerType === 'tourist') {
+      } else if (customerType === 'business_owner') {
         payload = {
-          tourist_origin: formData.touristOrigin,
-          tourist_purpose: formData.touristPurpose,
+          business_name: formData.businessName,
+          business_type: formData.businessType,
+        };
+      } else if (customerType === 'regular_customer') {
+        payload = {
+          customer_name: formData.customerName,
+          customer_email: formData.customerEmail,
         };
       }
 
@@ -103,108 +131,165 @@ export const CustomerProfileSetup: React.FC = () => {
       }}
     >
       <Paper sx={{ p: 4, maxWidth: 500, width: '100%' }} elevation={3}>
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={3}>
-            <Typography variant="h5" textAlign="center">
-              Customer Profile Setup
-            </Typography>
-            {error && <Alert severity="error">{error}</Alert>}
-            {success && <Alert severity="success">Profile saved successfully!</Alert>}
+        <Stack spacing={3}>
+          <Typography variant="h5" textAlign="center">
+            Customer Profile Setup
+          </Typography>
+          {error && <Alert severity="error">{error}</Alert>}
+          {success && (
+            <Alert severity="success">
+              Profile saved successfully!
+            </Alert>
+          )}
 
-            <FormLabel component="legend">Select Customer Type</FormLabel>
-            <RadioGroup row value={customerType} onChange={handleCustomerTypeChange}>
-              <FormControlLabel value="school" control={<Radio />} label="School" />
-              <FormControlLabel value="student" control={<Radio />} label="Student" />
-              <FormControlLabel value="tourist" control={<Radio />} label="Tourist" />
-            </RadioGroup>
+          {step === 1 && (
+            <>
+              <FormLabel component="legend">What type of customer are you?</FormLabel>
+              <RadioGroup
+                value={customerType}
+                onChange={handleCustomerTypeChange}
+                name="customerType"
+              >
+                <FormControlLabel
+                  value="institution_partner"
+                  control={<Radio />}
+                  label="Institution Partner"
+                />
+                <FormControlLabel
+                  value="high_school_partner"
+                  control={<Radio />}
+                  label="High School Partner"
+                />
+                <FormControlLabel
+                  value="business_owner"
+                  control={<Radio />}
+                  label="Business Owner"
+                />
+                <FormControlLabel
+                  value="regular_customer"
+                  control={<Radio />}
+                  label="Individual Customer"
+                />
+                <FormControlLabel
+                  value="skip"
+                  control={<Radio />}
+                  label="Skip (Continue as Individual Customer)"
+                />
+              </RadioGroup>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+                disabled={loading}
+                fullWidth
+              >
+                Next
+              </Button>
+            </>
+          )}
 
-            {/* Conditionally render fields based on customer type */}
-            {customerType === 'school' && (
-              <>
-                <TextField
-                  label="School Name"
-                  name="schoolName"
-                  value={formData.schoolName}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Number of Students"
-                  name="numberOfStudents"
-                  type="number"
-                  value={formData.numberOfStudents}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                  inputProps={{ min: 1 }}
-                />
-              </>
-            )}
+          {step === 2 && (
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                {/* Institution Partner */}
+                {(customerType === 'institution_partner' ||
+                  customerType === 'high_school_partner') && (
+                  <>
+                    <TextField
+                      label={
+                        customerType === 'institution_partner'
+                          ? 'Institution Name'
+                          : 'High School Name'
+                      }
+                      name="institutionName"
+                      value={formData.institutionName}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                    />
+                    <TextField
+                      label="Number of Students"
+                      name="numberOfStudents"
+                      type="number"
+                      value={formData.numberOfStudents}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      inputProps={{ min: 1 }}
+                    />
+                  </>
+                )}
 
-            {customerType === 'student' && (
-              <>
-                <TextField
-                  label="Student Name"
-                  name="studentName"
-                  value={formData.studentName}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                />
-                <FormControl fullWidth required>
-                  <InputLabel>Grade</InputLabel>
-                  <Select
-                    name="studentGrade"
-                    value={formData.studentGrade}
-                    label="Grade"
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, studentGrade: e.target.value }))
-                    }
+                {/* Business Owner */}
+                {customerType === 'business_owner' && (
+                  <>
+                    <TextField
+                      label="Business Name"
+                      name="businessName"
+                      value={formData.businessName}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                    />
+                    <TextField
+                      label="Business Type"
+                      name="businessType"
+                      value={formData.businessType}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                    />
+                  </>
+                )}
+
+                {/* Individual Customer */}
+                {customerType === 'regular_customer' && (
+                  <>
+                    <TextField
+                      label="Your Name"
+                      name="customerName"
+                      value={formData.customerName}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                    />
+                    <TextField
+                      label="Email"
+                      name="customerEmail"
+                      type="email"
+                      value={formData.customerEmail}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                    />
+                  </>
+                )}
+
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={handleBack}
+                    disabled={loading}
+                    fullWidth
                   >
-                    {[...Array(12).keys()].map((grade) => (
-                      <MenuItem key={grade + 1} value={`Grade ${grade + 1}`}>
-                        Grade {grade + 1}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </>
-            )}
-
-            {customerType === 'tourist' && (
-              <>
-                <TextField
-                  label="Country of Origin"
-                  name="touristOrigin"
-                  value={formData.touristOrigin}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Purpose of Visit"
-                  name="touristPurpose"
-                  value={formData.touristPurpose}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                />
-              </>
-            )}
-
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : null}
-              fullWidth
-            >
-              Save Profile
-            </Button>
-          </Stack>
-        </form>
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} /> : null}
+                    fullWidth
+                  >
+                    Save Profile
+                  </Button>
+                </Stack>
+              </Stack>
+            </form>
+          )}
+        </Stack>
       </Paper>
     </Box>
   );

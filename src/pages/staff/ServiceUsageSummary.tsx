@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Divider, Stack, Avatar, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Paper, Typography, Divider, Avatar, useTheme, useMediaQuery } from '@mui/material';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import SchoolIcon from '@mui/icons-material/School';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';

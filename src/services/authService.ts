@@ -12,7 +12,8 @@ export interface RegisterData {
   password2: string;
   first_name: string;
   last_name: string;
-  user_type_name: 'customer' | 'agent';
+  user_type_name?: 'customer' | 'agent';
+  user_type: number;
 }
 
 export interface UserProfile {

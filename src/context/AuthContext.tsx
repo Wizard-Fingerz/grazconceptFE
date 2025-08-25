@@ -11,7 +11,7 @@ interface AuthContextType {
     password2: string,
     firstName: string,
     lastName: string,
-    userType: 'customer' | 'agent'
+    userType: number,
   ) => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password2: string,
     firstName: string,
     lastName: string,
-    userType: 'customer' | 'agent'
+    userType: number,
   ) => {
     try {
       await authService.register({
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password2,
         first_name: firstName,
         last_name: lastName,
-        user_type_name: userType,
+        user_type: userType,
       });
 
       // Auto login after registration

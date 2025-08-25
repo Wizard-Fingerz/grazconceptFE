@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   AppBar,
   Box,
@@ -28,6 +28,22 @@ import {
   MenuBook,
   Transform,
   Translate,
+  Flight as FlightIcon,
+  Hotel as HotelIcon,
+  AttachMoney as AttachMoneyIcon,
+  BusinessCenter as BusinessCenterIcon,
+  EmojiEvents as EmojiEventsIcon,
+  People as PeopleIcon,
+  AssignmentInd as AssignmentIndIcon,
+  AccountBalance as AccountBalanceIcon,
+  Work as WorkIcon,
+  Public as PublicIcon,
+  Star as StarIcon,
+  Person as PersonIcon,
+  Home as HomeIcon,
+  CardGiftcard as CardGiftcardIcon,
+  Loyalty as LoyaltyIcon,
+  SupportAgent as SupportAgentIcon,
 } from '@mui/icons-material';
 import { useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -58,6 +74,17 @@ export const MainLayout: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
 
+  // Track previous pathname to detect navigation
+  const prevPathname = useRef(location.pathname);
+
+  // When the route changes on mobile, close the drawer
+  useEffect(() => {
+    if (isMobile && mobileOpen && prevPathname.current !== location.pathname) {
+      setMobileOpen(false);
+    }
+    prevPathname.current = location.pathname;
+  }, [location.pathname, isMobile, mobileOpen]);
+
   const handleDrawerToggle = () => {
     if (isMobile) {
       setMobileOpen(!mobileOpen);
@@ -66,43 +93,77 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-  // Updated agent sidebar: ensure at least one visible section and items
+  // Updated customer sidebar: fixed paths and icons
   const sidebarStructureByRole: Record<RoleKey, SidebarSection[]> = useMemo(() => ({
     customer: [
       {
-        section: 'Menu',
-        icon: <AppsOutlined />,
+        section: 'Home',
+        icon: <HomeIcon />,
         items: [
-          { icon: <MenuBook />, label: 'Notebooks', to: '/notebook' },
+          { icon: <HomeIcon />, label: 'Dashboard', to: '/dashboard' },
         ]
       },
       {
-        section: 'Tool',
-        icon: <Handyman />,
+        section: 'Travel Solution',
+        icon: <FlightIcon />,
         items: [
-          { icon: <Calculate />, label: 'Calculator', to: '/tools/calculator/basic' },
-          { icon: <Transform />, label: 'Unit Converter', to: '/tools/converter' },
-          { icon: <Language />, label: 'Dictionary & Thesaurus', to: '/tools/dictionary' },
-          { icon: <Functions />, label: 'Equation Solver', to: '/tools/equation-solver' },
-          { icon: <Translate />, label: 'Translator', to: '/tools/translator' },
+          { icon: <FlightIcon />, label: 'Study Visa', to: '/travel/study-visa' },
+          { icon: <WorkIcon />, label: 'Work Visa', to: '/travel/work-visa' }, // Removed: WorkIcon not defined
+          { icon: <PublicIcon />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
+          { icon: <HotelIcon />, label: 'Vacation', to: '/travel/vacation' },
+          { icon: <HotelIcon />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
         ]
       },
       {
-        section: 'Learning Resources',
-        icon: <MenuBook />,
+        section: 'EDUFINANCE Solution',
+        icon: <AccountBalanceIcon />,
         items: [
-          { icon: <MenuBook />, label: 'E-books', to: '/resources/ebooks' },
-          { icon: <SchoolIcon />, label: 'Tutorials', to: '/resources/tutorials' },
-          { icon: <MenuBook />, label: 'Study Guides', to: '/resources/study-guides' },
+          { icon: <AttachMoneyIcon />, label: 'Study Abroad Loan', to: '/edufinance/study-abroad-loan' },
+          { icon: <PeopleIcon />, label: 'Parent/Guardian Loan', to: '/edufinance/parent-loan' },
+          { icon: <AttachMoneyIcon />, label: 'Personal Loan', to: '/edufinance/personal-loan' },
+          { icon: <BusinessCenterIcon />, label: 'Business Loan', to: '/edufinance/business-loan' },
         ]
       },
       {
-        section: 'Settings',
+        section: 'Citizenship by Investment',
+        icon: <EmojiEventsIcon />,
+        items: [
+          { icon: <PublicIcon />, label: 'Europe Second Citizenship', to: '/citizenship/europe' },
+          { icon: <AssignmentIndIcon />, label: 'Investment Plan', to: '/citizenship/investment-plan' },
+        ]
+      },
+      {
+        section: 'Value-Added Services',
+        icon: <StarIcon />,
+        items: [
+          { icon: <CardGiftcardIcon />, label: 'Gift Cards', to: '/value-added/gift-cards' },
+          { icon: <LoyaltyIcon />, label: 'Loyalty Program', to: '/value-added/loyalty' },
+        ]
+      },
+      {
+        section: 'Referrals',
+        icon: <PeopleIcon />,
+        items: [
+          { icon: <PeopleIcon />, label: 'My Referrals', to: '/referrals' },
+        ]
+      },
+      {
+        section: 'Help Center',
+        icon: <SupportAgentIcon />,
+        items: [
+          { icon: <SupportAgentIcon />, label: 'Support Tickets', to: '/support/tickets' },
+          { icon: <SupportAgentIcon />, label: 'Live Chat & Email', to: '/support/chat' },
+          { icon: <MenuBook />, label: 'Knowledge Base', to: '/support/kb' },
+        ]
+      },
+      {
+        section: 'Account Settings',
         icon: <SettingsIcon />,
         items: [
           { icon: <NotificationsIcon />, label: 'Notifications', to: '/settings/notifications' },
           { icon: <HelpIcon />, label: 'Help & Support', to: '/settings/support' },
           { icon: <SettingsIcon />, label: 'Advanced Settings', to: '/settings/advanced' },
+          { icon: <PersonIcon />, label: 'Profile', to: '/settings/profile' },
         ]
       },
     ],

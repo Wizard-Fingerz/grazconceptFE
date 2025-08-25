@@ -31,7 +31,7 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  userType: 'customer' | 'agent';
+  userType: number;
 }
 
 export const Register: React.FC = () => {
@@ -51,10 +51,8 @@ export const Register: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    userType: 'customer',
+    userType: 0,
   });
-
-
 
   useEffect(() => {
     const fetchData = async () => {
