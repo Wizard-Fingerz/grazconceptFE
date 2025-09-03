@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 // import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -12,9 +12,73 @@ import {
   Paper,
   Box,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from "@mui/material";
 import { Chat, AirplaneTicket, Hotel, School, Savings } from "@mui/icons-material";
 import { CustomerPageHeader } from '../../../components/CustomerPageHeader';
+
+// Modal form content for each action
+const actionForms: Record<string, React.ReactNode> = {
+  "Book Flight": (
+    <>
+      <TextField label="From" fullWidth margin="normal" />
+      <TextField label="To" fullWidth margin="normal" />
+      <TextField label="Date" type="date" fullWidth margin="normal" InputLabelProps={{ shrink: true }} />
+    </>
+  ),
+  "Reserve Hotel": (
+    <>
+      <TextField label="Destination" fullWidth margin="normal" />
+      <TextField label="Check-in Date" type="date" fullWidth margin="normal" InputLabelProps={{ shrink: true }} />
+      <TextField label="Check-out Date" type="date" fullWidth margin="normal" InputLabelProps={{ shrink: true }} />
+    </>
+  ),
+  "Apply for Visa": (
+    <>
+      <TextField label="Country" fullWidth margin="normal" />
+      <TextField label="Purpose" fullWidth margin="normal" />
+    </>
+  ),
+  "Chat with Agent": (
+    <>
+      <TextField label="Your Message" fullWidth margin="normal" multiline rows={4} />
+    </>
+  ),
+  "Create Savings Plan": (
+    <>
+      <TextField label="Plan Name" fullWidth margin="normal" />
+      <TextField label="Amount" type="number" fullWidth margin="normal" />
+    </>
+  ),
+  "Apply for Study Loan": (
+    <>
+      <TextField label="Institution" fullWidth margin="normal" />
+      <TextField label="Amount Needed" type="number" fullWidth margin="normal" />
+    </>
+  ),
+  "Study Abroad Loan": (
+    <>
+      <TextField label="Country" fullWidth margin="normal" />
+      <TextField label="Loan Amount" type="number" fullWidth margin="normal" />
+    </>
+  ),
+  "Pilgrimage Package": (
+    <>
+      <TextField label="Destination" fullWidth margin="normal" />
+      <TextField label="Number of People" type="number" fullWidth margin="normal" />
+    </>
+  ),
+  "Business Loan for Travel Project": (
+    <>
+      <TextField label="Business Name" fullWidth margin="normal" />
+      <TextField label="Loan Amount" type="number" fullWidth margin="normal" />
+    </>
+  ),
+};
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -22,20 +86,31 @@ export const Dashboard: React.FC = () => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const isSm = useMediaQuery(theme.breakpoints.down('md'));
-  console.log(isXs, isSm)
+  console.log(isXs, isSm);
+
+  // Modal state
+  const [openModal, setOpenModal] = useState(false);
+  const [modalLabel, setModalLabel] = useState<string | null>(null);
+
+  const handleActionClick = (label: string) => {
+    setModalLabel(label);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setModalLabel(null);
+  };
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
       {/* Welcome Header */}
-      
       <CustomerPageHeader>
-  {/* Page Header */}
-  
-  <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+        {/* Page Header */}
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
           Welcome, {user?.first_name}!
         </Typography>
-</CustomerPageHeader>
-
+      </CustomerPageHeader>
 
       {/* Top Section */}
       <Stack
@@ -101,12 +176,12 @@ export const Dashboard: React.FC = () => {
               gap: 1.5,
             }}
           >
-            <ActionCard icon={<AirplaneTicket />} label="Book Flight" />
-            <ActionCard icon={<Hotel />} label="Reserve Hotel" />
-            <ActionCard icon={<School />} label="Apply for Visa" />
-            <ActionCard icon={<Chat />} label="Chat with Agent" />
-            <ActionCard icon={<Savings />} label="Create Savings Plan" />
-            <ActionCard icon={<School />} label="Apply for Study Loan" />
+            <ActionCard icon={<AirplaneTicket />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
+            <ActionCard icon={<Hotel />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
+            <ActionCard icon={<School />} label="Apply for Visa" onClick={() => handleActionClick("Apply for Visa")} />
+            <ActionCard icon={<Chat />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
+            <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
+            <ActionCard icon={<School />} label="Apply for Study Loan" onClick={() => handleActionClick("Apply for Study Loan")} />
           </Box>
         </Box>
       </Stack>
@@ -142,13 +217,13 @@ export const Dashboard: React.FC = () => {
         <Box sx={{ flex: { xs: 'unset', md: 3 }, width: { xs: '100%', md: '75%' }, minWidth: 0 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
             <Box sx={{ flex: 1 }}>
-              <ActionCard icon={<Chat />} label="Study Abroad Loan" />
+              <ActionCard icon={<Chat />} label="Study Abroad Loan" onClick={() => handleActionClick("Study Abroad Loan")} />
             </Box>
             <Box sx={{ flex: 1 }}>
-              <ActionCard icon={<Savings />} label="Pilgrimage Package" />
+              <ActionCard icon={<Savings />} label="Pilgrimage Package" onClick={() => handleActionClick("Pilgrimage Package")} />
             </Box>
             <Box sx={{ flex: 1 }}>
-              <ActionCard icon={<School />} label="Business Loan for Travel Project" />
+              <ActionCard icon={<School />} label="Business Loan for Travel Project" onClick={() => handleActionClick("Business Loan for Travel Project")} />
             </Box>
           </Stack>
 
@@ -198,12 +273,38 @@ export const Dashboard: React.FC = () => {
           </Paper>
         </Box>
       </Stack>
+
+      {/* Modal for ActionCard */}
+      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {modalLabel}
+        </DialogTitle>
+        <DialogContent>
+          {modalLabel && actionForms[modalLabel] ? actionForms[modalLabel] : <Typography>No form available.</Typography>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModal} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleCloseModal} variant="contained" color="primary">
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
 /* Reusable Components */
-const ActionCard = ({ icon, label }: { icon: any; label: string }) => (
+const ActionCard = ({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: any;
+  label: string;
+  onClick?: () => void;
+}) => (
   <Paper
     key={label}
     elevation={1}
@@ -213,7 +314,7 @@ const ActionCard = ({ icon, label }: { icon: any; label: string }) => (
       textAlign: 'center',
       borderRadius: 1,
       transition: 'box-shadow 0.2s',
-      '&:hover': { boxShadow: 4 },
+      '&:hover': { boxShadow: 4, cursor: 'pointer' },
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -221,6 +322,9 @@ const ActionCard = ({ icon, label }: { icon: any; label: string }) => (
       justifyContent: 'center',
       minHeight: 100,
     }}
+    onClick={onClick}
+    tabIndex={0}
+    role="button"
   >
     <Avatar
       sx={{
