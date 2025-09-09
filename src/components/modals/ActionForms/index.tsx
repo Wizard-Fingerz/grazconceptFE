@@ -470,7 +470,7 @@ export const actionForms = (
       </Box>
     </>
   ),
-  "Car Rental": (
+  "Car Rentals": (
     <>
       <CountrySelect
         label="Pick-up Location"
@@ -543,7 +543,7 @@ export const actionForms = (
       />
     </>
   ),
-  "Airport Taxi": (
+  "Airport Taxis": (
     <>
       <CountrySelect
         label="Pick-up Location"
