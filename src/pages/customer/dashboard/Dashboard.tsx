@@ -319,14 +319,108 @@ const actionForms = (
         onChange={(val) => setFormState((s) => ({ ...s, to: val }))}
       />
       <TextField
-        label="Date"
+        label="Departure Date"
         type="date"
         fullWidth
         margin="normal"
         InputLabelProps={{ shrink: true }}
-        value={formState.date || ''}
-        onChange={(e) => setFormState((s) => ({ ...s, date: e.target.value }))}
+        value={formState.departureDate || ''}
+        onChange={(e) => setFormState((s) => ({ ...s, departureDate: e.target.value }))}
       />
+      <TextField
+        label="Return Date"
+        type="date"
+        fullWidth
+        margin="normal"
+        InputLabelProps={{ shrink: true }}
+        value={formState.returnDate || ''}
+        onChange={(e) => setFormState((s) => ({ ...s, returnDate: e.target.value }))}
+      />
+      {/* Travelers Section */}
+      <Box sx={{ my: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+          Travelers
+        </Typography>
+        {[
+          { key: "adults", label: "Adults", sub: "18-64", min: 1 },
+          { key: "students", label: "Students", sub: "over 18", min: 0 },
+          { key: "seniors", label: "Seniors", sub: "over 65", min: 0 },
+          { key: "youths", label: "Youths", sub: "12-17", min: 0 },
+          { key: "children", label: "Children", sub: "2-11", min: 0 },
+          { key: "toddlers", label: "Toddlers in own seat", sub: "under 2", min: 0 },
+          { key: "infants", label: "Infants on lap", sub: "under 2", min: 0 },
+        ].map(({ key, label, sub, min }) => (
+          <Box
+            key={key}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 1.5,
+              pl: 1,
+              pr: 1,
+            }}
+          >
+            <Box>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                {label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {sub}
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                sx={{ minWidth: 32, px: 0 }}
+                onClick={() =>
+                  setFormState((s) => ({
+                    ...s,
+                    [key]: Math.max((s[key] || 0) - 1, min),
+                  }))
+                }
+                disabled={(formState[key] || 0) <= min}
+                aria-label={`Decrease ${label}`}
+              >
+                -
+              </Button>
+              <Typography variant="body1" sx={{ width: 24, textAlign: "center" }}>
+                {formState[key] !== undefined ? formState[key] : min}
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                sx={{ minWidth: 32, px: 0 }}
+                onClick={() =>
+                  setFormState((s) => ({
+                    ...s,
+                    [key]: (s[key] || min) + 1,
+                  }))
+                }
+                aria-label={`Increase ${label}`}
+              >
+                +
+              </Button>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+      <Box sx={{ display: 'flex', gap: 1, mt: 2, mb: 1 }}>
+        {["Economy", "Business", "First", "Premium"].map((option) => (
+          <Button
+            key={option}
+            variant={formState.cabinClass === option ? "contained" : "outlined"}
+            color={formState.cabinClass === option ? "primary" : "inherit"}
+            onClick={() =>
+              setFormState((s) => ({ ...s, cabinClass: option }))
+            }
+            sx={{ flex: 1, textTransform: "none" }}
+          >
+            {option}
+          </Button>
+        ))}
+      </Box>
     </>
   ),
   "Reserve Hotel": (
