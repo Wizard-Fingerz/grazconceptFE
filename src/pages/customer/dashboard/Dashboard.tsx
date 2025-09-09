@@ -381,7 +381,35 @@ const actionForms = (
       {/* One Way */}
       {formState.flightType === "One Way" && (
         <>
-          {/* Already handled above, just disables Return Date */}
+          <CountrySelect
+            label="From"
+            value={formState.from || null}
+            onChange={(val) => setFormState((s) => ({ ...s, from: val }))}
+          />
+          <CountrySelect
+            label="To"
+            value={formState.to || null}
+            onChange={(val) => setFormState((s) => ({ ...s, to: val }))}
+          />
+          <TextField
+            label="Departure Date"
+            type="date"
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+            value={formState.departureDate || ''}
+            onChange={(e) => setFormState((s) => ({ ...s, departureDate: e.target.value }))}
+          />
+          <TextField
+            label="Return Date"
+            type="date"
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+            value={formState.returnDate || ''}
+            onChange={(e) => setFormState((s) => ({ ...s, returnDate: e.target.value }))}
+            disabled
+          />
         </>
       )}
 
