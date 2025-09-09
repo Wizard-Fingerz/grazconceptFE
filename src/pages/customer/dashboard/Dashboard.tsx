@@ -18,12 +18,22 @@ import {
   DialogActions,
   Divider,
 } from "@mui/material";
-import { Chat, AirplaneTicket, Hotel, School, Savings } from "@mui/icons-material";
+import {
+  Chat,
+  AirplaneTicket,
+  Hotel,
+  School,
+  Savings,
+  DirectionsCar,
+  Attractions,
+  LocalTaxi,
+} from "@mui/icons-material";
 import { CustomerPageHeader } from '../../../components/CustomerPageHeader';
 import { ActionCard } from '../../../components/ActionCard/DasboardActionButton';
 import { ImageCard } from '../../../components/ImageCard';
 import { actionForms } from '../../../components/modals/ActionForms';
 import { submitActionForm } from '../../../services/actionFormService';
+import { toast } from 'react-toastify';
 
 
 const FundWalletModalContent = ({ user }: { user: any }) => (
@@ -77,6 +87,9 @@ const actionResultRoutes: Record<string, string> = {
   "Study Abroad Loan": "/customer/dashboard/study-abroad-loan-result",
   "Pilgrimage Package": "/customer/dashboard/pilgrimage-result",
   "Business Loan for Travel Project": "/customer/dashboard/business-loan-result",
+  "Car Rentals": "/customer/dashboard/car-rentals-result",
+  "Attractions": "/customer/dashboard/attractions-result",
+  "Airport Taxis": "/customer/dashboard/airport-taxis-result",
   // Add more as needed
 };
 
@@ -136,9 +149,10 @@ export const Dashboard: React.FC = () => {
         // Fallback: just close modal if no route is defined
         setOpenModal(false);
       }
-    } catch (error) {
-      // Optionally handle error (show error message, etc)
-      alert("Submission failed. Please try again.");
+      toast.success("Submission successful!");
+    } catch (error: any) {
+      // Use react-toastify for error display
+      toast.error("Submission failed. Please try again.");
     } finally {
       setSubmitting(false);
       setOpenModal(false);
@@ -222,9 +236,9 @@ export const Dashboard: React.FC = () => {
             sx={{
               display: 'grid',
               gridTemplateColumns: {
-                xs: 'repeat(3, 1fr)', // 4 columns on mobile
+                xs: 'repeat(3, 1fr)', // 3 columns on mobile
                 sm: 'repeat(3, 1fr)', // 3 columns on small screens
-                md: 'repeat(6, 1fr)', // 6 columns on medium and up
+                md: 'repeat(5, 1fr)', // 9 columns on medium and up
               },
               gap: 1.5,
             }}
@@ -235,6 +249,9 @@ export const Dashboard: React.FC = () => {
             <ActionCard icon={<Chat />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
             <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
             <ActionCard icon={<School />} label="Apply for Study Loan" onClick={() => handleActionClick("Apply for Study Loan")} />
+            <ActionCard icon={<DirectionsCar />} label="Car Rentals" onClick={() => handleActionClick("Car Rentals")} />
+            <ActionCard icon={<Attractions />} label="Attractions" onClick={() => handleActionClick("Attractions")} />
+            <ActionCard icon={<LocalTaxi />} label="Airport Taxis" onClick={() => handleActionClick("Airport Taxis")} />
           </Box>
         </Box>
       </Stack>
@@ -291,6 +308,15 @@ export const Dashboard: React.FC = () => {
               </Box>
               <Box sx={{ flex: 1 }}>
                 <SuggestionCard title="Business loan for travel project" />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <SuggestionCard title="Car Rentals" />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <SuggestionCard title="Attractions" />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <SuggestionCard title="Airport Taxis" />
               </Box>
             </Stack>
           </Box>
