@@ -19,6 +19,8 @@ import {
   TextField,
   Divider,
   Autocomplete,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { Chat, AirplaneTicket, Hotel, School, Savings } from "@mui/icons-material";
 import { CustomerPageHeader } from '../../../components/CustomerPageHeader';
@@ -610,6 +612,155 @@ const actionForms = (
         value={formState.checkOut || ''}
         onChange={(e) => setFormState((s) => ({ ...s, checkOut: e.target.value }))}
       />
+
+      {/* Guests and Rooms */}
+      <Box sx={{ display: 'flex', gap: 2, mt: 2, mb: 1 }}>
+        {/* Adults */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="subtitle2">Adults</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 32, px: 0 }}
+              onClick={() =>
+                setFormState((s) => ({
+                  ...s,
+                  adults: Math.max((s.adults || 2) - 1, 1),
+                }))
+              }
+              disabled={(formState.adults || 2) <= 1}
+              aria-label="Decrease Adults"
+            >
+              -
+            </Button>
+            <Typography variant="body1" sx={{ width: 24, textAlign: "center" }}>
+              {formState.adults !== undefined ? formState.adults : 2}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 32, px: 0 }}
+              onClick={() =>
+                setFormState((s) => ({
+                  ...s,
+                  adults: (s.adults || 2) + 1,
+                }))
+              }
+              aria-label="Increase Adults"
+            >
+              +
+            </Button>
+          </Box>
+        </Box>
+        {/* Children */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="subtitle2">Children</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 32, px: 0 }}
+              onClick={() =>
+                setFormState((s) => ({
+                  ...s,
+                  children: Math.max((s.children || 0) - 1, 0),
+                }))
+              }
+              disabled={(formState.children || 0) <= 0}
+              aria-label="Decrease Children"
+            >
+              -
+            </Button>
+            <Typography variant="body1" sx={{ width: 24, textAlign: "center" }}>
+              {formState.children !== undefined ? formState.children : 0}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 32, px: 0 }}
+              onClick={() =>
+                setFormState((s) => ({
+                  ...s,
+                  children: (s.children || 0) + 1,
+                }))
+              }
+              aria-label="Increase Children"
+            >
+              +
+            </Button>
+          </Box>
+        </Box>
+        {/* Rooms */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="subtitle2">Rooms</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 32, px: 0 }}
+              onClick={() =>
+                setFormState((s) => ({
+                  ...s,
+                  rooms: Math.max((s.rooms || 1) - 1, 1),
+                }))
+              }
+              disabled={(formState.rooms || 1) <= 1}
+              aria-label="Decrease Rooms"
+            >
+              -
+            </Button>
+            <Typography variant="body1" sx={{ width: 24, textAlign: "center" }}>
+              {formState.rooms !== undefined ? formState.rooms : 1}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 32, px: 0 }}
+              onClick={() =>
+                setFormState((s) => ({
+                  ...s,
+                  rooms: (s.rooms || 1) + 1,
+                }))
+              }
+              aria-label="Increase Rooms"
+            >
+              +
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Pets/Assistance Animals Info */}
+      <Box sx={{ mt: 2, mb: 1, p: 2, bgcolor: "#f9fafb", borderRadius: 2 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={!!formState.travelingWithPets}
+              onChange={(e) =>
+                setFormState((s) => ({
+                  ...s,
+                  travelingWithPets: e.target.checked,
+                }))
+              }
+              name="travelingWithPets"
+              color="primary"
+            />
+          }
+          label={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Traveling with pets?</Typography>}
+        />
+        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+          Assistance animals aren’t considered pets.&nbsp;
+          <a
+            href="https://www.transportation.gov/individuals/aviation-consumer-protection/service-animals"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#1976d2", textDecoration: "underline" }}
+          >
+            Read more about traveling with assistance animals
+          </a>
+        </Typography>
+      </Box>
     </>
   ),
   "Apply for Visa": (
