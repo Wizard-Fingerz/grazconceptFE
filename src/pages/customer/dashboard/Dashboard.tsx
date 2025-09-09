@@ -308,34 +308,168 @@ const actionForms = (
 ): Record<string, React.ReactNode> => ({
   "Book Flight": (
     <>
-      <CountrySelect
-        label="From"
-        value={formState.from || null}
-        onChange={(val) => setFormState((s) => ({ ...s, from: val }))}
-      />
-      <CountrySelect
-        label="To"
-        value={formState.to || null}
-        onChange={(val) => setFormState((s) => ({ ...s, to: val }))}
-      />
-      <TextField
-        label="Departure Date"
-        type="date"
-        fullWidth
-        margin="normal"
-        InputLabelProps={{ shrink: true }}
-        value={formState.departureDate || ''}
-        onChange={(e) => setFormState((s) => ({ ...s, departureDate: e.target.value }))}
-      />
-      <TextField
-        label="Return Date"
-        type="date"
-        fullWidth
-        margin="normal"
-        InputLabelProps={{ shrink: true }}
-        value={formState.returnDate || ''}
-        onChange={(e) => setFormState((s) => ({ ...s, returnDate: e.target.value }))}
-      />
+      {/* Flight Type Tabs */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        {["Round Trip", "One Way", "Multi-city"].map((type) => (
+          <Button
+            key={type}
+            variant={formState.flightType === type ? "contained" : "outlined"}
+            color={formState.flightType === type ? "primary" : "inherit"}
+            onClick={() => {
+              // If switching to Multi-city and it's not already set, initialize segments
+              if (type === "Multi-city" && !Array.isArray(formState.multiCitySegments)) {
+                setFormState((s) => ({
+                  ...s,
+                  flightType: type,
+                  multiCitySegments: [
+                    { from: "", to: "", departureDate: "" },
+                    { from: "", to: "", departureDate: "" },
+                  ],
+                }));
+              } else if (type !== "Multi-city") {
+                setFormState((s) => {
+                  // Remove multiCitySegments when switching away from Multi-city
+                  const { multiCitySegments, ...rest } = s;
+                  return { ...rest, flightType: type };
+                });
+              } else {
+                setFormState((s) => ({ ...s, flightType: type }));
+              }
+            }}
+            sx={{ flex: 1, textTransform: "none" }}
+          >
+            {type}
+          </Button>
+        ))}
+      </Box>
+
+      {/* Round Trip & One Way */}
+      {(formState.flightType === "Round Trip" || !formState.flightType || formState.flightType === undefined) && (
+        <>
+          <CountrySelect
+            label="From"
+            value={formState.from || null}
+            onChange={(val) => setFormState((s) => ({ ...s, from: val }))}
+          />
+          <CountrySelect
+            label="To"
+            value={formState.to || null}
+            onChange={(val) => setFormState((s) => ({ ...s, to: val }))}
+          />
+          <TextField
+            label="Departure Date"
+            type="date"
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+            value={formState.departureDate || ''}
+            onChange={(e) => setFormState((s) => ({ ...s, departureDate: e.target.value }))}
+          />
+          <TextField
+            label="Return Date"
+            type="date"
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+            value={formState.returnDate || ''}
+            onChange={(e) => setFormState((s) => ({ ...s, returnDate: e.target.value }))}
+            disabled={formState.flightType === "One Way"}
+          />
+        </>
+      )}
+
+      {/* One Way */}
+      {formState.flightType === "One Way" && (
+        <>
+          {/* Already handled above, just disables Return Date */}
+        </>
+      )}
+
+      {/* Multi-city */}
+      {formState.flightType === "Multi-city" && (
+        <>
+          {(Array.isArray(formState.multiCitySegments) ? formState.multiCitySegments : []).map((segment: any, idx: number) => (
+            <Box key={idx} sx={{ mb: 2, border: '1px solid #eee', borderRadius: 2, p: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Segment {idx + 1}
+              </Typography>
+              <CountrySelect
+                label="From"
+                value={segment.from || null}
+                onChange={(val) =>
+                  setFormState((s) => {
+                    const segments = Array.isArray(s.multiCitySegments) ? [...s.multiCitySegments] : [];
+                    segments[idx] = { ...segments[idx], from: val };
+                    return { ...s, multiCitySegments: segments };
+                  })
+                }
+              />
+              <CountrySelect
+                label="To"
+                value={segment.to || null}
+                onChange={(val) =>
+                  setFormState((s) => {
+                    const segments = Array.isArray(s.multiCitySegments) ? [...s.multiCitySegments] : [];
+                    segments[idx] = { ...segments[idx], to: val };
+                    return { ...s, multiCitySegments: segments };
+                  })
+                }
+              />
+              <TextField
+                label="Departure Date"
+                type="date"
+                fullWidth
+                margin="normal"
+                InputLabelProps={{ shrink: true }}
+                value={segment.departureDate || ''}
+                onChange={(e) =>
+                  setFormState((s) => {
+                    const segments = Array.isArray(s.multiCitySegments) ? [...s.multiCitySegments] : [];
+                    segments[idx] = { ...segments[idx], departureDate: e.target.value };
+                    return { ...s, multiCitySegments: segments };
+                  })
+                }
+              />
+              {Array.isArray(formState.multiCitySegments) && formState.multiCitySegments.length > 2 && (
+                <Button
+                  size="small"
+                  color="error"
+                  sx={{ mt: 1 }}
+                  onClick={() =>
+                    setFormState((s) => ({
+                      ...s,
+                      multiCitySegments: (Array.isArray(s.multiCitySegments) ? s.multiCitySegments : []).filter((_: any, i: number) => i !== idx),
+                    }))
+                  }
+                >
+                  Remove Segment
+                </Button>
+              )}
+            </Box>
+          ))}
+          <Button
+            variant="outlined"
+            sx={{ mb: 2 }}
+            onClick={() =>
+              setFormState((s) => ({
+                ...s,
+                multiCitySegments: [
+                  ...(Array.isArray(s.multiCitySegments)
+                    ? s.multiCitySegments
+                    : [
+                        { from: "", to: "", departureDate: "" },
+                        { from: "", to: "", departureDate: "" },
+                      ]),
+                  { from: "", to: "", departureDate: "" },
+                ],
+              }))
+            }
+          >
+            Add Another Segment
+          </Button>
+        </>
+      )}
+
       {/* Travelers Section */}
       <Box sx={{ my: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
