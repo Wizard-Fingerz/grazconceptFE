@@ -1,44 +1,39 @@
+import api from './api';
+
 /**
  * Service to submit action form data to the backend API.
  * @param actionLabel The label of the action (e.g., "Book Flight", "Reserve Hotel", etc.)
  * @param formData The form data object to submit
- * @returns Promise resolving to the API response (mocked for now)
+ * @returns Promise resolving to the API response
  */
 export async function submitActionForm(
   actionLabel: string,
   formData: Record<string, any>
 ): Promise<any> {
-  // You can map actionLabel to API endpoints here
-  // For now, we'll mock the API call with a delay and return the formData as the "response"
-  // Replace this with a real API call (e.g., using fetch or axios) as needed
+  // Map action labels to backend API endpoints
+  const endpointMap: Record<string, string> = {
+    "Book Flight": "/flights/book/",
+    "Reserve Hotel": "/hotels/reserve/",
+    "Apply for Visa": "/visa/apply/",
+    "Chat with Agent": "/chat/start/",
+    "Create Savings Plan": "/savings/create/",
+    "Apply for Study Loan": "/loans/study/apply/",
+    "Study Abroad Loan": "/loans/study-abroad/apply/",
+    "Pilgrimage Package": "/pilgrimage/apply/",
+    "Business Loan for Travel Project": "/loans/business-travel/apply/",
+    // Add more mappings as needed
+  };
 
-  // Example endpoint mapping (customize as needed)
-  // const endpointMap: Record<string, string> = {
-  //   "Book Flight": "/api/flights/book",
-  //   "Reserve Hotel": "/api/hotels/reserve",
-  //   ...
-  // };
-  // const endpoint = endpointMap[actionLabel];
+  const endpoint = endpointMap[actionLabel];
+  if (!endpoint) {
+    throw new Error(`No API endpoint mapped for action: ${actionLabel}`);
+  }
 
-  // Example real API call (uncomment and adjust as needed):
-  // const response = await fetch(endpoint, {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(formData),
-  // });
-  // if (!response.ok) throw new Error("API request failed");
-  // return await response.json();
-
-  // --- Mock implementation ---
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        action: actionLabel,
-        data: formData,
-        message: `Successfully submitted ${actionLabel} form.`,
-        timestamp: new Date().toISOString(),
-      });
-    }, 1000);
-  });
+  try {
+    const response = await api.post(endpoint, formData);
+    return response.data;
+  } catch (error: any) {
+    // Optionally, you can handle error formatting here
+    throw error;
+  }
 }
