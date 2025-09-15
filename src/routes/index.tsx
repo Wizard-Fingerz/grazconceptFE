@@ -43,6 +43,7 @@ import { ApplyWorkVisa } from '../pages/customer/travel/WorkVisa';
 import { ApplyPilgrimageVisa } from '../pages/customer/travel/Prigrimage';
 import VacationPage from '../pages/customer/travel/Vacation';
 import HotelReservation from '../pages/customer/travel/HotelReservation';
+import FlightListPage from '../pages/customer/flight';
 
 
 // Public routes (unauthenticated)
@@ -96,6 +97,12 @@ export const protectedRoutes: RouteObject[] = [
         path: 'dashboard',
         element: <Dashboard />,
       },
+
+      {
+        path: 'dashboard/flight-result',
+        element: <FlightListPage />,
+      },
+   
       // Register customer placeholder routes
       {
         path: 'travel/study-visa',

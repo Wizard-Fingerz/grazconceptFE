@@ -2,6 +2,7 @@ import api from './api';
 
 /**
  * Service to submit action form data to the backend API.
+ * Includes Bearer token from localStorage in the request headers.
  * @param actionLabel The label of the action (e.g., "Book Flight", "Reserve Hotel", etc.)
  * @param formData The form data object to submit
  * @returns Promise resolving to the API response
@@ -12,7 +13,7 @@ export async function submitActionForm(
 ): Promise<any> {
   // Map action labels to backend API endpoints
   const endpointMap: Record<string, string> = {
-    "Book Flight": "/flights/book/",
+    "Book Flight": "/app/search-flights/",
     "Reserve Hotel": "/hotels/reserve/",
     "Apply for Visa": "/visa/apply/",
     "Chat with Agent": "/chat/start/",
@@ -29,8 +30,14 @@ export async function submitActionForm(
     throw new Error(`No API endpoint mapped for action: ${actionLabel}`);
   }
 
+  // Get the latest token from localStorage
+  const token = localStorage.getItem('token');
+  const headers = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
   try {
-    const response = await api.post(endpoint, formData);
+    const response = await api.post(endpoint, formData, { headers });
     return response.data;
   } catch (error: any) {
     // Optionally, you can handle error formatting here

@@ -78,7 +78,7 @@ const FundWalletModalContent = ({ user }: { user: any }) => (
 
 // Map action label to result page route
 const actionResultRoutes: Record<string, string> = {
-  "Book Flight": "/customer/dashboard/flight-result",
+  "Book Flight": "/dashboard/flight-result",
   "Reserve Hotel": "/customer/dashboard/hotel-result",
   "Apply for Visa": "/customer/dashboard/visa-result",
   "Chat with Agent": "/customer/dashboard/chat-result",
