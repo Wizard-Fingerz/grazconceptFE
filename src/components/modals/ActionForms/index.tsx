@@ -298,8 +298,13 @@ export const actionForms = (
     <>
       <CountrySelect
         label="Destination"
-        value={formState.destination || null}
-        onChange={(val) => setFormState((s) => ({ ...s, destination: val }))}
+        value={formState.destination || ""}
+        onChange={(val) =>
+          setFormState((s) => ({
+            ...s,
+            destination: typeof val === "string" ? val : (val && typeof val === "object" && "label" in val ? (val as { label: string }).label : ""),
+          }))
+        }
       />
       <TextField
         label="Check-in Date"
@@ -307,8 +312,13 @@ export const actionForms = (
         fullWidth
         margin="normal"
         InputLabelProps={{ shrink: true }}
-        value={formState.checkIn || ''}
-        onChange={(e) => setFormState((s) => ({ ...s, checkIn: e.target.value }))}
+        value={formState.check_in || ""}
+        onChange={(e) =>
+          setFormState((s) => ({
+            ...s,
+            check_in: e.target.value,
+          }))
+        }
       />
       <TextField
         label="Check-out Date"
@@ -316,8 +326,13 @@ export const actionForms = (
         fullWidth
         margin="normal"
         InputLabelProps={{ shrink: true }}
-        value={formState.checkOut || ''}
-        onChange={(e) => setFormState((s) => ({ ...s, checkOut: e.target.value }))}
+        value={formState.check_out || ""}
+        onChange={(e) =>
+          setFormState((s) => ({
+            ...s,
+            check_out: e.target.value,
+          }))
+        }
       />
 
       {/* Guests and Rooms */}
@@ -333,15 +348,15 @@ export const actionForms = (
               onClick={() =>
                 setFormState((s) => ({
                   ...s,
-                  adults: Math.max((s.adults || 2) - 1, 1),
+                  adults: Math.max((s.adults ?? 2) - 1, 1),
                 }))
               }
-              disabled={(formState.adults || 2) <= 1}
+              disabled={(formState.adults ?? 2) <= 1}
               aria-label="Decrease Adults"
             >
               -
             </Button>
-            <Typography variant="body1" sx={{ width: 24, textAlign: "center" }}>
+            <Typography variant="body1" sx={{ width: 48, textAlign: "center" }}>
               {formState.adults !== undefined ? formState.adults : 2}
             </Typography>
             <Button
@@ -351,7 +366,7 @@ export const actionForms = (
               onClick={() =>
                 setFormState((s) => ({
                   ...s,
-                  adults: (s.adults || 2) + 1,
+                  adults: (s.adults ?? 2) + 1,
                 }))
               }
               aria-label="Increase Adults"
@@ -371,15 +386,15 @@ export const actionForms = (
               onClick={() =>
                 setFormState((s) => ({
                   ...s,
-                  children: Math.max((s.children || 0) - 1, 0),
+                  children: Math.max((s.children ?? 0) - 1, 0),
                 }))
               }
-              disabled={(formState.children || 0) <= 0}
+              disabled={(formState.children ?? 0) <= 0}
               aria-label="Decrease Children"
             >
               -
             </Button>
-            <Typography variant="body1" sx={{ width: 24, textAlign: "center" }}>
+            <Typography variant="body1" sx={{ width: 48, textAlign: "center" }}>
               {formState.children !== undefined ? formState.children : 0}
             </Typography>
             <Button
@@ -389,7 +404,7 @@ export const actionForms = (
               onClick={() =>
                 setFormState((s) => ({
                   ...s,
-                  children: (s.children || 0) + 1,
+                  children: (s.children ?? 0) + 1,
                 }))
               }
               aria-label="Increase Children"
@@ -409,15 +424,15 @@ export const actionForms = (
               onClick={() =>
                 setFormState((s) => ({
                   ...s,
-                  rooms: Math.max((s.rooms || 1) - 1, 1),
+                  rooms: Math.max((s.rooms ?? 1) - 1, 1),
                 }))
               }
-              disabled={(formState.rooms || 1) <= 1}
+              disabled={(formState.rooms ?? 1) <= 1}
               aria-label="Decrease Rooms"
             >
               -
             </Button>
-            <Typography variant="body1" sx={{ width: 24, textAlign: "center" }}>
+            <Typography variant="body1" sx={{ width: 48, textAlign: "center" }}>
               {formState.rooms !== undefined ? formState.rooms : 1}
             </Typography>
             <Button
@@ -427,7 +442,7 @@ export const actionForms = (
               onClick={() =>
                 setFormState((s) => ({
                   ...s,
-                  rooms: (s.rooms || 1) + 1,
+                  rooms: (s.rooms ?? 1) + 1,
                 }))
               }
               aria-label="Increase Rooms"
@@ -443,18 +458,22 @@ export const actionForms = (
         <FormControlLabel
           control={
             <Checkbox
-              checked={!!formState.travelingWithPets}
+              checked={!!formState.traveling_with_pets}
               onChange={(e) =>
                 setFormState((s) => ({
                   ...s,
-                  travelingWithPets: e.target.checked,
+                  traveling_with_pets: e.target.checked,
                 }))
               }
-              name="travelingWithPets"
+              name="traveling_with_pets"
               color="primary"
             />
           }
-          label={<Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Traveling with pets?</Typography>}
+          label={
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              Traveling with pets?
+            </Typography>
+          }
         />
         <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
           Assistance animals aren’t considered pets.&nbsp;

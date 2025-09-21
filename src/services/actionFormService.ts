@@ -14,7 +14,7 @@ export async function submitActionForm(
   // Map action labels to backend API endpoints
   const endpointMap: Record<string, string> = {
     "Book Flight": "/app/search-flights/",
-    "Reserve Hotel": "/hotels/reserve/",
+    "Reserve Hotel": "/app/hotel-bookings/",
     "Apply for Visa": "/visa/apply/",
     "Chat with Agent": "/chat/start/",
     "Create Savings Plan": "/savings/create/",
