@@ -112,7 +112,12 @@ export const Dashboard: React.FC = () => {
   const [formState, setFormState] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Modified: Book Flight navigates directly, others open modal
   const handleActionClick = (label: string) => {
+    if (label === "Book Flight") {
+      navigate("/dashboard/flight-result");
+      return;
+    }
     setModalLabel(label);
     setFormState({}); // Reset form state on open
     setOpenModal(true);
