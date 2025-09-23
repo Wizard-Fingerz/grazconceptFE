@@ -14,7 +14,7 @@ export async function getMyHotelReservations() {
 
 export async function getHotelSuggestions() {
     try {
-      const response = await api.get(`/app/hotel-bookings`);
+      const response = await api.get(`/app/hotels`);
       return response.data;
     } catch (error) {
       throw error;

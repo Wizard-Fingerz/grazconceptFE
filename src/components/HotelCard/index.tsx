@@ -42,19 +42,40 @@ const HotelCard: React.FC<HotelCardProps> = ({
       }}
     >
       {/* Image */}
+      {/* Try to use <img> first, fallback to <iframe> if needed */}
       <Box
-        component="img"
-        src={image}
-        alt={name}
         sx={{
           width: { xs: "100%", sm: 160 },
           height: { xs: 180, sm: 120 },
           borderRadius: 2,
-          objectFit: "cover",
+          overflow: "hidden",
           mr: { xs: 0, sm: 2 },
           mb: { xs: 2, sm: 0 },
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#f5f5f5",
         }}
-      />
+      >
+        <img
+          src={image}
+          alt={name}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            borderRadius: 16,
+            display: "block",
+          }}
+          onError={(e) => {
+            // fallback to iframe if image fails to load
+            const parent = e.currentTarget.parentElement;
+            if (parent) {
+              parent.innerHTML = `<iframe src="${image}" title="${name}" style="width:100%;height:100%;border:0;border-radius:16px;"></iframe>`;
+            }
+          }}
+        />
+      </Box>
 
       {/* Hotel Info */}
       <CardContent
