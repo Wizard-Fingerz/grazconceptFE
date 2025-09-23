@@ -1,10 +1,10 @@
-import axios from 'axios';
 
-const API_BASE_URL = '/api'; // Adjust base URL as needed
+import api from './api';
+
 
 export async function getMyHotelReservations() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/hotel-bookings`);
+    const response = await api.get(`/app/hotel-bookings`);
     return response.data;
   } catch (error) {
     throw error;
@@ -14,7 +14,7 @@ export async function getMyHotelReservations() {
 
 export async function getHotelSuggestions() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/hotel-bookings`);
+      const response = await api.get(`/app/hotel-bookings`);
       return response.data;
     } catch (error) {
       throw error;

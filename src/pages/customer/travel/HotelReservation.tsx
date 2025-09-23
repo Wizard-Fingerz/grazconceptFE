@@ -11,14 +11,15 @@ import {
   Alert,
   Tabs,
   Tab,
+  Card,
+  CardContent,
+  Chip,
 } from "@mui/material";
 import HotelCard from "../../../components/HotelCard";
 import FilterPanel from "../../../components/Filter/FilterPanel";
 import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
 import { actionForms } from "../../../components/modals/ActionForms";
 import { getHotelSuggestions, getMyHotelReservations } from "../../../services/hotelServices";
-
-
 
 // Example filter config (customize as needed)
 const filterConfig = [
@@ -56,6 +57,18 @@ const TABS = [
   { label: "My Reservations", value: 1 },
 ];
 
+function formatDate(dateStr: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+const countryCodeToName: Record<string, string> = {
+  AFG: "Afghanistan",
+  DZA: "Algeria",
+  // Add more as needed
+};
+
 const HotelReservation: React.FC = () => {
   const [filters, setFilters] = useState<any>({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,7 +96,7 @@ const HotelReservation: React.FC = () => {
       (async () => {
         try {
           const data = await getHotelSuggestions();
-          setHotelData(data?.hotels || []);
+          setHotelData(data?.results || []);
         } catch (err: any) {
           setHotelError(
             err?.response?.data?.detail || err.message || "Failed to fetch hotels."
@@ -103,7 +116,7 @@ const HotelReservation: React.FC = () => {
       (async () => {
         try {
           const data = await getMyHotelReservations();
-          setMyReservations(data?.reservations || []);
+          setMyReservations(data?.results || []);
         } catch (err: any) {
           setReservationsError(
             err?.response?.data?.detail || err.message || "Failed to fetch reservations."
@@ -226,12 +239,11 @@ const HotelReservation: React.FC = () => {
     </Box>
   );
 
+  // Replace Grid with CSS flexbox for the reservations tab
   const renderReservationsTab = () => (
     <Box
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
+        width: "100%",
         mb: 8,
       }}
     >
@@ -246,9 +258,223 @@ const HotelReservation: React.FC = () => {
           You have no hotel reservations yet.
         </Typography>
       ) : (
-        myReservations.map((_reservation) => (
-   <></>
-        ))
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 3,
+          }}
+        >
+          {myReservations.map((reservation) => (
+            <Box
+              key={reservation.id}
+              sx={{
+                flex: "1 1 260px",
+                minWidth: 220,
+                maxWidth: 340,
+                boxSizing: "border-box",
+                display: "flex",
+              }}
+            >
+              <Card
+                variant="outlined"
+                sx={{
+                  height: "100%",
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  transition: "box-shadow 0.2s",
+                  fontSize: "0.85rem",
+                }}
+              >
+                {/* Status and Pets in a single row, top left */}
+                <CardContent sx={{ p: 1.2 }}>
+                  {/* Hotel icon and name, reservation id below */}
+                <Box sx={{ display: "flex", flexDirection: "row", alignItems: "flex-start", gap: 1 }}>
+                  {/* Left: Hotel icon, name, reservation id */}
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 0.7 }}>
+                      <Box
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          background: "linear-gradient(135deg, #b2fefa 0%, #0ed2f7 100%)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          mr: 1,
+                          boxShadow: 1,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span role="img" aria-label="hotel" style={{ fontSize: 16 }}>
+                          🏨
+                        </span>
+                      </Box>
+                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.92rem",
+                            lineHeight: 1.1,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {countryCodeToName[reservation.destination] || reservation.destination}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.7rem", mb: 0.5, display: "block" }}
+                    >
+                      Reservation #{reservation.id}
+                    </Typography>
+                  </Box>
+                  {/* Right: Status and Pets */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 0.5,
+                      mt: 0.2,
+                      minWidth: 0,
+                    }}
+                  >
+                    {(() => {
+                      const statusMap: Record<string, { label: string; color: "primary" | "success" | "warning" | "info" | "error" | "default" }> = {
+                        pending: { label: "Pending", color: "warning" },
+                        searching: { label: "Searching", color: "info" },
+                        "awaiting response": { label: "Awaiting Response", color: "info" },
+                        "offer sent": { label: "Offer Sent", color: "primary" },
+                        "awaiting user confirmation": { label: "Awaiting User Confirmation", color: "info" },
+                        confirmed: { label: "Confirmed", color: "success" },
+                        cancelled: { label: "Cancelled", color: "error" },
+                      };
+                      const statusRaw = reservation.status || "";
+                      const status = statusRaw.toLowerCase();
+                      const statusInfo =
+                        statusMap[status] ||
+                        statusMap[status.replace(/_/g, " ")] ||
+                        {
+                          label:
+                            statusRaw.length > 0
+                              ? statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1)
+                              : "Reserved",
+                          color: "primary",
+                        };
+                      return (
+                        <>
+                          <Chip
+                            label={statusInfo.label}
+                            color={statusInfo.color}
+                            size="small"
+                            sx={{
+                              fontWeight: "bold",
+                              letterSpacing: 0.5,
+                              fontSize: "0.68rem",
+                              height: 18,
+                              px: 0.7,
+                            }}
+                          />
+                          {reservation.traveling_with_pets && (
+                            <Chip
+                              label="Pets"
+                              color="secondary"
+                              size="small"
+                              icon={<span role="img" aria-label="pet" style={{ fontSize: 12 }}>🐾</span>}
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: "0.68rem",
+                                height: 18,
+                                px: 0.7,
+                                ml: 0,
+                              }}
+                            />
+                          )}
+                        </>
+                      );
+                    })()}
+                  </Box>
+                </Box>
+                  {/* Dates in a single row */}
+                  <Box sx={{ display: "flex", gap: 1, mb: 0.7 }}>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontSize: "0.68rem" }}
+                      >
+                        <strong>Check-in</strong>
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 500, fontSize: "0.8rem" }}
+                      >
+                        {formatDate(reservation.check_in)}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontSize: "0.68rem" }}
+                      >
+                        <strong>Check-out</strong>
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 500, fontSize: "0.8rem" }}
+                      >
+                        {formatDate(reservation.check_out)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  {/* Room/guest info in a single row */}
+                  <Box sx={{ display: "flex", gap: 0.5, mb: 0.7, flexWrap: "wrap" }}>
+                    <Chip
+                      label={`Rooms: ${reservation.rooms}`}
+                      color="primary"
+                      size="small"
+                      sx={{ fontWeight: 500, fontSize: "0.68rem", height: 18, px: 0.7 }}
+                    />
+                    <Chip
+                      label={`Adults: ${reservation.adults}`}
+                      color="info"
+                      size="small"
+                      sx={{ fontWeight: 500, fontSize: "0.68rem", height: 18, px: 0.7 }}
+                    />
+                    <Chip
+                      label={`Children: ${reservation.children}`}
+                      color="success"
+                      size="small"
+                      sx={{ fontWeight: 500, fontSize: "0.68rem", height: 18, px: 0.7 }}
+                    />
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    color="text.disabled"
+                    sx={{
+                      display: "block",
+                      mt: 1,
+                      fontStyle: "italic",
+                      textAlign: "right",
+                      fontSize: "0.68rem",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    Reserved on {formatDate(reservation.created_at)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          ))}
+        </Box>
       )}
     </Box>
   );
