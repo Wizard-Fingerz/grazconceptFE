@@ -14,10 +14,10 @@ import {
   CircularProgress,
   TextField,
 } from "@mui/material";
-import { getAllInstitutions } from "../../../services/studyVisa";
-import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
+import { getAllInstitutions } from "../../../../services/studyVisa";
+import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
-import api from "../../../services/api";
+import api from "../../../../services/api";
 
 /**
  * ApplicationCard - Reusable card for displaying application info.
@@ -69,14 +69,14 @@ export const ApplyStudyVisa: React.FC = () => {
   const isSm = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
 
-  console.log(isXs,isSm )
+  console.log(isXs, isSm);
 
   // State for institutions and form selections
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [selectedInstitution, setSelectedInstitution] = useState<string>("");
-  const [selectedProgramType, setSelectedProgramType] = useState<string>("");
+  const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // This will now be the institution id
+  const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // This will be the program type id
   const [submitting, setSubmitting] = useState(false);
 
   // Fetch institutions on mount
@@ -90,7 +90,7 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoading(false));
   }, []);
 
-  // Derive unique countries and program types from institutions
+  // Derive unique countries from institutions
   const countries = Array.from(
     new Set(institutions.map((inst) => inst.country))
   ).filter(Boolean);
@@ -101,15 +101,20 @@ export const ApplyStudyVisa: React.FC = () => {
     : institutions;
 
   // Derive program types from filtered institutions (using new API structure)
-  const programTypes = Array.from(
-    new Set(
-      filteredInstitutions.flatMap((inst) =>
-        Array.isArray(inst.program_types)
-          ? inst.program_types.map((pt: { name: any }) => pt.name)
-          : []
-      )
+  // Each program type will be an object with id and name
+  const programTypeObjects: { id: string; name: string }[] = Array.from(
+    filteredInstitutions.flatMap((inst) =>
+      Array.isArray(inst.program_types)
+        ? inst.program_types
+            .filter((pt: any) => pt && pt.id && pt.name)
+            .map((pt: any) => ({ id: String(pt.id), name: pt.name }))
+        : []
     )
-  ).filter(Boolean);
+  ).filter(
+    (pt, idx, arr) =>
+      pt.id &&
+      arr.findIndex((x) => x.id === pt.id) === idx // unique by id
+  );
 
   // Handle form changes
   const handleCountryChange = (e: any) => {
@@ -119,40 +124,32 @@ export const ApplyStudyVisa: React.FC = () => {
   };
 
   const handleInstitutionChange = (e: any) => {
-    setSelectedInstitution(e.target.value);
+    setSelectedInstitution(e.target.value); // Now this is the institution id
     setSelectedProgramType("");
   };
 
   const handleProgramTypeChange = (e: any) => {
-    setSelectedProgramType(e.target.value);
+    setSelectedProgramType(e.target.value); // This will be the id
   };
 
   // Handle Start Application
   const handleStartApplication = async () => {
     setSubmitting(true);
     try {
-      // Find the selected institution object to get its id (if needed)
-      const institutionObj = filteredInstitutions.find(
-        (inst) => inst.name === selectedInstitution
-      );
-
       // Prepare payload
       const payload: Record<string, any> = {
         country: selectedCountry,
-        institution: selectedInstitution,
-        program_type: selectedProgramType,
-        institution_id: institutionObj?.id,
+        institution: selectedInstitution, // This is now the institution id
+        program_type: selectedProgramType, // This is the id
       };
 
-  // Get the latest token from localStorage
-  const token = localStorage.getItem('token');
-  const headers = token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
+      // Get the latest token from localStorage
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       // Send POST request to the application endpoint
       const response = await api.post(
-        `/visa/apply/`,
+        `/app/study-visa-application/`,
         payload,
         { headers }
       );
@@ -160,7 +157,7 @@ export const ApplyStudyVisa: React.FC = () => {
       // On success, get the id from response data and navigate
       const id = response.data?.id;
       if (id) {
-        navigate(`/customer/travel/study-visa/continue/${id}`);
+        navigate(`/travel/study-visa/continue/${id}`);
       } else {
         // Optionally handle missing id
         alert("Application submitted but no ID returned.");
@@ -188,9 +185,7 @@ export const ApplyStudyVisa: React.FC = () => {
     >
       <CustomerPageHeader>
         {/* Page Header */}
-        <Typography variant="h4" className="font-bold mb-2">
-          Apply for
-        </Typography>
+     
         <Typography variant="h4" className="font-bold mb-6">
           Study visa
         </Typography>
@@ -307,7 +302,7 @@ export const ApplyStudyVisa: React.FC = () => {
                   </MenuItem>
                 ) : (
                   filteredInstitutions.map((inst) => (
-                    <MenuItem key={inst.id || inst.name} value={inst.name}>
+                    <MenuItem key={inst.id || inst.name} value={inst.id}>
                       {inst.name}
                     </MenuItem>
                   ))
@@ -338,7 +333,7 @@ export const ApplyStudyVisa: React.FC = () => {
                 onChange={handleProgramTypeChange}
                 name="program-type"
               >
-                {programTypes.length === 0 && (
+                {programTypeObjects.length === 0 && (
                   <FormControlLabel
                     value=""
                     control={<Radio disabled />}
@@ -349,14 +344,14 @@ export const ApplyStudyVisa: React.FC = () => {
                     }
                   />
                 )}
-                {programTypes.map((type) => (
+                {programTypeObjects.map((pt) => (
                   <FormControlLabel
-                    key={type}
-                    value={type}
+                    key={pt.id}
+                    value={pt.id}
                     control={<Radio />}
                     label={
                       <Typography sx={{ fontSize: "0.95rem" }}>
-                        {type}
+                        {pt.name}
                       </Typography>
                     }
                   />

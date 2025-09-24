@@ -44,6 +44,7 @@ import { ApplyPilgrimageVisa } from '../pages/customer/travel/Prigrimage';
 import VacationPage from '../pages/customer/travel/Vacation';
 import HotelReservation from '../pages/customer/travel/HotelReservation';
 import FlightListPage from '../pages/customer/flight';
+import StudyVisaApplicationForm from '../pages/customer/travel/StudyVisa/ApplicationForm';
 
 
 // Public routes (unauthenticated)
@@ -107,6 +108,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'travel/study-visa',
         element: <ApplyStudyVisa />,
+      },
+      {
+        path: 'travel/study-visa/continue/:id',
+        element: <StudyVisaApplicationForm />,
       },
       {
         path: 'travel/work-visa',
