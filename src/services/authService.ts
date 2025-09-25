@@ -31,7 +31,7 @@ export interface UserProfile {
   user_type: number;
   role: number;
   custom_id?: string | null;
-  profile_picture?: string | null;
+  profile_picture?: string;
   profile_picture_url?: string | null;
   email: string;
   extra_permissions?: any[];
