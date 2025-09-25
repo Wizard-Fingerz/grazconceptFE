@@ -14,7 +14,7 @@ import {
   CircularProgress,
   TextField,
 } from "@mui/material";
-import { getAllInstitutions } from "../../../../services/studyVisa";
+import { getAllInstitutions, getMyRecentSudyVisaApplicaton } from "../../../../services/studyVisa";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../services/api";
@@ -28,23 +28,91 @@ export const ApplicationCard: React.FC<{
   program: string;
   status: string;
 }> = ({ university, country, program, status }) => (
-  <Card className="rounded-2xl shadow-md">
+  <Card
+    className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
+    sx={{
+      borderLeft: `6px solid ${
+        status === "Approved"
+          ? "#4caf50"
+          : status === "Pending"
+          ? "#ff9800"
+          : status === "Rejected"
+          ? "#f44336"
+          : "#bdbdbd"
+      }`,
+      minWidth: 260,
+      maxWidth: 340,
+      margin: "auto",
+      background: "#fffdfa",
+    }}
+  >
     <CardContent className="flex flex-col gap-2">
-      <Typography variant="subtitle1" className="font-bold">
-        {university}
-      </Typography>
-      <Typography variant="body2" className="text-gray-600">
-        {country}
-      </Typography>
-      <Typography variant="body2" className="text-gray-600">
-        {program}
-      </Typography>
-      <Button
-        size="small"
-        className="bg-[#f5ebe1] rounded-xl normal-case w-fit mt-2"
-      >
-        {status}
-      </Button>
+      <Box className="flex items-center justify-between mb-1">
+        <Typography
+          variant="subtitle1"
+          className="font-bold"
+          sx={{ fontSize: "1.1rem" }}
+        >
+          {university}
+        </Typography>
+        <Button
+          size="small"
+          className="bg-[#f5ebe1] rounded-xl normal-case w-fit"
+          sx={{
+            fontWeight: 600,
+            fontSize: "0.85rem",
+            color:
+              status === "Approved"
+                ? "#388e3c"
+                : status === "Pending"
+                ? "#ff9800"
+                : status === "Rejected"
+                ? "#d32f2f"
+                : "#616161",
+            background:
+              status === "Approved"
+                ? "#e8f5e9"
+                : status === "Pending"
+                ? "#fff3e0"
+                : status === "Rejected"
+                ? "#ffebee"
+                : "#f5ebe1",
+            px: 2,
+            py: 0.5,
+            boxShadow: "none",
+            pointerEvents: "none",
+          }}
+          disableElevation
+        >
+          {status}
+        </Button>
+      </Box>
+      <Box className="flex flex-col gap-1">
+        <Box className="flex items-center gap-2">
+          <Typography
+            variant="body2"
+            className="text-gray-600"
+            sx={{ fontWeight: 500, minWidth: 70 }}
+          >
+            Country:
+          </Typography>
+          <Typography variant="body2" className="text-gray-800">
+            {country}
+          </Typography>
+        </Box>
+        <Box className="flex items-center gap-2">
+          <Typography
+            variant="body2"
+            className="text-gray-600"
+            sx={{ fontWeight: 500, minWidth: 70 }}
+          >
+            Program:
+          </Typography>
+          <Typography variant="body2" className="text-gray-800">
+            {program}
+          </Typography>
+        </Box>
+      </Box>
     </CardContent>
   </Card>
 );
@@ -67,10 +135,8 @@ export const ApplyStudyVisa: React.FC = () => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
   const isSm = useMediaQuery(theme.breakpoints.down("md"));
-  const navigate = useNavigate();
-
   console.log(isXs, isSm);
-
+  const navigate = useNavigate();
   // State for institutions and form selections
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +144,10 @@ export const ApplyStudyVisa: React.FC = () => {
   const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // This will now be the institution id
   const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // This will be the program type id
   const [submitting, setSubmitting] = useState(false);
+
+  // State for recent applications
+  const [recentApplications, setRecentApplications] = useState<any[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState(true);
 
   // Fetch institutions on mount
   useEffect(() => {
@@ -88,6 +158,24 @@ export const ApplyStudyVisa: React.FC = () => {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, []);
+
+  // Fetch recent study visa applications on mount
+  useEffect(() => {
+    setLoadingApplications(true);
+    getMyRecentSudyVisaApplicaton()
+      .then((data) => {
+        // If paginated, use data.results; else fallback
+        if (data && Array.isArray(data.results)) {
+          setRecentApplications(data.results);
+        } else if (Array.isArray(data)) {
+          setRecentApplications(data);
+        } else {
+          setRecentApplications([]);
+        }
+        setLoadingApplications(false);
+      })
+      .catch(() => setLoadingApplications(false));
   }, []);
 
   // Derive unique countries from institutions
@@ -173,6 +261,43 @@ export const ApplyStudyVisa: React.FC = () => {
     }
   };
 
+  // Helper: get institution name by id
+  const getInstitutionName = (id: number | string) => {
+    const inst = institutions.find((i) => String(i.id) === String(id));
+    return inst?.name || "Unknown Institution";
+  };
+
+  // Helper: get institution country by id
+  const getInstitutionCountry = (id: number | string) => {
+    const inst = institutions.find((i) => String(i.id) === String(id));
+    return inst?.country || "Unknown Country";
+  };
+
+  // Helper: get program type name by id
+  const getProgramTypeName = (id: number | string) => {
+    for (const inst of institutions) {
+      if (Array.isArray(inst.program_types)) {
+        const pt = inst.program_types.find((pt: any) => String(pt.id) === String(id));
+        if (pt) return pt.name;
+      }
+    }
+    return "Unknown Program";
+  };
+
+  // Helper: get status label from status code
+  const getStatusLabel = (status: number | string | null | undefined) => {
+    // You can expand this mapping as needed
+    const statusMap: Record<string, string> = {
+      "33": "Draft",
+      "34": "Submitted",
+      "35": "In Review",
+      "36": "Approved",
+      "37": "Rejected",
+    };
+    if (status == null) return "Unknown Status";
+    return statusMap[String(status)] || String(status);
+  };
+
   return (
     <Box
       sx={{
@@ -185,7 +310,6 @@ export const ApplyStudyVisa: React.FC = () => {
     >
       <CustomerPageHeader>
         {/* Page Header */}
-     
         <Typography variant="h4" className="font-bold mb-6">
           Study visa
         </Typography>
@@ -376,27 +500,56 @@ export const ApplyStudyVisa: React.FC = () => {
       </Button>
 
       {/* Recent Applications */}
-      <Typography
-        variant="h6"
-        className="font-bold mb-4"
-        sx={{ mt: 4 }}
+      <Box className="flex items-center justify-between mb-4" sx={{ mt: 4 }}>
+        <Typography variant="h6" className="font-bold">
+          Recent Applications
+        </Typography>
+        <Button
+          size="small"
+          variant="text"
+          className="text-primary-1 font-semibold normal-case"
+          onClick={() => navigate("/travel/study-visa/applications")}
+        >
+          View More
+        </Button>
+      </Box>
+      <Box
+        sx={{
+          overflowX: "auto",
+          width: "100%",
+          pb: 1,
+        }}
       >
-        Recent Applications
-      </Typography>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ApplicationCard
-          university="Calford University"
-          country="Norway"
-          program="Course: Dilence"
-          status="Under Review"
-        />
-        <ApplicationCard
-          university="University of Toronto"
-          country="Canada"
-          program="Program: Intern"
-          status="Completed"
-        />
-      </div>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 2,
+            minHeight: 180,
+          }}
+        >
+          {loadingApplications ? (
+            <Box className="flex items-center justify-center w-full py-8">
+              <CircularProgress size={32} />
+            </Box>
+          ) : recentApplications.length === 0 ? (
+            <Typography variant="body2" className="text-gray-500 flex items-center">
+              No recent applications found.
+            </Typography>
+          ) : (
+            recentApplications.map((app: any) => (
+              <Box key={app.id} sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}>
+                <ApplicationCard
+                  university={getInstitutionName(app.institution)}
+                  country={getInstitutionCountry(app.institution)}
+                  program={getProgramTypeName(app.program_type)}
+                  status={getStatusLabel(app.status)}
+                />
+              </Box>
+            ))
+          )}
+        </Box>
+      </Box>
 
       {/* Guides & Resources */}
       <Typography
