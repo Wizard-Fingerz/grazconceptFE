@@ -40,8 +40,6 @@ export const ApplicationCard: React.FC<{
           ? "#f44336"
           : "#bdbdbd"
       }`,
-      minWidth: 260,
-      maxWidth: 340,
       margin: "auto",
       background: "#fffdfa",
     }}
