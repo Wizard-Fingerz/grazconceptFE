@@ -18,16 +18,37 @@ export interface RegisterData {
 
 export interface UserProfile {
   id: number;
-  username: string;
-  email: string;
   first_name: string;
+  middle_name?: string | null;
   last_name: string;
-  user_type_name: 'customer' | 'agent';
-  profile_picture?: string;
-  bio?: string;
+  phone_number?: string | null;
   date_of_birth?: string | null;
-  phone_number?: string;
+  gender?: string | null;
+  gender_name?: string | null;
+  current_address?: string | null;
+  country_of_residence?: string | null;
+  nationality?: string | null;
+  user_type: number;
+  role: number;
+  custom_id?: string | null;
+  profile_picture?: string | null;
+  profile_picture_url?: string | null;
+  email: string;
+  extra_permissions?: any[];
+  is_deleted: boolean;
+  is_active: boolean;
+  is_staff: boolean;
+  created_by?: number | null;
+  created_date: string;
+  modified_by?: number | null;
+  modified_date: string;
+  last_login?: string | null;
+  user_type_name: string;
+  full_name: string;
+  username?: string; // Not always present, but included for compatibility
+  bio?: string;
   address?: string;
+  country?: string;
 }
 
 export interface RegisterResponse {

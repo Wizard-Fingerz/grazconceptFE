@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   Box,
   Button,
@@ -21,13 +21,13 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-// Removed DatePicker import
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
 import DownloadIcon from "@mui/icons-material/Download";
 import { v4 as uuidv4 } from "uuid";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
+import { useAuth } from "../../../../context/AuthContext";
 
 // --- DateInputField: A simple date input replacement for DatePicker ---
 const DateInputField: React.FC<{
@@ -78,19 +78,6 @@ const DateInputField: React.FC<{
   );
 };
 
-// Mocked user data (prefill)
-const MOCK_USER = {
-  firstName: "Jane",
-  lastName: "Doe",
-  middleName: "A.",
-  email: "jane.doe@email.com",
-  phone: "+1234567890",
-  gender: "Female",
-  nationality: "Nigerian",
-  currentAddress: "123 Main St, Lagos",
-  countryOfResidence: "Nigeria",
-};
-
 // Mocked API for submission
 const mockApiSubmit = (_data: any) =>
   new Promise<{ reference: string }>((resolve) =>
@@ -107,25 +94,19 @@ const steps = [
   "Review & Submit",
 ];
 
-// Helper: Save/load to localStorage
-const LOCAL_STORAGE_KEY = "studyVisaApplicationData";
-const LOCAL_STORAGE_STEP = "studyVisaApplicationStep";
-
-function saveToLocalStorage(data: any, step: number) {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-  localStorage.setItem(LOCAL_STORAGE_STEP, String(step));
-}
+// // NOTE: We are NOT saving to localStorage anymore. The following helpers are now no-ops.
+// function saveToLocalStorage(_data: any, _step: number) {
+//   // No-op: localStorage saving removed
+// }
 function loadFromLocalStorage() {
-  const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-  const step = localStorage.getItem(LOCAL_STORAGE_STEP);
+  // No-op: always return empty data and step 0
   return {
-    data: data ? JSON.parse(data) : undefined,
-    step: step ? Number(step) : 0,
+    data: undefined,
+    step: 0,
   };
 }
 function clearLocalStorage() {
-  localStorage.removeItem(LOCAL_STORAGE_KEY);
-  localStorage.removeItem(LOCAL_STORAGE_STEP);
+  // No-op: localStorage clearing removed
 }
 
 // Validation functions for each step
@@ -821,8 +802,26 @@ const SuccessPage = ({ reference }: { reference: string }) => (
 
 // Main Multi-Step Form Page
 const StudyVisaApplicationForm: React.FC = () => {
-  // Load from localStorage if available
-  const { data: savedData, step: savedStep } = loadFromLocalStorage();
+  // Load from localStorage if available (now always returns empty)
+  const { data: _savedData, step: savedStep } = loadFromLocalStorage();
+
+  // Get logged-in user from useAuth
+  const { user } = useAuth();
+
+  // Build user prefill from logged-in user
+  // USER_PREFILL: Build prefill object from user profile, using correct field names and fallbacks
+  const USER_PREFILL = {
+    firstName: user?.first_name || "",
+    lastName: user?.last_name || "",
+    middleName: user?.middle_name || "",
+    email: user?.email || "",
+    phone: user?.phone_number || "",
+    gender: user?.gender_name || "",
+    dateOfBirth: user?.date_of_birth || "",
+    nationality: user?.nationality || user?.country || "",
+    currentAddress: user?.current_address || user?.address || "",
+    countryOfResidence: user?.country_of_residence || user?.country || "",
+  };
 
   // State for stepper
   const [activeStep, setActiveStep] = useState(savedStep || 0);
@@ -835,56 +834,110 @@ const StudyVisaApplicationForm: React.FC = () => {
   });
 
   // Form state
-  const [formValues, setFormValues] = useState<any>({
+  // Define a type for the form values to avoid 'never' property errors
+  interface StudyVisaFormValues {
     // Step 1
-    firstName: savedData?.firstName || MOCK_USER.firstName || "",
-    lastName: savedData?.lastName || MOCK_USER.lastName || "",
-    middleName: savedData?.middleName || MOCK_USER.middleName || "",
-    email: savedData?.email || MOCK_USER.email || "",
-    phone: savedData?.phone || MOCK_USER.phone || "",
-    dateOfBirth: savedData?.dateOfBirth ? new Date(savedData.dateOfBirth) : null,
-    gender: savedData?.gender || MOCK_USER.gender || "",
-    nationality: savedData?.nationality || MOCK_USER.nationality || "",
-    passportNumber: savedData?.passportNumber || "",
-    passportExpiry: savedData?.passportExpiry ? new Date(savedData.passportExpiry) : null,
-    currentAddress: savedData?.currentAddress || MOCK_USER.currentAddress || "",
-    countryOfResidence: savedData?.countryOfResidence || MOCK_USER.countryOfResidence || "",
+    firstName: string;
+    lastName: string;
+    middleName: string;
+    email: string;
+    phone: string;
+    dateOfBirth: Date | null;
+    gender: string;
+    nationality: string;
+    passportNumber: string;
+    passportExpiry: Date | null;
+    currentAddress: string;
+    countryOfResidence: string;
     // Step 2
-    highestQualification: savedData?.highestQualification || "",
-    institutionName: savedData?.institutionName || "",
-    courseOfStudy: savedData?.courseOfStudy || "",
-    cgpa: savedData?.cgpa || "",
-    graduationYear: savedData?.graduationYear || "",
+    highestQualification: string;
+    institutionName: string;
+    courseOfStudy: string;
+    cgpa: string;
+    graduationYear: string;
     // Step 3
-    destinationCountry: savedData?.destinationCountry || "",
-    universityApplying: savedData?.universityApplying || "",
-    intendedStartDate: savedData?.intendedStartDate ? new Date(savedData.intendedStartDate) : null,
-    intendedEndDate: savedData?.intendedEndDate ? new Date(savedData.intendedEndDate) : null,
-    visaType: savedData?.visaType || "",
-    sponsorship: savedData?.sponsorship || "",
+    destinationCountry: string;
+    universityApplying: string;
+    intendedStartDate: Date | null;
+    intendedEndDate: Date | null;
+    visaType: string;
+    sponsorship: string;
     // Step 4
-    passportPhoto: savedData?.passportPhoto || null,
-    passportDoc: savedData?.passportDoc || null,
-    transcript: savedData?.transcript || null,
-    admissionLetter: savedData?.admissionLetter || null,
-    financialStatement: savedData?.financialStatement || null,
-    englishTest: savedData?.englishTest || null,
+    passportPhoto: File | null;
+    passportDoc: File | null;
+    transcript: File | null;
+    admissionLetter: File | null;
+    financialStatement: File | null;
+    englishTest: File | null;
     // Step 5
-    previousVisa: savedData?.previousVisa || "",
-    previousVisaDetails: savedData?.previousVisaDetails || "",
-    travelHistory: savedData?.travelHistory || "",
-    emergencyContactName: savedData?.emergencyContactName || "",
-    emergencyContactPhone: savedData?.emergencyContactPhone || "",
-    statementOfPurpose: savedData?.statementOfPurpose || "",
+    previousVisa: string;
+    previousVisaDetails: string;
+    travelHistory: string;
+    emergencyContactName: string;
+    emergencyContactPhone: string;
+    statementOfPurpose: string;
+  }
+
+  // Helper to safely extract a value from savedData or fallback
+  // function getSavedOrPrefill<T>(
+  //   key: keyof StudyVisaFormValues,
+  //   fallback: T
+  // ): T {
+  //   if (savedData && typeof savedData === "object" && key in savedData) {
+  //     return (savedData as any)[key] ?? fallback;
+  //   }
+  //   return fallback;
+  // }
+
+  const [formValues, setFormValues] = useState<StudyVisaFormValues>({
+    // Step 1
+    firstName: USER_PREFILL.firstName ?? "",
+    lastName: USER_PREFILL.lastName ?? "",
+    middleName: USER_PREFILL.middleName ?? "",
+    email: USER_PREFILL.email ?? "",
+    phone: USER_PREFILL.phone ?? "",
+    dateOfBirth: USER_PREFILL.dateOfBirth ? new Date(USER_PREFILL.dateOfBirth) : null,
+    gender: USER_PREFILL.gender || "",
+    nationality: USER_PREFILL.nationality || "",
+    passportNumber: "",
+    passportExpiry: null,
+    currentAddress: USER_PREFILL.currentAddress || "",
+    countryOfResidence: USER_PREFILL.countryOfResidence || "",
+    // Step 2
+    highestQualification: "",
+    institutionName: "",
+    courseOfStudy: "",
+    cgpa: "",
+    graduationYear: "",
+    // Step 3
+    destinationCountry: "",
+    universityApplying: "",
+    intendedStartDate: null,
+    intendedEndDate: null,
+    visaType: "",
+    sponsorship: "",
+    // Step 4
+    passportPhoto: null,
+    passportDoc: null,
+    transcript: null,
+    admissionLetter: null,
+    financialStatement: null,
+    englishTest: null,
+    // Step 5
+    previousVisa: "",
+    previousVisaDetails: "",
+    travelHistory: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    statementOfPurpose: "",
   });
 
   const [formErrors, setFormErrors] = useState<any>({});
 
-  // Save progress to localStorage on change
-  useEffect(() => {
-    saveToLocalStorage(formValues, activeStep);
-    // eslint-disable-next-line
-  }, [formValues, activeStep]);
+  // We are NOT saving progress to localStorage anymore.
+  // useEffect(() => {
+  //   saveToLocalStorage(formValues, activeStep);
+  // }, [formValues, activeStep]);
 
   // Stepper content
   const getStepContent = (step: number) => {
