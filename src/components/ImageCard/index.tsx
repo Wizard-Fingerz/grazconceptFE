@@ -6,7 +6,7 @@ export const ImageCard = ({
   onClick,
 }: {
   title: string;
-  image: string;
+  image?: string;
   onClick?: () => void;
 }) => (
   <Card
