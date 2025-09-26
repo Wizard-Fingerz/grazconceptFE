@@ -19,14 +19,14 @@ import {
   Divider,
 } from "@mui/material";
 import {
-  Chat,
+  // Chat,
   AirplaneTicket,
   Hotel,
   School,
   Savings,
-  DirectionsCar,
-  Attractions,
-  LocalTaxi,
+  // DirectionsCar,
+  // Attractions,
+  // LocalTaxi,
 } from "@mui/icons-material";
 import { CustomerPageHeader } from '../../../components/CustomerPageHeader';
 import { ActionCard } from '../../../components/ActionCard/DasboardActionButton';
