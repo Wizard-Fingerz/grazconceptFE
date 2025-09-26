@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -34,7 +34,7 @@ import { ImageCard } from '../../../components/ImageCard';
 import { actionForms } from '../../../components/modals/ActionForms';
 import { submitActionForm } from '../../../services/actionFormService';
 import { toast } from 'react-toastify';
-
+import { getAddBanners } from '../../../services/studyVisa';
 
 const FundWalletModalContent = ({ user }: { user: any }) => (
   <Box>
@@ -111,6 +111,35 @@ export const Dashboard: React.FC = () => {
   // Form state for modal forms
   const [formState, setFormState] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Banner state
+  const [banners, setBanners] = useState<any[]>([]);
+  const [loadingBanners, setLoadingBanners] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoadingBanners(true);
+    getAddBanners()
+      .then((data: any) => {
+        // The API returns an object with a "results" array
+        if (mounted) {
+          if (data && Array.isArray(data.results)) {
+            setBanners(data.results);
+          } else {
+            setBanners([]);
+          }
+        }
+      })
+      .catch(() => {
+        if (mounted) setBanners([]);
+      })
+      .finally(() => {
+        if (mounted) setLoadingBanners(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Modified: Book Flight navigates directly, others open modal
   const handleActionClick = (label: string) => {
@@ -250,36 +279,52 @@ export const Dashboard: React.FC = () => {
           >
             <ActionCard icon={<AirplaneTicket />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
             <ActionCard icon={<Hotel />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
-            <ActionCard icon={<School />} label="Apply for Visa" onClick={() => handleActionClick("Apply for Visa")} />
-            <ActionCard icon={<Chat />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
+            <ActionCard icon={<School />} label="Study Visa" onClick={() => handleActionClick("Apply for Visa")} />
+            <ActionCard icon={<School />} label="Work Visa" onClick={() => handleActionClick("Apply for Visa")} />
+            <ActionCard icon={<School />} label="Vacation" onClick={() => handleActionClick("Apply for Visa")} />
             <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
+            {/* <ActionCard icon={<Chat />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
             <ActionCard icon={<School />} label="Apply for Study Loan" onClick={() => handleActionClick("Apply for Study Loan")} />
             <ActionCard icon={<DirectionsCar />} label="Car Rentals" onClick={() => handleActionClick("Car Rentals")} />
             <ActionCard icon={<Attractions />} label="Attractions" onClick={() => handleActionClick("Attractions")} />
-            <ActionCard icon={<LocalTaxi />} label="Airport Taxis" onClick={() => handleActionClick("Airport Taxis")} />
+            <ActionCard icon={<LocalTaxi />} label="Airport Taxis" onClick={() => handleActionClick("Airport Taxis")} /> */}
           </Box>
         </Box>
       </Stack>
 
-      {/* Applications */}
-      <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>
-        Start a New Application
-      </Typography>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={3}
-        sx={{ mb: 2 }}
-      >
-        <Box sx={{ flex: 1 }}>
-          <ImageCard title="Summer in London 20% Off" />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <ImageCard title="Apply for Study Visa" />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <ImageCard title="Apply for Vacation Visa" />
-        </Box>
-      </Stack>
+      {/* Applications (Start a New Application) */}
+      {!loadingBanners && banners && banners.length > 0 && (
+        <>
+          <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>
+            Start a New Application
+          </Typography>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={3}
+            sx={{ mb: 2 }}
+          >
+            {banners.slice(0, 3).map((banner, idx) => (
+              <Box sx={{ flex: 1 }} key={banner.id || idx}>
+                <ImageCard
+                  title={banner.title || banner.name || `Banner ${idx + 1}`}
+                  onClick={() => {
+                    if (banner.link_url) {
+                      window.open(banner.link_url, '_blank', 'noopener,noreferrer');
+                    } else if (banner.onClick) {
+                      banner.onClick();
+                    } else if (banner.actionLabel) {
+                      handleActionClick(banner.actionLabel);
+                    } else {
+                      toast.info("No action defined for this banner.");
+                    }
+                  }}
+                  image={banner.image}
+                />
+              </Box>
+            ))}
+          </Stack>
+        </>
+      )}
 
       <Stack
         direction={{ xs: 'column', md: 'row' }}
@@ -290,18 +335,7 @@ export const Dashboard: React.FC = () => {
       >
         {/* Left: More Actions and Suggestions */}
         <Box sx={{ flex: { xs: 'unset', md: 3 }, width: { xs: '100%', md: '75%' }, minWidth: 0 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <ActionCard icon={<Chat />} label="Study Abroad Loan" onClick={() => handleActionClick("Study Abroad Loan")} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <ActionCard icon={<Savings />} label="Pilgrimage Package" onClick={() => handleActionClick("Pilgrimage Package")} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <ActionCard icon={<School />} label="Business Loan for Travel Project" onClick={() => handleActionClick("Business Loan for Travel Project")} />
-            </Box>
-          </Stack>
-
+          
           <Box>
             {/* Suggestions */}
             <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>

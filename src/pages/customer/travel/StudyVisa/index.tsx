@@ -45,7 +45,7 @@ export const ApplicationCard: React.FC<{
     }}
   >
     <CardContent className="flex flex-col gap-2">
-      <Box className="flex items-center justify-between mb-1">
+      <Box className="flex items-center justify-between gap-4 mb-1">
         <Typography
           variant="subtitle1"
           className="font-bold"
