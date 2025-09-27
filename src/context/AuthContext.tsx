@@ -70,7 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userType: number,
   ) => {
     try {
-      await authService.register({
+      // Call registration service and get the response data
+      const registrationResponse = await authService.register({
         email,
         password,
         password2,
@@ -79,11 +80,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_type: userType,
       });
 
-      // Auto login after registration
+      // The registration service returns user data and tokens
+      // Example:
+      // {
+      //   user_id: 2,
+      //   email: "adewale.oladiti28@gmail.com",
+      //   first_name: "Oladiti",
+      //   last_name: "Adewale",
+      //   user_type: "Agent",
+      //   access: "...",
+      //   refresh: "..."
+      // }
+
+      // Optionally, you could store tokens here if needed
+      // localStorage.setItem('access', registrationResponse.access);
+      // localStorage.setItem('refresh', registrationResponse.refresh);
+
+      // Auto login after registration (to set user context, etc)
       await login(email, password);
 
-      // Then navigate to profile setup
-      navigate('/profile-setup');
+      // Navigate to the appropriate dashboard based on user_type
+      const userTypeName = (registrationResponse.user_type || '').toString().toLowerCase();
+      if (userTypeName === 'agent') {
+        navigate('/staff/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       if (error.response?.data) {
         throw new Error(error.response.data.detail || 'Registration failed');

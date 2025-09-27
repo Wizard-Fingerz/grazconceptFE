@@ -52,6 +52,7 @@ export interface UserProfile {
 }
 
 export interface RegisterResponse {
+  user_type: string;
   username: string;
   email: string;
   first_name: string;
