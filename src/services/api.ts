@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { showErrorToast, shouldShowErrorToast } from '../utils/errorHandler';
 
 // const API_BASE_URL = 'http://localhost:8002/api';
 
@@ -27,12 +28,13 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle token refresh
+// Add response interceptor to handle token refresh and error notifications
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 401 errors (token refresh)
     if (
       error.response &&
       error.response.status === 401 &&
@@ -63,6 +65,11 @@ api.interceptors.response.use(
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
+    }
+
+    // Show error toast for POST requests and other specified methods
+    if (shouldShowErrorToast(error, originalRequest)) {
+      showErrorToast(error);
     }
 
     return Promise.reject(error);

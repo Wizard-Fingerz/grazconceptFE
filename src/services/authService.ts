@@ -1,4 +1,5 @@
 import api from './api';
+import ErrorService from './errorService';
 
 export interface LoginCredentials {
   // username?: string;
@@ -62,46 +63,69 @@ export interface RegisterResponse {
 
 const authService = {
   async login(credentials: LoginCredentials) {
-    const response = await api.post('/users/token/', credentials);
-    const { access, refresh } = response.data;
-    localStorage.setItem('token', access);
-    localStorage.setItem('refreshToken', refresh);
-    return response.data;
+    try {
+      const response = await api.post('/users/token/', credentials);
+      const { access, refresh } = response.data;
+      localStorage.setItem('token', access);
+      localStorage.setItem('refreshToken', refresh);
+      ErrorService.showSuccess('Login successful!');
+      return response.data;
+    } catch (error) {
+      ErrorService.handleAuthError(error);
+      throw error;
+    }
   },
 
-async register(data: RegisterData): Promise<RegisterResponse> {
-  const response = await api.post('/users/register/', {
-    ...data,
-    username: `${data.first_name.toLowerCase()}.${data.last_name.toLowerCase()}`
-  });
+  async register(data: RegisterData): Promise<RegisterResponse> {
+    try {
+      const response = await api.post('/users/register/', {
+        ...data,
+        username: `${data.first_name.toLowerCase()}.${data.last_name.toLowerCase()}`
+      });
 
-  const { access, refresh, ...userData } = response.data;
+      const { access, refresh, ...userData } = response.data;
 
-  if (access && refresh) {
-    localStorage.setItem('token', access);
-    localStorage.setItem('refreshToken', refresh);
-    localStorage.setItem('user', JSON.stringify(userData));
-    console.log('Tokens stored after registration:', { access, refresh });
-  }
+      if (access && refresh) {
+        localStorage.setItem('token', access);
+        localStorage.setItem('refreshToken', refresh);
+        localStorage.setItem('user', JSON.stringify(userData));
+        console.log('Tokens stored after registration:', { access, refresh });
+      }
 
-  return userData;
-},
-
+      ErrorService.showSuccess('Registration successful!');
+      return userData;
+    } catch (error) {
+      ErrorService.handleAuthError(error);
+      throw error;
+    }
+  },
 
   async getProfile(): Promise<UserProfile> {
-    const response = await api.get('/users/profile/');
-    console.log('Profile response:', response.data); // Debug log
-    return response.data;
+    try {
+      const response = await api.get('/users/profile/');
+      console.log('Profile response:', response.data); // Debug log
+      return response.data;
+    } catch (error) {
+      ErrorService.handleApiError(error, { operation: 'Get Profile' });
+      throw error;
+    }
   },
 
   async updateProfile(data: Partial<UserProfile>) {
-    const response = await api.patch('/users/profile/update/', data);
-    return response.data;
+    try {
+      const response = await api.patch('/users/profile/update/', data);
+      ErrorService.showSuccess('Profile updated successfully!');
+      return response.data;
+    } catch (error) {
+      ErrorService.handleFormError('Profile Update', error);
+      throw error;
+    }
   },
 
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    ErrorService.showInfo('Logged out successfully');
   },
 
   isAuthenticated(): boolean {

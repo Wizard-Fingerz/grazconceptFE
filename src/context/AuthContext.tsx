@@ -39,11 +39,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(userProfile);
           setIsAuthenticated(true);
         } catch (error) {
-          // Token invalid or expired
+          // Token invalid or expired - clear auth state
           authService.logout();
           setIsAuthenticated(false);
           setUser(null);
-          navigate('/login');
+          
+          // Only redirect to login if not on a public page
+          const publicPaths = ['/', '/login', '/register', '/forgot-password'];
+          const path = window.location.pathname;
+          if (!publicPaths.some(publicPath => path.startsWith(publicPath))) {
+            navigate('/login');
+          }
         }
       } else {
         // User is not authenticated
@@ -80,24 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_type: userType,
       });
 
-      // The registration service returns user data and tokens
-      // Example:
-      // {
-      //   user_id: 2,
-      //   email: "adewale.oladiti28@gmail.com",
-      //   first_name: "Oladiti",
-      //   last_name: "Adewale",
-      //   user_type: "Agent",
-      //   access: "...",
-      //   refresh: "..."
-      // }
-
-      // Optionally, you could store tokens here if needed
-      // localStorage.setItem('access', registrationResponse.access);
-      // localStorage.setItem('refresh', registrationResponse.refresh);
-
-      // Auto login after registration (to set user context, etc)
-      await login(email, password);
+      // After successful registration, get the user profile and set authentication state
+      const userProfile = await authService.getProfile();
+      setUser(userProfile);
+      setIsAuthenticated(true);
 
       // Navigate to the appropriate dashboard based on user_type
       const userTypeName = (registrationResponse.user_type || '').toString().toLowerCase();
@@ -107,6 +99,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate('/dashboard');
       }
     } catch (error: any) {
+      // Clear any partial authentication state on registration failure
+      authService.logout();
+      setUser(null);
+      setIsAuthenticated(false);
+      
       if (error.response?.data) {
         throw new Error(error.response.data.detail || 'Registration failed');
       }
@@ -114,8 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-
-  
   const login = async (email: string, password: string, userTypeOverride?: 'customer' | 'agent') => {
     try {
       await authService.login({ email, password });
@@ -130,9 +125,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate('/staff/dashboard');
       }
     } catch (error) {
+      // Clear any partial authentication state on login failure
+      authService.logout();
+      setUser(null);
+      setIsAuthenticated(false);
       throw new Error('Login failed');
-
-
     }
   };
 

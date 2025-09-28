@@ -1,4 +1,5 @@
 import api from './api';
+import ErrorService from './errorService';
 
 /**
  * Service to submit action form data to the backend API.
@@ -38,9 +39,10 @@ export async function submitActionForm(
 
   try {
     const response = await api.post(endpoint, formData, { headers });
+    ErrorService.showSuccess(`${actionLabel} submitted successfully!`);
     return response.data;
   } catch (error: any) {
-    // Optionally, you can handle error formatting here
+    ErrorService.handleFormError(actionLabel, error);
     throw error;
   }
 }

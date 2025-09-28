@@ -6,6 +6,10 @@ import { Dashboard } from '../pages/customer/dashboard/Dashboard';
 import { AgentDashboard } from '../pages/staff/AgentDashboard';
 import StaffPlaceholderPage from '../pages/staff/PlaceholderPage';
 import CustomerPlaceholderPage from '../pages/customer/PlaceholderPage';
+import MarketplaceListingsPage from '../pages/staff/marketplace/MarketplaceListingsPage';
+import AddListingPage from '../pages/staff/marketplace/AddListingPage';
+import StockManagementPage from '../pages/staff/marketplace/StockManagementPage';
+import ChatManagementPage from '../pages/staff/marketplace/ChatManagementPage';
 import StudyServicePage from '../pages/staff/services/StudyServicePage';
 import VisaServicePage from '../pages/staff/services/VisaServicePage';
 import ExamServicePage from '../pages/staff/services/ExamServicePage';
@@ -229,10 +233,10 @@ export const protectedRoutes: RouteObject[] = [
       { path: 'staff/transactions/invoices', element: <InvoicesReceiptsPage /> },
       { path: 'staff/transactions/rewards', element: <RewardsTiersPage /> },
 
-      { path: 'staff/marketplace/listings', element: <StaffPlaceholderPage title="Marketplace Listings" /> },
-      { path: 'staff/marketplace/new', element: <StaffPlaceholderPage title="Add New Listing" /> },
-      { path: 'staff/marketplace/stock', element: <StaffPlaceholderPage title="Stock & Availability" /> },
-      { path: 'staff/marketplace/chat', element: <StaffPlaceholderPage title="Client-Product Chat" /> },
+      { path: 'staff/marketplace/listings', element: <MarketplaceListingsPage /> },
+      { path: 'staff/marketplace/new', element: <AddListingPage /> },
+      { path: 'staff/marketplace/stock', element: <StockManagementPage /> },
+      { path: 'staff/marketplace/chat', element: <ChatManagementPage /> },
 
       { path: 'staff/training/videos', element: <StaffPlaceholderPage title="Video Tutorials" /> },
       { path: 'staff/training/templates', element: <StaffPlaceholderPage title="Templates" /> },
