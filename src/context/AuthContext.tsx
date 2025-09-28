@@ -33,11 +33,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check if user is already authenticated on mount
   useEffect(() => {
     const checkAuth = async () => {
+      const path = window.location.pathname;
+      const publicPaths = ['/', '/login', '/register', '/forgot-password'];
+      const isPublicPage = publicPaths.some(publicPath => path.startsWith(publicPath));
+
+      // Don't run auth check on public pages unless there's a token
+      if (isPublicPage && !authService.isAuthenticated()) {
+        return;
+      }
+
       if (authService.isAuthenticated()) {
         try {
           const userProfile = await authService.getProfile();
           setUser(userProfile);
           setIsAuthenticated(true);
+          
+          // If user is authenticated and on a public page, redirect to appropriate dashboard
+          if (isPublicPage && path !== '/') {
+            const isAgent = userProfile.user_type_name?.toLowerCase() === 'agent';
+            navigate(isAgent ? '/staff/dashboard' : '/dashboard');
+          }
         } catch (error) {
           // Token invalid or expired - clear auth state
           authService.logout();
@@ -45,20 +60,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           
           // Only redirect to login if not on a public page
-          const publicPaths = ['/', '/login', '/register', '/forgot-password'];
-          const path = window.location.pathname;
-          if (!publicPaths.some(publicPath => path.startsWith(publicPath))) {
+          if (!isPublicPage) {
             navigate('/login');
           }
         }
       } else {
-        // User is not authenticated
-        // Only allow these routes for unauthenticated users:
-        const publicPaths = ['/', '/login', '/register', '/forgot-password'];
-        const path = window.location.pathname;
-
-        if (!publicPaths.some(publicPath => path.startsWith(publicPath))) {
-          // Redirect unauthorized access to login page
+        // User is not authenticated - only redirect if not on a public page
+        if (!isPublicPage) {
           navigate('/login');
         }
       }
