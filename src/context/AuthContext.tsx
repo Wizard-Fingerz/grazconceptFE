@@ -21,16 +21,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getStoredUser(): UserProfile | null {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      return JSON.parse(userStr);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => authService.isAuthenticated());
+  const [user, setUser] = useState<UserProfile | null>(() => getStoredUser());
 
   const navigate = useNavigate();
-  console.log();
 
   const isStaff = typeof user?.user_type_name === 'string' && user.user_type_name.toLowerCase() === 'agent';
 
-  // Check if user is already authenticated on mount
+  // Only check authentication and load user from localStorage on mount
   useEffect(() => {
     const checkAuth = async () => {
       const path = window.location.pathname;
@@ -43,26 +54,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (authService.isAuthenticated()) {
-        try {
-          const userProfile = await authService.getProfile();
-          setUser(userProfile);
-          setIsAuthenticated(true);
-          
-          // If user is authenticated and on a public page, redirect to appropriate dashboard
-          if (isPublicPage && path !== '/') {
-            const isAgent = userProfile.user_type_name?.toLowerCase() === 'agent';
-            navigate(isAgent ? '/staff/dashboard' : '/dashboard');
+        // Try to get user from localStorage first
+        let storedUser = getStoredUser();
+        if (!storedUser) {
+          try {
+            // If not in localStorage, fetch from API and store
+            storedUser = await authService.getProfile();
+            setUser(storedUser);
+            localStorage.setItem('user', JSON.stringify(storedUser));
+          } catch (error) {
+            // Token invalid or expired - clear auth state
+            authService.logout();
+            setIsAuthenticated(false);
+            setUser(null);
+            localStorage.removeItem('user');
+            if (!isPublicPage) {
+              navigate('/login');
+            }
+            return;
           }
-        } catch (error) {
-          // Token invalid or expired - clear auth state
-          authService.logout();
-          setIsAuthenticated(false);
-          setUser(null);
-          
-          // Only redirect to login if not on a public page
-          if (!isPublicPage) {
-            navigate('/login');
-          }
+        } else {
+          setUser(storedUser);
+        }
+        setIsAuthenticated(true);
+
+        // If user is authenticated and on a public page, redirect to appropriate dashboard
+        if (isPublicPage && path !== '/') {
+          const isAgent = storedUser.user_type_name?.toLowerCase() === 'agent';
+          navigate(isAgent ? '/staff/dashboard' : '/dashboard');
         }
       } else {
         // User is not authenticated - only redirect if not on a public page
@@ -73,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     checkAuth();
+    // eslint-disable-next-line
   }, [navigate]);
 
   const register = async (
@@ -98,6 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userProfile = await authService.getProfile();
       setUser(userProfile);
       setIsAuthenticated(true);
+      localStorage.setItem('user', JSON.stringify(userProfile));
 
       // Navigate to the appropriate dashboard based on user_type
       const userTypeName = (registrationResponse.user_type || '').toString().toLowerCase();
@@ -111,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authService.logout();
       setUser(null);
       setIsAuthenticated(false);
-      
+      localStorage.removeItem('user');
       if (error.response?.data) {
         throw new Error(error.response.data.detail || 'Registration failed');
       }
@@ -125,6 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userProfile = await authService.getProfile();
       setUser(userProfile);
       setIsAuthenticated(true);
+      localStorage.setItem('user', JSON.stringify(userProfile));
       const normalizedType = (userTypeOverride || userProfile.user_type_name || '').toLowerCase();
       const isCustomer = normalizedType === 'customer';
       if (isCustomer) {
@@ -137,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authService.logout();
       setUser(null);
       setIsAuthenticated(false);
+      localStorage.removeItem('user');
       throw new Error('Login failed');
     }
   };
@@ -155,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authService.logout();
     setUser(null);
     setIsAuthenticated(false);
+    localStorage.removeItem('user');
     navigate('/login');
   };
 

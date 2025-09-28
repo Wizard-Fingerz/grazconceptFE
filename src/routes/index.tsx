@@ -5,6 +5,11 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { Dashboard } from '../pages/customer/dashboard/Dashboard';
 import { AgentDashboard } from '../pages/staff/AgentDashboard';
 import StaffPlaceholderPage from '../pages/staff/PlaceholderPage';
+import VideoTutorialsPage from '../pages/staff/training/VideoTutorialsPage';
+import TemplatesPage from '../pages/staff/training/TemplatesPage';
+import DigitalCatalogsPage from '../pages/staff/training/DigitalCatalogsPage';
+import SalesScriptsPage from '../pages/staff/training/SalesScriptsPage';
+import AgentPlaybookPage from '../pages/staff/training/AgentPlaybookPage';
 import CustomerPlaceholderPage from '../pages/customer/PlaceholderPage';
 import MarketplaceListingsPage from '../pages/staff/marketplace/MarketplaceListingsPage';
 import AddListingPage from '../pages/staff/marketplace/AddListingPage';
@@ -89,6 +94,85 @@ export const publicRoutes: RouteObject[] = [
 
 // Protected routes (authenticated users)
 export const protectedRoutes: RouteObject[] = [
+  // Staff routes at top-level to prevent auto-redirect to dashboard
+  {
+    path: 'staff',
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: 'dashboard', element: <AgentDashboard /> },
+      { path: 'analytics', element: <PerformanceAnalytics/> },
+      { path: 'usage-summary', element: <ServiceUsageSummary/> },
+
+      { path: 'clients', element: <ClientsPage /> },
+      { path: 'leads', element: <LeadsPage /> },
+      { path: 'clients/new', element: <NewClient /> },
+      { path: 'clients/documents', element: <DocumentsPage /> },
+      { path: 'clients/assign', element: <AssignTeamsPage /> },
+      { path: 'clients/notes', element: <NotesRemindersPage /> },
+      { path: 'clients/contact', element: <ContactClientPage /> },
+
+      { path: 'applications/study', element: <StudyAbroadPage /> },
+      { path: 'applications/visa', element: <VisaApplicationsPage /> },
+      { path: 'applications/exams', element: <ExamRegistrationsPage /> },
+      { path: 'applications/orders', element: <OrdersPage /> },
+      { path: 'applications/property', element: <PropertyInterestsPage /> },
+      { path: 'applications/documents', element: <DocumentsLegalPage /> },
+
+      { path: 'services/study', element: <StudyServicePage /> },
+      { path: 'services/visa', element: <VisaServicePage /> },
+      { path: 'services/exams', element: <ExamServicePage /> },
+      { path: 'services/assets', element: <AssetsServicePage /> },
+      { path: 'services/property', element: <PropertyServicePage /> },
+      { path: 'services/business', element: <BusinessBrandingServicePage /> },
+      { path: 'services/legal', element: <LegalDocumentsServicePage /> },
+      { path: 'services/loans', element: <LoansServicePage /> },
+
+      { path: 'transactions/payments', element: <PaymentsPage /> },
+      { path: 'transactions/commissions', element: <CommissionsPage /> },
+      { path: 'transactions/withdrawals', element: <WithdrawalsPage /> },
+      { path: 'transactions/invoices', element: <InvoicesReceiptsPage /> },
+      { path: 'transactions/rewards', element: <RewardsTiersPage /> },
+
+      { path: 'marketplace/listings', element: <MarketplaceListingsPage /> },
+      { path: 'marketplace/new', element: <AddListingPage /> },
+      { path: 'marketplace/stock', element: <StockManagementPage /> },
+      { path: 'marketplace/chat', element: <ChatManagementPage /> },
+
+      { path: 'training/videos', element: <VideoTutorialsPage /> },
+      { path: 'training/templates', element: <TemplatesPage /> },
+      { path: 'training/catalogs', element: <DigitalCatalogsPage /> },
+      { path: 'training/scripts', element: <SalesScriptsPage /> },
+      { path: 'training/playbook', element: <AgentPlaybookPage /> },
+
+      { path: 'notifications/alerts', element: <StaffPlaceholderPage title="Visa Alerts & Deadlines" /> },
+      { path: 'notifications/broadcasts', element: <StaffPlaceholderPage title="Broadcasts" /> },
+      { path: 'notifications/campaigns', element: <StaffPlaceholderPage title="Campaigns" /> },
+      { path: 'notifications/badges', element: <StaffPlaceholderPage title="Badges" /> },
+
+      { path: 'support/tickets', element: <StaffPlaceholderPage title="Support Tickets" /> },
+      { path: 'support/chat', element: <StaffPlaceholderPage title="Live Chat & Email" /> },
+      { path: 'support/kb', element: <StaffPlaceholderPage title="Knowledge Base" /> },
+
+      { path: 'settings/profile', element: <StaffPlaceholderPage title="Profile & Company" /> },
+      { path: 'settings/kyc', element: <StaffPlaceholderPage title="KYC" /> },
+      { path: 'settings/staff', element: <StaffPlaceholderPage title="Staff" /> },
+      { path: 'settings/notifications', element: <StaffPlaceholderPage title="Notification Preferences" /> },
+      { path: 'settings/bank', element: <StaffPlaceholderPage title="Bank Details" /> },
+      { path: 'settings/upgrade', element: <StaffPlaceholderPage title="Upgrade Tier" /> },
+
+      { path: 'advanced/ai', element: <StaffPlaceholderPage title="AI Assistant" /> },
+      { path: 'advanced/matching', element: <StaffPlaceholderPage title="Smart Matching" /> },
+      { path: 'advanced/white-label', element: <StaffPlaceholderPage title="White-Label" /> },
+      { path: 'advanced/export', element: <StaffPlaceholderPage title="Bulk Data Export" /> },
+      { path: 'advanced/training-tracker', element: <StaffPlaceholderPage title="Training Tracker" /> },
+      { path: 'advanced/leaderboard', element: <StaffPlaceholderPage title="Sales Leaderboard" /> },
+    ],
+  },
+  // Customer routes
   {
     path: '/',
     element: (
@@ -97,17 +181,14 @@ export const protectedRoutes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
-      // Customer routes
       {
         path: 'dashboard',
         element: <Dashboard />,
       },
-
       {
         path: 'dashboard/flight-result',
         element: <FlightListPage />,
       },
-   
       // Register customer placeholder routes
       {
         path: 'travel/study-visa',
@@ -197,78 +278,9 @@ export const protectedRoutes: RouteObject[] = [
         path: 'settings/profile',
         element: <CustomerPlaceholderPage title="Profile" />,
       },
-
-      // Staff routes
-      { path: 'staff/dashboard', element: <AgentDashboard /> },
-      { path: 'staff/analytics', element: <PerformanceAnalytics/> },
-      { path: 'staff/usage-summary', element: <ServiceUsageSummary/> },
-
-      { path: 'staff/clients', element: <ClientsPage /> },
-      { path: 'staff/leads', element: <LeadsPage /> },
-      { path: 'staff/clients/new', element: <NewClient /> },
-      { path: 'staff/clients/documents', element: <DocumentsPage /> },
-      { path: 'staff/clients/assign', element: <AssignTeamsPage /> },
-      { path: 'staff/clients/notes', element: <NotesRemindersPage /> },
-      { path: 'staff/clients/contact', element: <ContactClientPage /> },
-
-      { path: 'staff/applications/study', element: <StudyAbroadPage /> },
-      { path: 'staff/applications/visa', element: <VisaApplicationsPage /> },
-      { path: 'staff/applications/exams', element: <ExamRegistrationsPage /> },
-      { path: 'staff/applications/orders', element: <OrdersPage /> },
-      { path: 'staff/applications/property', element: <PropertyInterestsPage /> },
-      { path: 'staff/applications/documents', element: <DocumentsLegalPage /> },
-
-      { path: 'staff/services/study', element: <StudyServicePage /> },
-      { path: 'staff/services/visa', element: <VisaServicePage /> },
-      { path: 'staff/services/exams', element: <ExamServicePage /> },
-      { path: 'staff/services/assets', element: <AssetsServicePage /> },
-      { path: 'staff/services/property', element: <PropertyServicePage /> },
-      { path: 'staff/services/business', element: <BusinessBrandingServicePage /> },
-      { path: 'staff/services/legal', element: <LegalDocumentsServicePage /> },
-      { path: 'staff/services/loans', element: <LoansServicePage /> },
-
-      { path: 'staff/transactions/payments', element: <PaymentsPage /> },
-      { path: 'staff/transactions/commissions', element: <CommissionsPage /> },
-      { path: 'staff/transactions/withdrawals', element: <WithdrawalsPage /> },
-      { path: 'staff/transactions/invoices', element: <InvoicesReceiptsPage /> },
-      { path: 'staff/transactions/rewards', element: <RewardsTiersPage /> },
-
-      { path: 'staff/marketplace/listings', element: <MarketplaceListingsPage /> },
-      { path: 'staff/marketplace/new', element: <AddListingPage /> },
-      { path: 'staff/marketplace/stock', element: <StockManagementPage /> },
-      { path: 'staff/marketplace/chat', element: <ChatManagementPage /> },
-
-      { path: 'staff/training/videos', element: <StaffPlaceholderPage title="Video Tutorials" /> },
-      { path: 'staff/training/templates', element: <StaffPlaceholderPage title="Templates" /> },
-      { path: 'staff/training/catalogs', element: <StaffPlaceholderPage title="Digital Catalogs" /> },
-      { path: 'staff/training/scripts', element: <StaffPlaceholderPage title="Sales Scripts" /> },
-      { path: 'staff/training/playbook', element: <StaffPlaceholderPage title="Agent Playbook" /> },
-
-      { path: 'staff/notifications/alerts', element: <StaffPlaceholderPage title="Visa Alerts & Deadlines" /> },
-      { path: 'staff/notifications/broadcasts', element: <StaffPlaceholderPage title="Broadcasts" /> },
-      { path: 'staff/notifications/campaigns', element: <StaffPlaceholderPage title="Campaigns" /> },
-      { path: 'staff/notifications/badges', element: <StaffPlaceholderPage title="Badges" /> },
-
-      { path: 'staff/support/tickets', element: <StaffPlaceholderPage title="Support Tickets" /> },
-      { path: 'staff/support/chat', element: <StaffPlaceholderPage title="Live Chat & Email" /> },
-      { path: 'staff/support/kb', element: <StaffPlaceholderPage title="Knowledge Base" /> },
-
-      { path: 'staff/settings/profile', element: <StaffPlaceholderPage title="Profile & Company" /> },
-      { path: 'staff/settings/kyc', element: <StaffPlaceholderPage title="KYC" /> },
-      { path: 'staff/settings/staff', element: <StaffPlaceholderPage title="Staff" /> },
-      { path: 'staff/settings/notifications', element: <StaffPlaceholderPage title="Notification Preferences" /> },
-      { path: 'staff/settings/bank', element: <StaffPlaceholderPage title="Bank Details" /> },
-      { path: 'staff/settings/upgrade', element: <StaffPlaceholderPage title="Upgrade Tier" /> },
-
-      { path: 'staff/advanced/ai', element: <StaffPlaceholderPage title="AI Assistant" /> },
-      { path: 'staff/advanced/matching', element: <StaffPlaceholderPage title="Smart Matching" /> },
-      { path: 'staff/advanced/white-label', element: <StaffPlaceholderPage title="White-Label" /> },
-      { path: 'staff/advanced/export', element: <StaffPlaceholderPage title="Bulk Data Export" /> },
-      { path: 'staff/advanced/training-tracker', element: <StaffPlaceholderPage title="Training Tracker" /> },
-      { path: 'staff/advanced/leaderboard', element: <StaffPlaceholderPage title="Sales Leaderboard" /> },
       {
         path: 'profile-setup',
-        element: <CustomerProfileSetup />,  // <-- moved here
+        element: <CustomerProfileSetup />,
       },
     ],
   },
