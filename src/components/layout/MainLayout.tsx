@@ -108,7 +108,7 @@ export const MainLayout: React.FC = () => {
         icon: <FlightIcon />,
         items: [
           { icon: <FlightIcon />, label: 'Study Visa', to: '/travel/study-visa' },
-          { icon: <WorkIcon />, label: 'Work Visa', to: '/travel/work-visa' }, // Removed: WorkIcon not defined
+          { icon: <WorkIcon />, label: 'Work Visa', to: '/travel/work-visa' },
           { icon: <PublicIcon />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
           { icon: <HotelIcon />, label: 'Vacation', to: '/travel/vacation' },
           { icon: <HotelIcon />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
@@ -309,14 +309,27 @@ export const MainLayout: React.FC = () => {
   const role: RoleKey = getRoleFromUser(user);
 
   // Find the current title based on the current path
+  // FIX: Only match the current path if it exactly matches an item, or fallback to the first item in the sidebar for the role
   const currentTitle = useMemo(() => {
     const sections = sidebarStructureByRole[role] || [];
+    for (const section of sections) {
+      for (const item of section.items) {
+        if (item.to && location.pathname === item.to) {
+          return item.label;
+        }
+      }
+    }
+    // If no exact match, try to find a partial match (startsWith)
     for (const section of sections) {
       for (const item of section.items) {
         if (item.to && location.pathname.startsWith(item.to)) {
           return item.label;
         }
       }
+    }
+    // Fallback: use the first sidebar item label if available
+    if (sections.length > 0 && sections[0].items.length > 0) {
+      return sections[0].items[0].label;
     }
     return 'Dashboard';
   }, [location.pathname, role, sidebarStructureByRole]);

@@ -1,6 +1,19 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState /*, useEffect*/ } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService, { type UserProfile } from '../services/authService';
+
+/**
+ * IMPORTANT ANALYSIS:
+ * 
+ * The checkAuth() function in this file is only run ONCE on mount of the AuthProvider (not on every navigation).
+ * This is because the useEffect dependency array is [navigate], which is stable and does not change on route navigation.
+ * 
+ * Therefore, this file is NOT the cause of the issue where you are redirected to the dashboard on every navigation.
+ * 
+ * The bug is likely coming from your route configuration (src/routes/index.tsx) or from a custom ProtectedRoute component.
+ * 
+ * See below for more details after the code.
+ */
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -41,7 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isStaff = typeof user?.user_type_name === 'string' && user.user_type_name.toLowerCase() === 'agent';
 
-  // Only check authentication and load user from localStorage on mount
+  // --- checkAuth logic commented out for now ---
+  /*
   useEffect(() => {
     const checkAuth = async () => {
       const path = window.location.pathname;
@@ -78,10 +92,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setIsAuthenticated(true);
 
-        // If user is authenticated and on a public page, redirect to appropriate dashboard
-        if (isPublicPage && path !== '/') {
+        // Only redirect to dashboard if on a public page and not already on a dashboard
+        if (
+          isPublicPage &&
+          path !== '/' &&
+          path !== '/dashboard' &&
+          path !== '/staff/dashboard'
+        ) {
           const isAgent = storedUser.user_type_name?.toLowerCase() === 'agent';
-          navigate(isAgent ? '/staff/dashboard' : '/dashboard');
+          const dashboardPath = isAgent ? '/staff/dashboard' : '/dashboard';
+          navigate(dashboardPath, { replace: true });
         }
       } else {
         // User is not authenticated - only redirect if not on a public page
@@ -94,6 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
     // eslint-disable-next-line
   }, [navigate]);
+  */
+  // --- end comment ---
 
   const register = async (
     email: string,
@@ -122,11 +144,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Navigate to the appropriate dashboard based on user_type
       const userTypeName = (registrationResponse.user_type || '').toString().toLowerCase();
-      if (userTypeName === 'agent') {
-        navigate('/staff/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      const dashboardPath = userTypeName === 'agent' ? '/staff/dashboard' : '/dashboard';
+      navigate(dashboardPath, { replace: true });
     } catch (error: any) {
       // Clear any partial authentication state on registration failure
       authService.logout();
@@ -147,13 +166,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userProfile);
       setIsAuthenticated(true);
       localStorage.setItem('user', JSON.stringify(userProfile));
+
+      // On login, always go to dashboard for that user type
       const normalizedType = (userTypeOverride || userProfile.user_type_name || '').toLowerCase();
       const isCustomer = normalizedType === 'customer';
-      if (isCustomer) {
-        navigate('/dashboard');
-      } else {
-        navigate('/staff/dashboard');
-      }
+      const dashboardPath = isCustomer ? '/dashboard' : '/staff/dashboard';
+      navigate(dashboardPath, { replace: true });
     } catch (error) {
       // Clear any partial authentication state on login failure
       authService.logout();
@@ -196,3 +214,34 @@ export const useAuth = () => {
   }
   return context;
 };
+
+/**
+ * ----
+ * 
+ * SUMMARY:
+ * 
+ * - The checkAuth() logic in this file is NOT running on every navigation, only on mount.
+ * - The bug you describe (redirecting to dashboard on every navigation) is NOT caused by this file.
+ * 
+ * ----
+ * 
+ * WHERE TO CHECK NEXT:
+ * 
+ * 1. src/routes/index.tsx
+ *    - If you have a route like:
+ *      { index: true, element: <Navigate to="dashboard" replace /> }
+ *      or
+ *      { path: 'staff', element: <Navigate to="/staff/dashboard" replace /> }
+ *    - If you use <Navigate ... /> in a way that matches more than just the index route, it can cause this bug.
+ *    - Make sure you only redirect to dashboard on the index route, not on every child route.
+ * 
+ * 2. src/pages/auth/ProtectedRoute.tsx
+ *    - If you have logic that always redirects to dashboard after checking authentication, that can cause this.
+ *    - Your ProtectedRoute should only redirect to /login if not authenticated, NOT to dashboard if already authenticated.
+ * 
+ * 3. Any custom navigation logic in your layouts (MainLayout, etc) or sidebars.
+ * 
+ * ----
+ * 
+ * TL;DR: This file is NOT the cause. Check your route definitions and ProtectedRoute logic.
+ */

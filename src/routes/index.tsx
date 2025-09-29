@@ -54,7 +54,7 @@ import VacationPage from '../pages/customer/travel/Vacation';
 import HotelReservation from '../pages/customer/travel/HotelReservation';
 import FlightListPage from '../pages/customer/flight';
 import StudyVisaApplicationForm from '../pages/customer/travel/StudyVisa/ApplicationForm';
-
+import { Navigate } from 'react-router-dom';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -103,6 +103,9 @@ export const protectedRoutes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
+      // Only redirect /staff to /staff/dashboard if at index (first load)
+      { index: true, element: <Navigate to="dashboard" replace /> },
+
       { path: 'dashboard', element: <AgentDashboard /> },
       { path: 'analytics', element: <PerformanceAnalytics/> },
       { path: 'usage-summary', element: <ServiceUsageSummary/> },
@@ -181,6 +184,9 @@ export const protectedRoutes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
+      // Only redirect / to /dashboard for authenticated customers if at index (first load)
+      { index: true, element: <Navigate to="dashboard" replace /> },
+
       {
         path: 'dashboard',
         element: <Dashboard />,

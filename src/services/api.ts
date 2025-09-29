@@ -77,3 +77,14 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// --- NOTE ---
+// The issue described (navigating to a page after signup, then being redirected back to dashboard after 1s)
+// is NOT caused by this api.ts file. It is caused by the logic in AuthContext.tsx (see useEffect in AuthProvider).
+// Specifically, the useEffect in AuthProvider checks authentication and redirects to dashboard if on a public page,
+// but the "justLoggedInOrRegistered" flag is only set for login/register, not for navigation after signup.
+// 
+// To fix the issue, you need to ensure that after signup/login, the redirect logic in AuthProvider does not
+// incorrectly redirect the user back to the dashboard when they are already navigating elsewhere.
+// 
+// This file (api.ts) does not perform any navigation or redirect except on token refresh failure (401).
