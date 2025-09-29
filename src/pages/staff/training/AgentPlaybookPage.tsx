@@ -29,9 +29,7 @@ import {
   Select,
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Divider
-} from '@mui/material';
+  AccordionDetails} from '@mui/material';
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
