@@ -80,7 +80,7 @@ const FundWalletModalContent = ({ user }: { user: any }) => (
 const actionResultRoutes: Record<string, string> = {
   "Book Flight": "/dashboard/flight-result",
   "Reserve Hotel": "/travel/hotel-reservation",
-  "Apply for Visa": "/customer/dashboard/visa-result",
+  "Apply for Visa": "/travel/study-visa",
   "Chat with Agent": "/customer/dashboard/chat-result",
   "Create Savings Plan": "/customer/dashboard/savings-result",
   "Apply for Study Loan": "/customer/dashboard/study-loan-result",
@@ -141,15 +141,37 @@ export const Dashboard: React.FC = () => {
     };
   }, []);
 
-  // Modified: Book Flight navigates directly, others open modal
+  // New: All uncommented action cards navigate directly to their respective pages
   const handleActionClick = (label: string) => {
-    if (label === "Book Flight") {
-      navigate("/dashboard/flight-result");
-      return;
+    // Map the label to the correct route
+    let route: string | undefined;
+    switch (label) {
+      case "Book Flight":
+        route = "/dashboard/flight-result";
+        break;
+      case "Reserve Hotel":
+        route = "/travel/hotel-reservation";
+        break;
+      case "Study Visa":
+        route = "/travel/study-visa";
+        break;
+      case "Work Visa":
+        route = "/travel/work-visa";
+        break;
+      case "Vacation":
+        route = "/travel/vacation";
+        break;
+      case "Create Savings Plan":
+        route = "/customer/dashboard/savings-result";
+        break;
+      default:
+        // fallback to modal for unknown actions (for banners, etc)
+        setModalLabel(label);
+        setFormState({});
+        setOpenModal(true);
+        return;
     }
-    setModalLabel(label);
-    setFormState({}); // Reset form state on open
-    setOpenModal(true);
+    navigate(route);
   };
 
   const handleCloseModal = () => {
@@ -279,9 +301,9 @@ export const Dashboard: React.FC = () => {
           >
             <ActionCard icon={<AirplaneTicket />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
             <ActionCard icon={<Hotel />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
-            <ActionCard icon={<School />} label="Study Visa" onClick={() => handleActionClick("Apply for Visa")} />
-            <ActionCard icon={<School />} label="Work Visa" onClick={() => handleActionClick("Apply for Visa")} />
-            <ActionCard icon={<School />} label="Vacation" onClick={() => handleActionClick("Apply for Visa")} />
+            <ActionCard icon={<School />} label="Study Visa" onClick={() => handleActionClick("Study Visa")} />
+            <ActionCard icon={<School />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
+            <ActionCard icon={<School />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
             <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
             {/* <ActionCard icon={<Chat />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
             <ActionCard icon={<School />} label="Apply for Study Loan" onClick={() => handleActionClick("Apply for Study Loan")} />
