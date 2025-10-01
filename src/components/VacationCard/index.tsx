@@ -7,6 +7,7 @@ export interface VacationCardProps {
     price: number | string;
     description: string;
     buttonText?: string;
+    currency?: string;
     onButtonClick?: () => void;
   }
   
@@ -17,6 +18,7 @@ export interface VacationCardProps {
     description,
     buttonText = "Book now",
     onButtonClick,
+    currency,
   }) => (
     <Box
       sx={{
@@ -44,7 +46,7 @@ export interface VacationCardProps {
             {title}
           </Typography>
           <Typography color="primary" fontWeight="bold">
-            ${price} per seat
+          {currency} {price} per seat
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {description}

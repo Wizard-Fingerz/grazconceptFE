@@ -1,39 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import FilterPanel from "../../../components/Filter/FilterPanel";
 import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
 import { VacationCard } from "../../../components/VacationCard";
-
-
-const vacationData = [
-  {
-    image: "/vacation.jpg",
-    title: "Discover Dubai Getaway",
-    price: 200,
-    description: "Flight + 5-star hotel, City tour, Airport transfer",
-  },
-  {
-    image: "/vacation.jpg",
-    title: "Explore Paris Adventure",
-    price: 400,
-    description: "Flight + 4-star hotel, Eiffel Tower tour, River cruise",
-  },
-  {
-    image: "/vacation.jpg",
-    title: "Maldives Beach Escape",
-    price: 600,
-    description: "Flight + Resort, Water sports, Island hopping",
-  },
-  {
-    image: "/vacation.jpg",
-    title: "New York City Lights",
-    price: 800,
-    description: "Flight + 5-star hotel, Broadway show, City tour",
-  },
-];
+import { getAllVacations } from "../../../services/vacationService";
 
 const VacationPage: React.FC = () => {
   const [filters, setFilters] = useState<any>({});
+  const [vacationData, setVacationData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchVacations = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAllVacations();
+        // If the API returns { results: [...] }, use data.results, else use data directly
+        setVacationData(Array.isArray(data) ? data : data.results || []);
+      } catch (err: any) {
+        setError("Failed to load vacation packages.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVacations();
+  }, []);
 
   const handleChange = (name: string, value: any) => {
     setFilters((prev: any) => ({ ...prev, [name]: value }));
@@ -102,15 +95,24 @@ const VacationPage: React.FC = () => {
               gap: 3,
             }}
           >
-            {vacationData.map((vac, idx) => (
-              <VacationCard
-                key={idx}
-                image={vac.image}
-                title={vac.title}
-                price={vac.price}
-                description={vac.description}
-              />
-            ))}
+            {loading ? (
+              <Typography>Loading vacation packages...</Typography>
+            ) : error ? (
+              <Typography color="error">{error}</Typography>
+            ) : vacationData.length === 0 ? (
+              <Typography>No vacation packages found.</Typography>
+            ) : (
+              vacationData.map((vac: any, idx: number) => (
+                <VacationCard
+                  key={vac.id || idx}
+                  image={vac.image || "/vacation.jpg"}
+                  title={vac.title}
+                  price={vac.price}
+                  currency={vac.currency}
+                  description={vac.description}
+                />
+              ))
+            )}
           </Box>
         </Box>
 
