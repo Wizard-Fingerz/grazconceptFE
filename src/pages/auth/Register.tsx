@@ -58,12 +58,17 @@ export const Register: React.FC = () => {
     const fetchData = async () => {
       try {
         const [userTypes] = await Promise.all([
-
           userServices.getAllUserType(),
-
         ]);
 
-        setUserTypes(userTypes.results || []);
+        // Exclude Admin from the user types (assuming Admin has a name or id to check)
+        const filteredUserTypes = (userTypes.results || []).filter(
+          (type: any) =>
+            type.term?.toLowerCase() !== 'admin' &&
+            type.name?.toLowerCase() !== 'admin'
+        );
+
+        setUserTypes(filteredUserTypes);
 
       } catch (error) {
         console.error('Error fetching data:', error);
