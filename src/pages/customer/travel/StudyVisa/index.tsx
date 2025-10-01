@@ -141,6 +141,7 @@ export const ApplyStudyVisa: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // This will now be the institution id
   const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // This will be the program type id
+  const [selectedCourse, setSelectedCourse] = useState<string>(""); // New: course of study id
   const [submitting, setSubmitting] = useState(false);
 
   // State for recent applications
@@ -202,20 +203,55 @@ export const ApplyStudyVisa: React.FC = () => {
       arr.findIndex((x) => x.id === pt.id) === idx // unique by id
   );
 
+  // Derive courses of study for the selected institution and program type
+  // We'll assume each institution has a "courses" array, and each course has a "program_type" field (id)
+  // If not, adjust as needed for your API shape
+  let courseObjects: { id: string; name: string }[] = [];
+  if (selectedInstitution && selectedProgramType) {
+    const inst = institutions.find((i) => String(i.id) === String(selectedInstitution));
+    if (inst && Array.isArray(inst.courses)) {
+      courseObjects = inst.courses
+        .filter(
+          (course: any) =>
+            course &&
+            course.id &&
+            course.name &&
+            (String(course.program_type) === String(selectedProgramType) ||
+              (typeof course.program_type === "object" &&
+                String(course.program_type?.id) === String(selectedProgramType)))
+        )
+        .map((course: any) => ({
+          id: String(course.id),
+          name: course.name,
+        }));
+      // Remove duplicates by id
+      courseObjects = courseObjects.filter(
+        (c, idx, arr) => arr.findIndex((x) => x.id === c.id) === idx
+      );
+    }
+  }
+
   // Handle form changes
   const handleCountryChange = (e: any) => {
     setSelectedCountry(e.target.value);
     setSelectedInstitution("");
     setSelectedProgramType("");
+    setSelectedCourse("");
   };
 
   const handleInstitutionChange = (e: any) => {
     setSelectedInstitution(e.target.value); // Now this is the institution id
     setSelectedProgramType("");
+    setSelectedCourse("");
   };
 
   const handleProgramTypeChange = (e: any) => {
     setSelectedProgramType(e.target.value); // This will be the id
+    setSelectedCourse("");
+  };
+
+  const handleCourseChange = (e: any) => {
+    setSelectedCourse(e.target.value);
   };
 
   // Handle Start Application
@@ -227,6 +263,7 @@ export const ApplyStudyVisa: React.FC = () => {
         country: selectedCountry,
         institution: selectedInstitution, // This is now the institution id
         program_type: selectedProgramType, // This is the id
+        course_of_study: selectedCourse, // New: course of study id
       };
 
       // Get the latest token from localStorage
@@ -282,6 +319,19 @@ export const ApplyStudyVisa: React.FC = () => {
     return "Unknown Program";
   };
 
+  // Helper: get course name by id
+  // Fix: handle both app.course and app.course_of_study for backward/forward compatibility
+  const getCourseName = (id: number | string | null | undefined) => {
+    if (!id) return "";
+    for (const inst of institutions) {
+      if (Array.isArray(inst.courses)) {
+        const course = inst.courses.find((c: any) => String(c.id) === String(id));
+        if (course) return course.name;
+      }
+    }
+    return "Unknown Course";
+  };
+
   // Helper: get status label from status code
   const getStatusLabel = (status: number | string | null | undefined) => {
     // You can expand this mapping as needed
@@ -294,6 +344,19 @@ export const ApplyStudyVisa: React.FC = () => {
     };
     if (status == null) return "Unknown Status";
     return statusMap[String(status)] || String(status);
+  };
+
+  // Helper: get program string for recent applications
+  // This will show "ProgramType - Course" if course exists, else just ProgramType
+  const getProgramString = (app: any) => {
+    // Try both app.course and app.course_of_study for compatibility
+    const courseId = app.course_of_study ?? app.course;
+    const programTypeName = getProgramTypeName(app.program_type);
+    const courseName = getCourseName(courseId);
+    if (courseId && courseName && courseName !== "Unknown Course") {
+      return `${programTypeName} - ${courseName}`;
+    }
+    return programTypeName;
   };
 
   return (
@@ -328,7 +391,7 @@ export const ApplyStudyVisa: React.FC = () => {
       </div>
 
       {/* Application Form */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         {/* Destination */}
         <Card className="rounded-2xl shadow-md">
           <CardContent
@@ -482,6 +545,70 @@ export const ApplyStudyVisa: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Course of Study */}
+        <Card className="rounded-2xl shadow-md">
+          <CardContent
+            className="flex flex-col items-center justify-center"
+            sx={{ height: { xs: 180, sm: 200, md: 220 }, width: "100%" }}
+          >
+            <Typography
+              variant="subtitle1"
+              className="font-semibold mb-2"
+              sx={{ fontSize: "1rem", width: "100%" }}
+            >
+              Course of Study
+            </Typography>
+            {loading ? (
+              <CircularProgress size={28} />
+            ) : (
+              <TextField
+                select
+                fullWidth
+                label="Select Course"
+                value={selectedCourse}
+                onChange={handleCourseChange}
+                variant="outlined"
+                disabled={!selectedInstitution || !selectedProgramType}
+                InputProps={{
+                  sx: {
+                    fontWeight: 500,
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    fontWeight: 500,
+                  },
+                }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        borderRadius: 1,
+                      },
+                    },
+                  },
+                }}
+              >
+                {!selectedInstitution || !selectedProgramType ? (
+                  <MenuItem value="" disabled>
+                    Select institution and program type first
+                  </MenuItem>
+                ) : courseObjects.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    No courses available
+                  </MenuItem>
+                ) : (
+                  courseObjects.map((course) => (
+                    <MenuItem key={course.id} value={course.id}>
+                      {course.name}
+                    </MenuItem>
+                  ))
+                )}
+              </TextField>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Start Application Button */}
@@ -490,7 +617,11 @@ export const ApplyStudyVisa: React.FC = () => {
         fullWidth
         className="bg-purple-700 hover:bg-purple-800 text-white rounded-full py-3 font-semibold normal-case"
         disabled={
-          !selectedCountry || !selectedInstitution || !selectedProgramType || submitting
+          !selectedCountry ||
+          !selectedInstitution ||
+          !selectedProgramType ||
+          !selectedCourse ||
+          submitting
         }
         onClick={handleStartApplication}
       >
@@ -540,7 +671,7 @@ export const ApplyStudyVisa: React.FC = () => {
                 <ApplicationCard
                   university={getInstitutionName(app.institution)}
                   country={getInstitutionCountry(app.institution)}
-                  program={getProgramTypeName(app.program_type)}
+                  program={getProgramString(app)}
                   status={getStatusLabel(app.status)}
                 />
               </Box>
