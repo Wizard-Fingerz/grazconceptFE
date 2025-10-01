@@ -6,9 +6,10 @@ interface ActionCardProps {
   icon: React.ReactNode;
   title: string;
   description: string;
+  onClick?: () => void;
 }
 
-const ActionCard: React.FC<ActionCardProps> = ({ icon, title, description }) => {
+const ActionCard: React.FC<ActionCardProps> = ({ icon, title, description, onClick }) => {
   return (
     <Card
       sx={{
@@ -19,11 +20,17 @@ const ActionCard: React.FC<ActionCardProps> = ({ icon, title, description }) => 
         textAlign: "center",
         p: { xs: 1, sm: 2 },
         transition: "all 0.3s ease",
-        "&:hover": {
-          boxShadow: 6,
-          transform: "translateY(-5px)",
-        },
+        cursor: onClick ? "pointer" : "default",
+        "&:hover": onClick
+          ? {
+              boxShadow: 6,
+              transform: "translateY(-5px)",
+            }
+          : {},
       }}
+      onClick={onClick}
+      tabIndex={onClick ? 0 : undefined}
+      role={onClick ? "button" : undefined}
     >
       <CardContent sx={{ p: { xs: 1, sm: 2 }, "&:last-child": { pb: { xs: 1, sm: 2 } } }}>
         <Box sx={{ fontSize: { xs: 28, sm: 32, md: 40 }, mb: { xs: 1, sm: 2 }, color: "primary.main" }}>

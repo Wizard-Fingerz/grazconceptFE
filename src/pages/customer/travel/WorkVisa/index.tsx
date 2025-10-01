@@ -8,8 +8,9 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
-import ActionCard from "../../../components/ActionCard";
+import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
+import ActionCard from "../../../../components/ActionCard";
+import { useNavigate } from "react-router-dom";
 
 import PublicIcon from "@mui/icons-material/Public";
 import EventIcon from "@mui/icons-material/Event";
@@ -62,7 +63,22 @@ export const ApplyWorkVisa: React.FC = () => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const isSm = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
   console.log(isXs, isSm)
+
+  // Define navigation handlers for each ActionCard
+  const handleViewCountriesJobs = () => {
+    navigate("/travel/work-visa/countries-jobs");
+  };
+  const handleScheduleInterview = () => {
+    navigate("/customer/travel/work-visa/schedule-interview");
+  };
+  const handleTrackProgress = () => {
+    navigate("/customer/travel/work-visa/track-progress");
+  };
+  const handleSubmitCV = () => {
+    navigate("/customer/travel/work-visa/submit-cv");
+  };
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
@@ -98,21 +114,25 @@ export const ApplyWorkVisa: React.FC = () => {
           icon={<PublicIcon fontSize="inherit" />}
           title="View Available Countries and Jobs"
           description="Complete your work visa application"
+          onClick={handleViewCountriesJobs}
         />
         <ActionCard
           icon={<EventIcon fontSize="inherit" />}
           title="Schedule Interview"
           description="Book a date for your Job interview"
+          onClick={handleScheduleInterview}
         />
         <ActionCard
           icon={<TrackChangesIcon fontSize="inherit" />}
           title="Track Progress"
           description="Monitor the status of the application"
+          onClick={handleTrackProgress}
         />
         <ActionCard
           icon={<AssignmentIcon fontSize="inherit" />}
           title="Submit CV And Apply"
           description="Upload your CV and apply for the job."
+          onClick={handleSubmitCV}
         />
       </div>
       {/* Start Application Button */}
