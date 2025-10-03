@@ -603,6 +603,17 @@ export const ApplyStudyVisa: React.FC = () => {
     navigate(`/travel/study-visa/offer/${offerId}`);
   };
 
+  // Handler for "View More" button click, which depends on the current tab
+  const handleViewMore = () => {
+    if (tabValue === 0) {
+      // Applications tab
+      navigate("/travel/study-visa/applications");
+    } else if (tabValue === 1) {
+      // Offers tab
+      navigate("/travel/study-visa/offers");
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -964,7 +975,7 @@ export const ApplyStudyVisa: React.FC = () => {
           size="small"
           variant="text"
           className="text-primary-1 font-semibold normal-case"
-          onClick={() => navigate("/travel/study-visa/applications")}
+          onClick={handleViewMore}
         >
           View More
         </Button>

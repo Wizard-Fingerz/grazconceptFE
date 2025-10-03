@@ -56,6 +56,7 @@ import FlightListPage from '../pages/customer/flight';
 import StudyVisaApplicationForm from '../pages/customer/travel/StudyVisa/ApplicationForm';
 import { Navigate } from 'react-router-dom';
 import CountriesJob from '../pages/customer/travel/WorkVisa/CountriesJob';
+import AllStudyOffers from '../pages/customer/travel/StudyVisa/AllstudyOffers';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -200,6 +201,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'travel/study-visa',
         element: <ApplyStudyVisa />,
+      },
+      {
+        path: 'travel/study-visa/offers',
+        element: <AllStudyOffers />,
       },
       {
         path: 'travel/study-visa/continue/:id',
