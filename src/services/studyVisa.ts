@@ -43,6 +43,17 @@ export async function getAllSudyVisaOffer() {
 }
 
 
+export async function getStudyVisaOfferById(id: string | number) {
+  // Replace with actual API call
+  try {
+    const response = await api.get(`/app/study-visa-offers/${id}/`);
+    if (!response.data) throw new Error("Failed to fetch offer details");
+    return await response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function getAddBanners() {
   try {
     // Add ?limit=3 to only fetch the three most recent applications (if backend supports it)
