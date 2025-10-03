@@ -406,7 +406,7 @@ export const ApplyStudyVisa: React.FC = () => {
         px: { xs: 1, sm: 2, md: 4 },
         py: { xs: 1, sm: 2 },
         width: "100%",
-        maxWidth: 1400,
+        // maxWidth: 1400,
         mx: "auto",
       }}
     >
@@ -697,7 +697,7 @@ export const ApplyStudyVisa: React.FC = () => {
               display: "flex",
               flexDirection: "row",
               gap: 2,
-              minHeight: 180,
+              // minHeight: 180,
             }}
           >
             {loadingApplications ? (
