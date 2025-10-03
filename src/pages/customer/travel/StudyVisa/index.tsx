@@ -10,14 +10,13 @@ import {
   TextField,
   Tabs,
   Tab,
-  Chip,
-  Divider,
 } from "@mui/material";
 import { getAllInstitutions, getMyRecentSudyVisaApplicaton, getMyRecentSudyVisaOffer } from "../../../../services/studyVisa";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../services/api";
 import { capitalizeWords } from "../../../../utils";
+import { OfferCard } from "../../../../components/StudyVisaCard";
 
 /**
  * ApplicationCard - Reusable card for displaying application info.
@@ -115,219 +114,6 @@ export const ApplicationCard: React.FC<{
   </Card>
 );
 
-/**
- * OfferCard - Redesigned card for displaying a study visa offer.
- * Uses the new offer API structure.
- */
-export const OfferCard: React.FC<{
-  offer: any;
-  onViewOffer?: () => void;
-}> = ({ offer, onViewOffer }) => {
-  // Format tuition fee
-  const tuitionFee =
-    offer.tuition_fee && !isNaN(Number(offer.tuition_fee))
-      ? `£${Number(offer.tuition_fee).toLocaleString()}`
-      : offer.tuition_fee || "N/A";
-
-  // Format application deadline
-  const deadline = offer.application_deadline
-    ? new Date(offer.application_deadline).toLocaleDateString()
-    : "N/A";
-
-  // Format end date
-  const endDate = offer.end_date
-    ? new Date(offer.end_date).toLocaleDateString()
-    : null;
-
-  // Format created date
-  const createdAt = offer.created_at
-    ? new Date(offer.created_at).toLocaleDateString()
-    : null;
-
-  return (
-    <Card
-      className="rounded-2xl shadow-lg transition-transform hover:scale-[1.025] hover:shadow-xl"
-      sx={{
-        borderLeft: `6px solid #6a1b9a`,
-        margin: "auto",
-        background: "#f7f3ff",
-        minHeight: 220,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        position: "relative",
-      }}
-    >
-      <CardContent className="flex flex-col gap-2">
-        {/* Header: University and Offer Title */}
-        <Box className="flex items-center justify-between gap-4 mb-1">
-          <Box>
-            <Typography
-              variant="subtitle1"
-              className="font-bold"
-              sx={{ fontSize: "1.1rem", color: "#6a1b9a" }}
-            >
-              {capitalizeWords(offer.institution_name || "Unknown Institution")}
-            </Typography>
-            <Typography
-              variant="body2"
-              className="text-gray-700"
-              sx={{ fontWeight: 500, fontSize: "0.95rem" }}
-            >
-              {offer.offer_title}
-            </Typography>
-          </Box>
-          <Chip
-            label="Offer"
-            sx={{
-              fontWeight: 600,
-              fontSize: "0.85rem",
-              color: "#6a1b9a",
-              background: "#ede7f6",
-              px: 2,
-              py: 0.5,
-              borderRadius: 2,
-              pointerEvents: "none",
-            }}
-          />
-        </Box>
-
-        {/* Divider */}
-        <Divider sx={{ my: 1 }} />
-
-        {/* Main Info */}
-        <Box className="flex flex-col gap-1">
-          <Box className="flex items-center gap-2">
-            <Typography
-              variant="body2"
-              className="text-gray-600"
-              sx={{ fontWeight: 500, minWidth: 110 }}
-            >
-              Program:
-            </Typography>
-            <Typography variant="body2" className="text-gray-800 font-semibold">
-              {offer.program_type_name || "N/A"}
-            </Typography>
-          </Box>
-          <Box className="flex items-center gap-2">
-            <Typography
-              variant="body2"
-              className="text-gray-600"
-              sx={{ fontWeight: 500, minWidth: 110 }}
-            >
-              Course:
-            </Typography>
-            <Typography variant="body2" className="text-gray-800">
-              {offer.course_of_study_name || "N/A"}
-            </Typography>
-          </Box>
-          <Box className="flex items-center gap-2">
-            <Typography
-              variant="body2"
-              className="text-gray-600"
-              sx={{ fontWeight: 500, minWidth: 110 }}
-            >
-              Tuition Fee:
-            </Typography>
-            <Typography variant="body2" className="text-gray-800">
-              {tuitionFee}
-            </Typography>
-          </Box>
-          <Box className="flex items-center gap-2">
-            <Typography
-              variant="body2"
-              className="text-gray-600"
-              sx={{ fontWeight: 500, minWidth: 110 }}
-            >
-              Application Deadline:
-            </Typography>
-            <Typography variant="body2" className="text-gray-800">
-              {deadline}
-            </Typography>
-          </Box>
-          {endDate && (
-            <Box className="flex items-center gap-2">
-              <Typography
-                variant="body2"
-                className="text-gray-600"
-                sx={{ fontWeight: 500, minWidth: 110 }}
-              >
-                End Date:
-              </Typography>
-              <Typography variant="body2" className="text-gray-800">
-                {endDate}
-              </Typography>
-            </Box>
-          )}
-          {offer.minimum_qualification && (
-            <Box className="flex items-center gap-2">
-              <Typography
-                variant="body2"
-                className="text-gray-600"
-                sx={{ fontWeight: 500, minWidth: 110 }}
-              >
-                Min. Qualification:
-              </Typography>
-              <Typography variant="body2" className="text-gray-800">
-                {offer.minimum_qualification}
-              </Typography>
-            </Box>
-          )}
-        </Box>
-
-        {/* Description */}
-        {offer.description && (
-          <Box sx={{ mt: 1 }}>
-            <Typography
-              variant="body2"
-              className="text-gray-700"
-              sx={{ fontStyle: "italic" }}
-            >
-              {offer.description}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Created At */}
-        {createdAt && (
-          <Box className="flex items-center gap-2 mt-1">
-            <Typography
-              variant="caption"
-              className="text-gray-500"
-              sx={{ minWidth: 110 }}
-            >
-              Created:
-            </Typography>
-            <Typography variant="caption" className="text-gray-500">
-              {createdAt}
-            </Typography>
-          </Box>
-        )}
-
-        {/* View Offer Button */}
-        <Box className="flex items-center justify-end mt-2">
-          <Button
-            size="small"
-            variant="outlined"
-            sx={{
-              borderColor: "#6a1b9a",
-              color: "#6a1b9a",
-              fontWeight: 600,
-              borderRadius: 2,
-              textTransform: "none",
-              px: 2,
-              py: 0.5,
-              minWidth: 0,
-            }}
-            onClick={onViewOffer}
-          >
-            View Offer
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
 
 /**
  * GuideCard - Reusable card for displaying a guide/resource.
@@ -944,7 +730,6 @@ export const ApplyStudyVisa: React.FC = () => {
               display: "flex",
               flexDirection: "row",
               gap: 2,
-              minHeight: 220,
             }}
           >
             {loadingRecentStudyVisaOffers ? (
@@ -957,12 +742,10 @@ export const ApplyStudyVisa: React.FC = () => {
               </Typography>
             ) : (
               recentStudyVisaOffers.map((offer: any) => (
-                <Box key={offer.id} sx={{ minWidth: 320, maxWidth: 400, flex: "0 0 auto" }}>
                   <OfferCard
                     offer={offer}
                     onViewOffer={() => handleViewOffer(offer.id)}
                   />
-                </Box>
               ))
             )}
           </Box>

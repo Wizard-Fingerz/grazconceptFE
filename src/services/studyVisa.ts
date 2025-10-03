@@ -25,7 +25,17 @@ export async function getMyRecentSudyVisaApplicaton() {
 export async function getMyRecentSudyVisaOffer() {
   try {
     // Add ?limit=3 to only fetch the three most recent applications (if backend supports it)
-    const response = await api.get(`/app/study-visa-offers/?limit=5`);
+    const response = await api.get(`/app/study-visa-offers/?limit=3`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getAllSudyVisaOffer() {
+  try {
+    // Add ?limit=3 to only fetch the three most recent applications (if backend supports it)
+    const response = await api.get(`/app/study-visa-offers/`);
     return response.data;
   } catch (error) {
     throw error;

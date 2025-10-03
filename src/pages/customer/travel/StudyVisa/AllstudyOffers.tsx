@@ -2,104 +2,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
   Typography,
-  Button,
   CircularProgress,
-  Card,
-  CardContent,
-  CardActions,
-  Chip,
-  Stack,
-  Divider,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-import { getMyRecentSudyVisaOffer } from "../../../../services/studyVisa";
+import { getAllSudyVisaOffer } from "../../../../services/studyVisa";
 import FilterPanel from "../../../../components/Filter/FilterPanel";
+import { OfferCard } from "../../../../components/StudyVisaCard";
+import { capitalizeWords } from "../../../../utils";
 
-// Helper: Format date
-function formatDate(dateStr: string) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-// Helper: Capitalize words
-function capitalizeWords(str: string) {
-  if (!str) return "";
-  return str.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-// Study Offer Card
-const StudyOfferCard: React.FC<{ offer: any; onView: (id: any) => void }> = ({
-  offer,
-  onView,
-}) => (
-  <Card
-    sx={{
-      width: { xs: 320, sm: 350, md: 380 },
-      minHeight: 260,
-      borderRadius: 3,
-      boxShadow: 3,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-      p: 2,
-    }}
-  >
-    <CardContent sx={{ flex: 1 }}>
-      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-        <Chip
-          label={capitalizeWords(offer.university || offer.institution_name || "Unknown Institution")}
-          size="small"
-          color="primary"
-          sx={{ fontWeight: 500, fontSize: 13 }}
-        />
-        <Chip
-          label={offer.country || "Unknown Country"}
-          size="small"
-          color="secondary"
-          sx={{ fontWeight: 500, fontSize: 13 }}
-        />
-      </Stack>
-      <Typography variant="h6" fontWeight="bold" gutterBottom>
-        {offer.program_name || offer.program || "Unknown Program"}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        {offer.description || offer.notes || ""}
-      </Typography>
-      <Divider sx={{ my: 1 }} />
-      <Stack direction="row" spacing={2} alignItems="center" mb={1}>
-        <Typography variant="body2" fontWeight={500}>
-          Status:
-        </Typography>
-        <Typography variant="body2">
-          {offer.status_label || offer.status || "Pending"}
-        </Typography>
-      </Stack>
-      <Stack direction="row" spacing={2} alignItems="center" mb={1}>
-        <Typography variant="body2" fontWeight={500}>
-          Offer Date:
-        </Typography>
-        <Typography variant="body2">
-          {formatDate(offer.created_at || offer.offer_date)}
-        </Typography>
-      </Stack>
-    </CardContent>
-    <CardActions sx={{ justifyContent: "flex-end" }}>
-      <Button
-        variant="contained"
-        color="primary"
-        sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-        onClick={() => onView(offer.id)}
-      >
-        View Details
-      </Button>
-    </CardActions>
-  </Card>
-);
 
 const AllStudyOffers: React.FC = () => {
   const [offers, setOffers] = useState<any[]>([]);
@@ -167,7 +77,7 @@ const AllStudyOffers: React.FC = () => {
       setError(null);
       try {
         // This API should return all offers for the user
-        const data = await getMyRecentSudyVisaOffer();
+        const data = await getAllSudyVisaOffer();
         setOffers(Array.isArray(data) ? data : data.results || []);
       } catch (err) {
         setError("Failed to load study offers.");
@@ -291,7 +201,7 @@ const AllStudyOffers: React.FC = () => {
               <Typography>No study visa offers found.</Typography>
             ) : (
               filteredOffers.map((offer: any, idx: number) => (
-                <StudyOfferCard key={offer.id || idx} offer={offer} onView={handleViewOffer} />
+                <OfferCard key={offer.id || idx} offer={offer} onViewOffer={() => handleViewOffer(offer.id)} />
               ))
             )}
           </Box>
