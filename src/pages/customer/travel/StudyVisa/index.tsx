@@ -4,20 +4,20 @@ import {
   Card,
   CardContent,
   Typography,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   Box,
-  useMediaQuery,
-  useTheme,
   MenuItem,
   CircularProgress,
   TextField,
+  Tabs,
+  Tab,
+  Chip,
+  Divider,
 } from "@mui/material";
-import { getAllInstitutions, getMyRecentSudyVisaApplicaton } from "../../../../services/studyVisa";
+import { getAllInstitutions, getMyRecentSudyVisaApplicaton, getMyRecentSudyVisaOffer } from "../../../../services/studyVisa";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../services/api";
+import { capitalizeWords } from "../../../../utils";
 
 /**
  * ApplicationCard - Reusable card for displaying application info.
@@ -51,7 +51,7 @@ export const ApplicationCard: React.FC<{
           className="font-bold"
           sx={{ fontSize: "1.1rem" }}
         >
-          {university}
+          {capitalizeWords(university)}
         </Typography>
         <Button
           size="small"
@@ -116,6 +116,220 @@ export const ApplicationCard: React.FC<{
 );
 
 /**
+ * OfferCard - Redesigned card for displaying a study visa offer.
+ * Uses the new offer API structure.
+ */
+export const OfferCard: React.FC<{
+  offer: any;
+  onViewOffer?: () => void;
+}> = ({ offer, onViewOffer }) => {
+  // Format tuition fee
+  const tuitionFee =
+    offer.tuition_fee && !isNaN(Number(offer.tuition_fee))
+      ? `£${Number(offer.tuition_fee).toLocaleString()}`
+      : offer.tuition_fee || "N/A";
+
+  // Format application deadline
+  const deadline = offer.application_deadline
+    ? new Date(offer.application_deadline).toLocaleDateString()
+    : "N/A";
+
+  // Format end date
+  const endDate = offer.end_date
+    ? new Date(offer.end_date).toLocaleDateString()
+    : null;
+
+  // Format created date
+  const createdAt = offer.created_at
+    ? new Date(offer.created_at).toLocaleDateString()
+    : null;
+
+  return (
+    <Card
+      className="rounded-2xl shadow-lg transition-transform hover:scale-[1.025] hover:shadow-xl"
+      sx={{
+        borderLeft: `6px solid #6a1b9a`,
+        margin: "auto",
+        background: "#f7f3ff",
+        minHeight: 220,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        position: "relative",
+      }}
+    >
+      <CardContent className="flex flex-col gap-2">
+        {/* Header: University and Offer Title */}
+        <Box className="flex items-center justify-between gap-4 mb-1">
+          <Box>
+            <Typography
+              variant="subtitle1"
+              className="font-bold"
+              sx={{ fontSize: "1.1rem", color: "#6a1b9a" }}
+            >
+              {capitalizeWords(offer.institution_name || "Unknown Institution")}
+            </Typography>
+            <Typography
+              variant="body2"
+              className="text-gray-700"
+              sx={{ fontWeight: 500, fontSize: "0.95rem" }}
+            >
+              {offer.offer_title}
+            </Typography>
+          </Box>
+          <Chip
+            label="Offer"
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              color: "#6a1b9a",
+              background: "#ede7f6",
+              px: 2,
+              py: 0.5,
+              borderRadius: 2,
+              pointerEvents: "none",
+            }}
+          />
+        </Box>
+
+        {/* Divider */}
+        <Divider sx={{ my: 1 }} />
+
+        {/* Main Info */}
+        <Box className="flex flex-col gap-1">
+          <Box className="flex items-center gap-2">
+            <Typography
+              variant="body2"
+              className="text-gray-600"
+              sx={{ fontWeight: 500, minWidth: 110 }}
+            >
+              Program:
+            </Typography>
+            <Typography variant="body2" className="text-gray-800 font-semibold">
+              {offer.program_type_name || "N/A"}
+            </Typography>
+          </Box>
+          <Box className="flex items-center gap-2">
+            <Typography
+              variant="body2"
+              className="text-gray-600"
+              sx={{ fontWeight: 500, minWidth: 110 }}
+            >
+              Course:
+            </Typography>
+            <Typography variant="body2" className="text-gray-800">
+              {offer.course_of_study_name || "N/A"}
+            </Typography>
+          </Box>
+          <Box className="flex items-center gap-2">
+            <Typography
+              variant="body2"
+              className="text-gray-600"
+              sx={{ fontWeight: 500, minWidth: 110 }}
+            >
+              Tuition Fee:
+            </Typography>
+            <Typography variant="body2" className="text-gray-800">
+              {tuitionFee}
+            </Typography>
+          </Box>
+          <Box className="flex items-center gap-2">
+            <Typography
+              variant="body2"
+              className="text-gray-600"
+              sx={{ fontWeight: 500, minWidth: 110 }}
+            >
+              Application Deadline:
+            </Typography>
+            <Typography variant="body2" className="text-gray-800">
+              {deadline}
+            </Typography>
+          </Box>
+          {endDate && (
+            <Box className="flex items-center gap-2">
+              <Typography
+                variant="body2"
+                className="text-gray-600"
+                sx={{ fontWeight: 500, minWidth: 110 }}
+              >
+                End Date:
+              </Typography>
+              <Typography variant="body2" className="text-gray-800">
+                {endDate}
+              </Typography>
+            </Box>
+          )}
+          {offer.minimum_qualification && (
+            <Box className="flex items-center gap-2">
+              <Typography
+                variant="body2"
+                className="text-gray-600"
+                sx={{ fontWeight: 500, minWidth: 110 }}
+              >
+                Min. Qualification:
+              </Typography>
+              <Typography variant="body2" className="text-gray-800">
+                {offer.minimum_qualification}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Description */}
+        {offer.description && (
+          <Box sx={{ mt: 1 }}>
+            <Typography
+              variant="body2"
+              className="text-gray-700"
+              sx={{ fontStyle: "italic" }}
+            >
+              {offer.description}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Created At */}
+        {createdAt && (
+          <Box className="flex items-center gap-2 mt-1">
+            <Typography
+              variant="caption"
+              className="text-gray-500"
+              sx={{ minWidth: 110 }}
+            >
+              Created:
+            </Typography>
+            <Typography variant="caption" className="text-gray-500">
+              {createdAt}
+            </Typography>
+          </Box>
+        )}
+
+        {/* View Offer Button */}
+        <Box className="flex items-center justify-end mt-2">
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{
+              borderColor: "#6a1b9a",
+              color: "#6a1b9a",
+              fontWeight: 600,
+              borderRadius: 2,
+              textTransform: "none",
+              px: 2,
+              py: 0.5,
+              minWidth: 0,
+            }}
+            onClick={onViewOffer}
+          >
+            View Offer
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+};
+
+/**
  * GuideCard - Reusable card for displaying a guide/resource.
  */
 export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
@@ -126,14 +340,10 @@ export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
 
 /**
  * ApplyStudyVisa - Page for applying for a study visa.
- * Uses reusable ApplicationCard and GuideCard components.
+ * Uses reusable ApplicationCard, OfferCard, and GuideCard components.
  */
 
 export const ApplyStudyVisa: React.FC = () => {
-  const theme = useTheme();
-  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
-  const isSm = useMediaQuery(theme.breakpoints.down("md"));
-  console.log(isXs, isSm);
   const navigate = useNavigate();
   // State for institutions and form selections
   const [institutions, setInstitutions] = useState<any[]>([]);
@@ -147,6 +357,13 @@ export const ApplyStudyVisa: React.FC = () => {
   // State for recent applications
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(true);
+
+  // State for tab selection: 0 = Recent Applications, 1 = Recent Study Visa Offers
+  const [tabValue, setTabValue] = useState(0);
+
+  // State for recent study visa offers (for the new tab)
+  const [recentStudyVisaOffers, setRecentStudyVisaOffers] = useState<any[]>([]);
+  const [loadingRecentStudyVisaOffers, setLoadingRecentStudyVisaOffers] = useState(true);
 
   // Fetch institutions on mount
   useEffect(() => {
@@ -175,6 +392,23 @@ export const ApplyStudyVisa: React.FC = () => {
         setLoadingApplications(false);
       })
       .catch(() => setLoadingApplications(false));
+  }, []);
+
+  // Fetch recent study visa offers (for the new tab)
+  useEffect(() => {
+    setLoadingRecentStudyVisaOffers(true);
+    getMyRecentSudyVisaOffer()
+      .then((data) => {
+        if (data && Array.isArray(data.results)) {
+          setRecentStudyVisaOffers(data.results);
+        } else if (Array.isArray(data)) {
+          setRecentStudyVisaOffers(data);
+        } else {
+          setRecentStudyVisaOffers([]);
+        }
+        setLoadingRecentStudyVisaOffers(false);
+      })
+      .catch(() => setLoadingRecentStudyVisaOffers(false));
   }, []);
 
   // Derive unique countries from institutions
@@ -359,6 +593,16 @@ export const ApplyStudyVisa: React.FC = () => {
     return programTypeName;
   };
 
+  // Tab change handler
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  // Handler for viewing an offer (could be expanded)
+  const handleViewOffer = (offerId: string | number) => {
+    navigate(`/travel/study-visa/offer/${offerId}`);
+  };
+
   return (
     <Box
       sx={{
@@ -376,7 +620,7 @@ export const ApplyStudyVisa: React.FC = () => {
         </Typography>
       </CustomerPageHeader>
 
-      {/* Sub Header */}
+      {/* Service Section (moved above) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <Typography variant="body1" className="text-gray-700 max-w-md">
           Get assistance with your student visa application from our experienced
@@ -500,48 +744,53 @@ export const ApplyStudyVisa: React.FC = () => {
         {/* Program Type */}
         <Card className="rounded-2xl shadow-md">
           <CardContent
-            className="flex flex-col justify-center"
+            className="flex flex-col items-center justify-center"
             sx={{ height: { xs: 180, sm: 200, md: 220 }, width: "100%" }}
           >
-            <Typography
-              variant="subtitle1"
-              className="font-semibold mb-2"
-              sx={{ fontSize: "1rem", width: "100%" }}
-            >
-              Program Type
-            </Typography>
+      
             {loading ? (
               <CircularProgress size={28} />
             ) : (
-              <RadioGroup
+              <TextField
+                select
+                fullWidth
+                label="Select Program Type"
                 value={selectedProgramType}
                 onChange={handleProgramTypeChange}
-                name="program-type"
+                variant="outlined"
+                disabled={programTypeObjects.length === 0}
+                InputProps={{
+                  sx: {
+                    fontWeight: 500,
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    fontWeight: 500,
+                  },
+                }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        borderRadius: 1,
+                      },
+                    },
+                  },
+                }}
               >
-                {programTypeObjects.length === 0 && (
-                  <FormControlLabel
-                    value=""
-                    control={<Radio disabled />}
-                    label={
-                      <Typography sx={{ fontSize: "0.95rem" }}>
-                        No program types available
-                      </Typography>
-                    }
-                  />
+                {programTypeObjects.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    No program types available
+                  </MenuItem>
+                ) : (
+                  programTypeObjects.map((pt) => (
+                    <MenuItem key={pt.id} value={pt.id}>
+                      {pt.name}
+                    </MenuItem>
+                  ))
                 )}
-                {programTypeObjects.map((pt) => (
-                  <FormControlLabel
-                    key={pt.id}
-                    value={pt.id}
-                    control={<Radio />}
-                    label={
-                      <Typography sx={{ fontSize: "0.95rem" }}>
-                        {pt.name}
-                      </Typography>
-                    }
-                  />
-                ))}
-              </RadioGroup>
+              </TextField>
             )}
           </CardContent>
         </Card>
@@ -552,13 +801,7 @@ export const ApplyStudyVisa: React.FC = () => {
             className="flex flex-col items-center justify-center"
             sx={{ height: { xs: 180, sm: 200, md: 220 }, width: "100%" }}
           >
-            <Typography
-              variant="subtitle1"
-              className="font-semibold mb-2"
-              sx={{ fontSize: "1rem", width: "100%" }}
-            >
-              Course of Study
-            </Typography>
+   
             {loading ? (
               <CircularProgress size={28} />
             ) : (
@@ -628,11 +871,95 @@ export const ApplyStudyVisa: React.FC = () => {
         {submitting ? <CircularProgress size={24} color="inherit" /> : "Start Application"}
       </Button>
 
-      {/* Recent Applications */}
-      <Box className="flex items-center justify-between mb-4" sx={{ mt: 4 }}>
-        <Typography variant="h6" className="font-bold">
-          Recent Applications
-        </Typography>
+      {/* Tabs for Recent Applications and Recent Study Visa Offers */}
+      <Box sx={{ mt: 4, mb: 2 }}>
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          aria-label="Recent Applications and Recent Study Visa Offers Tabs"
+          variant="scrollable"
+          scrollButtons="auto"
+        >
+          <Tab label="Recent Applications" />
+          <Tab label="Recent Study Visa Offers" />
+        </Tabs>
+      </Box>
+
+      {/* Tab Panels */}
+      <Box
+        sx={{
+          overflowX: "auto",
+          width: "100%",
+          pb: 1,
+        }}
+      >
+        {/* Recent Applications Tab */}
+        {tabValue === 0 && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 2,
+              minHeight: 180,
+            }}
+          >
+            {loadingApplications ? (
+              <Box className="flex items-center justify-center w-full py-8">
+                <CircularProgress size={32} />
+              </Box>
+            ) : recentApplications.length === 0 ? (
+              <Typography variant="body2" className="text-gray-500 flex items-center">
+                No recent applications found.
+              </Typography>
+            ) : (
+              recentApplications.map((app: any) => (
+                <Box key={app.id} sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}>
+                  <ApplicationCard
+                    university={getInstitutionName(app.institution)}
+                    country={getInstitutionCountry(app.institution)}
+                    program={getProgramString(app)}
+                    status={getStatusLabel(app.status)}
+                  />
+                </Box>
+              ))
+            )}
+          </Box>
+        )}
+
+        {/* Recent Study Visa Offers Tab */}
+        {tabValue === 1 && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 2,
+              minHeight: 220,
+            }}
+          >
+            {loadingRecentStudyVisaOffers ? (
+              <Box className="flex items-center justify-center w-full py-8">
+                <CircularProgress size={32} />
+              </Box>
+            ) : recentStudyVisaOffers.length === 0 ? (
+              <Typography variant="body2" className="text-gray-500 flex items-center">
+                No recent study visa offers found.
+              </Typography>
+            ) : (
+              recentStudyVisaOffers.map((offer: any) => (
+                <Box key={offer.id} sx={{ minWidth: 320, maxWidth: 400, flex: "0 0 auto" }}>
+                  <OfferCard
+                    offer={offer}
+                    onViewOffer={() => handleViewOffer(offer.id)}
+                  />
+                </Box>
+              ))
+            )}
+          </Box>
+        )}
+      </Box>
+
+      {/* View More Button */}
+      <Box className="flex items-center justify-end mb-4" sx={{ mt: 2 }}>
         <Button
           size="small"
           variant="text"
@@ -641,43 +968,6 @@ export const ApplyStudyVisa: React.FC = () => {
         >
           View More
         </Button>
-      </Box>
-      <Box
-        sx={{
-          overflowX: "auto",
-          width: "100%",
-          pb: 1,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            gap: 2,
-            minHeight: 180,
-          }}
-        >
-          {loadingApplications ? (
-            <Box className="flex items-center justify-center w-full py-8">
-              <CircularProgress size={32} />
-            </Box>
-          ) : recentApplications.length === 0 ? (
-            <Typography variant="body2" className="text-gray-500 flex items-center">
-              No recent applications found.
-            </Typography>
-          ) : (
-            recentApplications.map((app: any) => (
-              <Box key={app.id} sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}>
-                <ApplicationCard
-                  university={getInstitutionName(app.institution)}
-                  country={getInstitutionCountry(app.institution)}
-                  program={getProgramString(app)}
-                  status={getStatusLabel(app.status)}
-                />
-              </Box>
-            ))
-          )}
-        </Box>
       </Box>
 
       {/* Guides & Resources */}
