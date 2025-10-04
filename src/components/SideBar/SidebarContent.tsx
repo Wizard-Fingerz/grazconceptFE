@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Box, Accordion, AccordionDetails, AccordionSummary, List, Typography, Divider, Avatar, IconButton, Button,
-  
 } from '@mui/material';
 import UnfoldMore from '@mui/icons-material/UnfoldMore';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
@@ -9,6 +8,7 @@ import logo from '../../assets/logo.png';
 import SidebarItem from '../SideBarItem/SideBarItem';
 import { useAuth } from '../../context/AuthContext';
 import { MenuOpen, Menu } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarContentProps {
   isOpen: boolean;
@@ -18,6 +18,13 @@ interface SidebarContentProps {
 
 const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections, toggleSidebar }) => {
   const { logout, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Handler to navigate to profile page
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/profile');
+  };
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -37,11 +44,25 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
       </Box>
       {/* User Profile Accordion */}
       <Box sx={{ px: 2 }}>
-        <Accordion sx={{ boxShadow: 0, margin: 0, padding: 0, '& .MuiAccordionDetails-root': { pt: 0 } }}>
-          <AccordionSummary expandIcon={isOpen ? <UnfoldMore /> : null}>
+        <Accordion
+          sx={{ boxShadow: 0, margin: 0, padding: 0, '& .MuiAccordionDetails-root': { pt: 0 } }}
+          square
+          expanded={false}
+        >
+          <AccordionSummary
+            expandIcon={isOpen ? <UnfoldMore /> : null}
+            aria-controls="profile-content"
+            id="profile-header"
+            sx={{ cursor: 'pointer' }}
+            // Remove onClick from AccordionSummary
+          >
             {user && (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Avatar src={user.profile_picture} sx={{ width: 40, height: 40, mr: 2 }} />
+                <Avatar
+                  src={user.profile_picture}
+                  sx={{ width: 40, height: 40, mr: 2, cursor: 'pointer' }}
+                  onClick={handleProfileClick}
+                />
                 <Box sx={{ ml: 1 }}>
                   {isOpen && (
                     <>

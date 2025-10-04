@@ -59,6 +59,7 @@ import CountriesJob from '../pages/customer/travel/WorkVisa/CountriesJob';
 import AllStudyOffers from '../pages/customer/travel/StudyVisa/AllstudyOffers';
 import StudyVisaDetails from '../pages/customer/travel/StudyVisa/StudyVisaDetails';
 import AllStudyVisaApplication from '../pages/customer/travel/StudyVisa/AllStudyVisaApplication';
+import ProfilePage from '../pages/auth/ProfilePage';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -194,6 +195,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'dashboard',
         element: <Dashboard />,
+      },
+      {
+        path: 'profile',
+        element: <ProfilePage />,
       },
       {
         path: 'dashboard/flight-result',

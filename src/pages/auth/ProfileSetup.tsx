@@ -12,20 +12,31 @@ import {
   FormControlLabel,
   Radio,
   FormLabel,
+  MenuItem,
 } from '@mui/material';
+
+// Add gender and nationality options for demo
+const GENDER_OPTIONS = [
+  { value: '', label: 'Select Gender' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+];
+
+const NATIONALITY_OPTIONS = [
+  { value: '', label: 'Select Nationality' },
+  { value: 'nigeria', label: 'Nigeria' },
+  { value: 'ghana', label: 'Ghana' },
+  { value: 'kenya', label: 'Kenya' },
+  { value: 'south_africa', label: 'South Africa' },
+  { value: 'other', label: 'Other' },
+];
 
 type CustomerType =
   | 'institution_partner'
   | 'high_school_partner'
   | 'business_owner'
   | 'regular_customer';
-
-// const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
-//   institution_partner: 'Institution Partner',
-//   high_school_partner: 'High School Partner',
-//   business_owner: 'Business Owner',
-//   regular_customer: 'Individual Customer',
-// };
 
 export const CustomerProfileSetup: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -36,8 +47,19 @@ export const CustomerProfileSetup: React.FC = () => {
     numberOfStudents: '',
     businessName: '',
     businessType: '',
-    customerName: '',
-    customerEmail: '',
+    // Regular customer fields
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    gender: '',
+    nationality: '',
+    passportNumber: '',
+    passportExpiry: '',
+    currentAddress: '',
+    countryOfResidence: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +68,6 @@ export const CustomerProfileSetup: React.FC = () => {
   // Step 1: Choose customer type
   const handleCustomerTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     let value = event.target.value as CustomerType | 'skip';
-    // If user selects "skip", treat as "regular_customer"
     if (value === 'skip') {
       value = 'regular_customer';
     }
@@ -77,45 +98,48 @@ export const CustomerProfileSetup: React.FC = () => {
     setError(null);
   };
 
+  // Validation for regular customer profile
+  function validateRegularCustomerProfile(data: typeof formData) {
+    const errors: Record<string, string> = {};
+    if (!data.firstName) errors.firstName = "First name is required";
+    if (!data.lastName) errors.lastName = "Last name is required";
+    if (!data.email) errors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = "Invalid email";
+    if (!data.phone) errors.phone = "Phone number is required";
+    if (!data.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
+    if (!data.gender) errors.gender = "Gender is required";
+    if (!data.nationality) errors.nationality = "Nationality is required";
+    if (!data.passportNumber) errors.passportNumber = "Passport number is required";
+    if (!data.passportExpiry) errors.passportExpiry = "Passport expiry date is required";
+    if (!data.currentAddress) errors.currentAddress = "Current address is required";
+    if (!data.countryOfResidence) errors.countryOfResidence = "Country of residence is required";
+    return errors;
+  }
+
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    setSuccess(false);
     setLoading(true);
 
     try {
-      // Build payload but do not assign to a variable to avoid TS6133
-      if (customerType === 'institution_partner') {
+      if (customerType === 'regular_customer') {
+        const errors = validateRegularCustomerProfile(formData);
+        setFieldErrors(errors);
+        if (Object.keys(errors).length > 0) {
+          setError('Please fill all required fields correctly.');
+          setLoading(false);
+          return;
+        }
         // const payload = {
-        //   institution_name: formData.institutionName,
-        //   institution_type: 'Institution',
-        //   number_of_students: formData.numberOfStudents,
-        // };
-        // TODO: send payload to API
-        // await api.post('/profile/customer-setup/', payload);
-      } else if (customerType === 'high_school_partner') {
-        // const payload = {
-        //   institution_name: formData.institutionName,
-        //   institution_type: 'High School',
-        //   number_of_students: formData.numberOfStudents,
-        // };
-        // TODO: send payload to API
-        // await api.post('/profile/customer-setup/', payload);
-      } else if (customerType === 'business_owner') {
-        // const payload = {
-        //   business_name: formData.businessName,
-        //   business_type: formData.businessType,
-        // };
-        // TODO: send payload to API
-        // await api.post('/profile/customer-setup/', payload);
-      } else if (customerType === 'regular_customer') {
-        // const payload = {
-        //   customer_name: formData.customerName,
-        //   customer_email: formData.customerEmail,
+        //   ...formData,
         // };
         // TODO: send payload to API
         // await api.post('/profile/customer-setup/', payload);
       }
-
+      // Other customer types (not changed for this rewrite)
       setSuccess(true);
       setTimeout(() => {
         // TODO: navigate to dashboard or next step
@@ -135,7 +159,7 @@ export const CustomerProfileSetup: React.FC = () => {
         mt: 4,
       }}
     >
-      <Paper sx={{ p: 4, maxWidth: 500, width: '100%' }} elevation={3}>
+      <Paper sx={{ p: 4, maxWidth: 600, width: '100%' }} elevation={3}>
         <Stack spacing={3}>
           <Typography variant="h5" textAlign="center">
             Customer Profile Setup
@@ -247,25 +271,146 @@ export const CustomerProfileSetup: React.FC = () => {
                   </>
                 )}
 
-                {/* Individual Customer */}
+                {/* Individual Customer (Regular Customer) */}
                 {customerType === 'regular_customer' && (
                   <>
                     <TextField
-                      label="Your Name"
-                      name="customerName"
-                      value={formData.customerName}
+                      label="First Name"
+                      name="firstName"
+                      value={formData.firstName}
                       onChange={handleChange}
                       fullWidth
                       required
+                      error={!!fieldErrors.firstName}
+                      helperText={fieldErrors.firstName}
+                    />
+                    <TextField
+                      label="Last Name"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      error={!!fieldErrors.lastName}
+                      helperText={fieldErrors.lastName}
+                    />
+                    <TextField
+                      label="Middle Name"
+                      name="middleName"
+                      value={formData.middleName}
+                      onChange={handleChange}
+                      fullWidth
+                      error={!!fieldErrors.middleName}
+                      helperText={fieldErrors.middleName}
                     />
                     <TextField
                       label="Email"
-                      name="customerEmail"
+                      name="email"
                       type="email"
-                      value={formData.customerEmail}
+                      value={formData.email}
                       onChange={handleChange}
                       fullWidth
                       required
+                      error={!!fieldErrors.email}
+                      helperText={fieldErrors.email}
+                    />
+                    <TextField
+                      label="Phone Number"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      error={!!fieldErrors.phone}
+                      helperText={fieldErrors.phone}
+                    />
+                    <TextField
+                      label="Date of Birth"
+                      name="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      error={!!fieldErrors.dateOfBirth}
+                      helperText={fieldErrors.dateOfBirth}
+                    />
+                    <TextField
+                      select
+                      label="Gender"
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      error={!!fieldErrors.gender}
+                      helperText={fieldErrors.gender}
+                    >
+                      {GENDER_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      select
+                      label="Nationality"
+                      name="nationality"
+                      value={formData.nationality}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      error={!!fieldErrors.nationality}
+                      helperText={fieldErrors.nationality}
+                    >
+                      {NATIONALITY_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      label="Passport Number"
+                      name="passportNumber"
+                      value={formData.passportNumber}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      error={!!fieldErrors.passportNumber}
+                      helperText={fieldErrors.passportNumber}
+                    />
+                    <TextField
+                      label="Passport Expiry Date"
+                      name="passportExpiry"
+                      type="date"
+                      value={formData.passportExpiry}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      error={!!fieldErrors.passportExpiry}
+                      helperText={fieldErrors.passportExpiry}
+                    />
+                    <TextField
+                      label="Current Address"
+                      name="currentAddress"
+                      value={formData.currentAddress}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      error={!!fieldErrors.currentAddress}
+                      helperText={fieldErrors.currentAddress}
+                    />
+                    <TextField
+                      label="Country of Residence"
+                      name="countryOfResidence"
+                      value={formData.countryOfResidence}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                      error={!!fieldErrors.countryOfResidence}
+                      helperText={fieldErrors.countryOfResidence}
                     />
                   </>
                 )}
