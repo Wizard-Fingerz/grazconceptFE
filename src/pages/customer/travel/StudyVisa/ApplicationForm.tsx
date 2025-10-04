@@ -1030,7 +1030,25 @@ const StudyVisaApplicationForm: React.FC = () => {
   const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep()) {
-      setSnackbar({ open: true, message: "Please fix errors before continuing.", severity: "error" });
+      // If on step 0 (Personal Info), show a more specific message
+      if (activeStep === 0) {
+        // Find which required fields are missing from the user profile
+        const missingFields: string[] = [];
+        if (!user?.first_name) missingFields.push("First Name");
+        if (!user?.last_name) missingFields.push("Last Name");
+        if (!user?.email) missingFields.push("Email");
+        if (!user?.phone_number) missingFields.push("Phone Number");
+        if (!user?.date_of_birth && !formValues.dateOfBirth) missingFields.push("Date of Birth");
+        // You can add more fields as needed
+
+        let message = "Please complete your profile with the following information before continuing.";
+        if (missingFields.length > 0) {
+          message = `Please complete your profile with the following information: ${missingFields.join(", ")}.`;
+        }
+        setSnackbar({ open: true, message, severity: "error" });
+      } else {
+        setSnackbar({ open: true, message: "Please fix errors before continuing.", severity: "error" });
+      }
       return;
     }
     if (activeStep === steps.length - 1) {
