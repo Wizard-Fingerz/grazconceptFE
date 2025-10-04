@@ -18,12 +18,8 @@ import {
   Stack,
 } from "@mui/material";
 import { getStudyVisaOfferById } from "../../../../services/studyVisa";
-
-// Placeholder for application form submission
-async function submitApplication(_offerId: string, _formData: any) {
-  // Replace with actual API call
-  return new Promise((resolve) => setTimeout(resolve, 1200));
-}
+import { useAuth } from "../../../../context/AuthContext";
+import api from "../../../../services/api"; // <-- Import the api
 
 // Define the steps and their fields
 const FORM_STEPS = [
@@ -109,13 +105,25 @@ function renderDescriptionLive(text: string) {
 
 const StudyVisaDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [offer, setOffer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  // Application form state
+  // Compose full name from user details
+  const getUserFullName = () => {
+    if (!user) return "";
+    // Try to use first_name, middle_name, last_name if available
+    const first = user.first_name || "";
+    const middle = user.middle_name || "";
+    const last = user.last_name || "";
+    // If all are empty, fallback to user.name or ""
+    if (first || middle || last) {
+      return [first, middle, last].filter(Boolean).join(" ").trim();
+    }
+    return user.email || "";
+  };
+
+  // Application form state, prefill applicant with user full name
   const [form, setForm] = useState({
-    applicant: "",
+    applicant: getUserFullName(),
     passport_number: "",
     country: "",
     passport_expiry_date: "",
@@ -148,6 +156,11 @@ const StudyVisaDetails: React.FC = () => {
   // Stepper state
   const [activeStep, setActiveStep] = useState(0);
 
+  // Offer state
+  const [offer, setOffer] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   // For live description typing effect
   const [liveDescription, setLiveDescription] = useState<string>("");
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,6 +179,15 @@ const StudyVisaDetails: React.FC = () => {
         setLoading(false);
       });
   }, [id]);
+
+  // If user changes (e.g. login), update applicant field
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      applicant: getUserFullName(),
+    }));
+    // eslint-disable-next-line
+  }, [user]);
 
   // Helper: get value from offer or institution
   const getOfferField = (field: string) => {
@@ -257,6 +279,11 @@ const StudyVisaDetails: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type, files } = e.target as any;
+    // If the field is applicant, ignore manual changes (keep it always filled from user)
+    if (name === "applicant") {
+      // Do nothing, keep applicant always filled from user
+      return;
+    }
     if (type === "file") {
       setForm((prev) => ({
         ...prev,
@@ -280,6 +307,10 @@ const StudyVisaDetails: React.FC = () => {
       if (field.type === "file") {
         return !!form[fname as keyof typeof form];
       }
+      // For applicant, always valid if user exists
+      if (fname === "applicant") {
+        return !!getUserFullName();
+      }
       return String(form[fname as keyof typeof form]).trim().length > 0;
     });
   };
@@ -296,6 +327,7 @@ const StudyVisaDetails: React.FC = () => {
     }
   };
 
+  // --- REWRITE: Use api.post to submit the application to study-visa-application endpoint ---
   const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -312,7 +344,12 @@ const StudyVisaDetails: React.FC = () => {
                 formData.append(key, form[key as keyof typeof form] as File);
               }
             } else {
-              formData.append(key, form[key as keyof typeof form] ?? "");
+              // For applicant, always use the user full name
+              if (key === "applicant") {
+                formData.append("applicant", getUserFullName());
+              } else {
+                formData.append(key, form[key as keyof typeof form] ?? "");
+              }
             }
           }
         }
@@ -320,10 +357,16 @@ const StudyVisaDetails: React.FC = () => {
       // Add offer id and any offer fields needed for backend
       formData.append("study_visa_offer", id as string);
 
-      await submitApplication(id as string, formData);
+      // Use api.post to submit the application
+      await api.post("/study-visa-application/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       setSubmitSuccess(true);
       setForm({
-        applicant: "",
+        applicant: getUserFullName(),
         passport_number: "",
         country: "",
         passport_expiry_date: "",
@@ -356,6 +399,7 @@ const StudyVisaDetails: React.FC = () => {
     }
     setSubmitting(false);
   };
+  // --- END REWRITE ---
 
   // --- Live description typing effect ---
   useEffect(() => {
@@ -829,6 +873,21 @@ const StudyVisaDetails: React.FC = () => {
               );
             }
             // Default: text
+            // For applicant, always show as disabled and filled with user full name
+            if (field.name === "applicant") {
+              return (
+                <TextField
+                  key={field.name}
+                  name={field.name}
+                  label={field.label}
+                  value={getUserFullName()}
+                  fullWidth
+                  required={field.required}
+                  margin="normal"
+                  disabled
+                />
+              );
+            }
             return (
               <TextField
                 key={field.name}
