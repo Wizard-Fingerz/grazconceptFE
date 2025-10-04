@@ -32,10 +32,10 @@ export async function getMyRecentSudyVisaOffer() {
   }
 }
 
-export async function getAllSudyVisaOffer() {
+export async function getAllSudyVisaOffer(params?: Record<string, any>) {
   try {
-    // Add ?limit=3 to only fetch the three most recent applications (if backend supports it)
-    const response = await api.get(`/app/study-visa-offers/`);
+    // Pass params for pagination/filtering if provided
+    const response = await api.get(`/app/study-visa-offers/`, { params });
     return response.data;
   } catch (error) {
     throw error;

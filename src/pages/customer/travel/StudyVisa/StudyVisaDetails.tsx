@@ -358,7 +358,7 @@ const StudyVisaDetails: React.FC = () => {
       formData.append("study_visa_offer", id as string);
 
       // Use api.post to submit the application
-      await api.post("/study-visa-application/", formData, {
+      await api.post("/app/study-visa-application/", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

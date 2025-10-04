@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { showErrorToast, shouldShowErrorToast } from '../utils/errorHandler';
 
-// const API_BASE_URL = 'http://localhost:8002/api';
+// const API_BASE_URL = 'http://localhost:8002/api/';
 
 const API_BASE_URL = 'https://grazconceptbe.onrender.com/api/';
 
@@ -50,7 +50,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post(`${API_BASE_URL}/users/token/refresh/`, {
+        const response = await axios.post(`${API_BASE_URL}users/token/refresh/`, {
           refresh: refreshToken,
         });
 
