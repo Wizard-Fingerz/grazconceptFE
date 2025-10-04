@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -14,6 +14,8 @@ import {
   FormLabel,
   MenuItem,
 } from '@mui/material';
+import { useAuth } from '../../context/AuthContext';
+
 
 // Add gender and nationality options for demo
 const GENDER_OPTIONS = [
@@ -39,31 +41,43 @@ type CustomerType =
   | 'regular_customer';
 
 export const CustomerProfileSetup: React.FC = () => {
-  const [step, setStep] = useState(1);
-  const [customerType, setCustomerType] = useState<CustomerType | ''>('');
-  const [formData, setFormData] = useState({
+  const { user } = useAuth();
+
+  // Prefill formData with user details if available
+  const getInitialFormData = () => ({
     institutionName: '',
     institutionType: '',
     numberOfStudents: '',
     businessName: '',
     businessType: '',
     // Regular customer fields
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    email: '',
-    phone: '',
-    dateOfBirth: '',
-    gender: '',
-    nationality: '',
-    passportNumber: '',
-    passportExpiry: '',
-    currentAddress: '',
-    countryOfResidence: '',
+    firstName: user?.first_name || user?.first_name || '',
+    lastName: user?.last_name || user?.last_name || '',
+    middleName: user?.middle_name || user?.middle_name || '',
+    email: user?.email || '',
+    phone: user?.phone_number || user?.phone_number || '',
+    dateOfBirth: user?.date_of_birth || user?.date_of_birth || '',
+    gender: user?.gender || '',
+    nationality: user?.nationality || '',
+    // passportNumber and passportExpiry removed
+    currentAddress: user?.current_address || user?.address || '',
+    countryOfResidence: user?.country_of_residence || user?.country_of_residence || '',
   });
+
+  const [step, setStep] = useState(1);
+  const [customerType, setCustomerType] = useState<CustomerType | ''>('');
+  const [formData, setFormData] = useState(getInitialFormData());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Update formData if user changes (e.g. after login)
+  useEffect(() => {
+    setFormData(getInitialFormData());
+    // Optionally, set customerType if user has a type
+    // setCustomerType(user?.customerType || '');
+  // eslint-disable-next-line
+  }, [user]);
 
   // Step 1: Choose customer type
   const handleCustomerTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,8 +123,7 @@ export const CustomerProfileSetup: React.FC = () => {
     if (!data.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
     if (!data.gender) errors.gender = "Gender is required";
     if (!data.nationality) errors.nationality = "Nationality is required";
-    if (!data.passportNumber) errors.passportNumber = "Passport number is required";
-    if (!data.passportExpiry) errors.passportExpiry = "Passport expiry date is required";
+    // passportNumber and passportExpiry validation removed
     if (!data.currentAddress) errors.currentAddress = "Current address is required";
     if (!data.countryOfResidence) errors.countryOfResidence = "Country of residence is required";
     return errors;
@@ -370,28 +383,7 @@ export const CustomerProfileSetup: React.FC = () => {
                         </MenuItem>
                       ))}
                     </TextField>
-                    <TextField
-                      label="Passport Number"
-                      name="passportNumber"
-                      value={formData.passportNumber}
-                      onChange={handleChange}
-                      fullWidth
-                      required
-                      error={!!fieldErrors.passportNumber}
-                      helperText={fieldErrors.passportNumber}
-                    />
-                    <TextField
-                      label="Passport Expiry Date"
-                      name="passportExpiry"
-                      type="date"
-                      value={formData.passportExpiry}
-                      onChange={handleChange}
-                      fullWidth
-                      required
-                      InputLabelProps={{ shrink: true }}
-                      error={!!fieldErrors.passportExpiry}
-                      helperText={fieldErrors.passportExpiry}
-                    />
+                    {/* Passport Number and Passport Expiry Date fields removed */}
                     <TextField
                       label="Current Address"
                       name="currentAddress"

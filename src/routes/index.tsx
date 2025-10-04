@@ -201,6 +201,10 @@ export const protectedRoutes: RouteObject[] = [
         element: <ProfilePage />,
       },
       {
+        path: 'profile/edit',
+        element: <CustomerProfileSetup />,
+      },
+      {
         path: 'dashboard/flight-result',
         element: <FlightListPage />,
       },
