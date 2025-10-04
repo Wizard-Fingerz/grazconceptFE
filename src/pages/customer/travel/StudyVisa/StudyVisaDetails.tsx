@@ -16,10 +16,13 @@ import {
   Step,
   StepLabel,
   Stack,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { getStudyVisaOfferById } from "../../../../services/studyVisa";
 import { useAuth } from "../../../../context/AuthContext";
 import api from "../../../../services/api"; // <-- Import the api
+import { capitalizeWords } from "../../../../utils";
 
 // Define the steps and their fields
 const FORM_STEPS = [
@@ -142,7 +145,7 @@ const StudyVisaDetails: React.FC = () => {
     admission_letter: null as File | null,
     financial_statement: null as File | null,
     english_proficiency_test: null as File | null,
-    previous_visa_applications: "",
+    previous_visa_applications: false, // boolean, default to false
     previous_visa_details: "",
     travel_history: "",
     emergency_contact_name: "",
@@ -232,7 +235,7 @@ const StudyVisaDetails: React.FC = () => {
     { name: "english_proficiency_test", label: "English Proficiency Test", type: "file", required: false },
 
     // 5️⃣ Additional Information
-    { name: "previous_visa_applications", label: "Previous Visa Applications", type: "text", required: false },
+    { name: "previous_visa_applications", label: "Previous Visa Applications", type: "boolean", required: false },
     { name: "previous_visa_details", label: "Previous Visa Details", type: "text", required: false },
     { name: "travel_history", label: "Travel History", type: "text", required: false },
     { name: "emergency_contact_name", label: "Emergency Contact Name", type: "text", required: true },
@@ -278,7 +281,7 @@ const StudyVisaDetails: React.FC = () => {
   })).filter((step) => step.fields.length > 0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, files } = e.target as any;
+    const { name, value, type, files, checked } = e.target as any;
     // If the field is applicant, ignore manual changes (keep it always filled from user)
     if (name === "applicant") {
       // Do nothing, keep applicant always filled from user
@@ -288,6 +291,11 @@ const StudyVisaDetails: React.FC = () => {
       setForm((prev) => ({
         ...prev,
         [name]: files && files.length > 0 ? files[0] : null,
+      }));
+    } else if (type === "checkbox") {
+      setForm((prev) => ({
+        ...prev,
+        [name]: checked,
       }));
     } else {
       setForm((prev) => ({
@@ -310,6 +318,10 @@ const StudyVisaDetails: React.FC = () => {
       // For applicant, always valid if user exists
       if (fname === "applicant") {
         return !!getUserFullName();
+      }
+      if (field.type === "boolean") {
+        // Not required, so always valid
+        return true;
       }
       return String(form[fname as keyof typeof form]).trim().length > 0;
     });
@@ -339,16 +351,28 @@ const StudyVisaDetails: React.FC = () => {
         if (Object.prototype.hasOwnProperty.call(form, key)) {
           // Only append if field is visible in the form
           if (visibleFormFields.find((f) => f.name === key)) {
+            // Remove applicant from payload (do not send)
+            if (key === "applicant") {
+              continue;
+            }
+            // For previous_visa_applications, ensure boolean is sent
+            if (key === "previous_visa_applications") {
+              formData.append(key, form[key] ? "true" : "false");
+              continue;
+            }
             if (form[key as keyof typeof form] instanceof File) {
               if (form[key as keyof typeof form]) {
                 formData.append(key, form[key as keyof typeof form] as File);
               }
             } else {
-              // For applicant, always use the user full name
-              if (key === "applicant") {
-                formData.append("applicant", getUserFullName());
+              const value = form[key as keyof typeof form];
+              // Convert boolean to string, otherwise use string or empty string
+              if (typeof value === "boolean") {
+                formData.append(key, value ? "true" : "false");
+              } else if (value === null || value === undefined) {
+                formData.append(key, "");
               } else {
-                formData.append(key, form[key as keyof typeof form] ?? "");
+                formData.append(key, String(value));
               }
             }
           }
@@ -385,7 +409,7 @@ const StudyVisaDetails: React.FC = () => {
         admission_letter: null,
         financial_statement: null,
         english_proficiency_test: null,
-        previous_visa_applications: "",
+        previous_visa_applications: false,
         previous_visa_details: "",
         travel_history: "",
         emergency_contact_name: "",
@@ -631,9 +655,11 @@ const StudyVisaDetails: React.FC = () => {
               )}
               <Box>
                 <Typography variant="h5" className="font-bold">
-                  {typeof institution === "object"
-                    ? institution.name || offer.institution_name
-                    : institution || offer.institution_name}
+                  {capitalizeWords(
+                    typeof institution === "object"
+                      ? institution.name || offer.institution_name
+                      : institution || offer.institution_name
+                  )}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {country}
@@ -869,6 +895,24 @@ const StudyVisaDetails: React.FC = () => {
                   required={field.required}
                   margin="normal"
                   InputLabelProps={{ shrink: true }}
+                />
+              );
+            }
+            if (field.type === "boolean") {
+              // Render as checkbox
+              return (
+                <FormControlLabel
+                  key={field.name}
+                  control={
+                    <Checkbox
+                      name={field.name}
+                      checked={!!form[field.name as keyof typeof form]}
+                      onChange={handleInputChange}
+                      color="primary"
+                    />
+                  }
+                  label={field.label}
+                  sx={{ my: 1 }}
                 />
               );
             }
