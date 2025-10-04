@@ -15,6 +15,8 @@ import {
   Stepper,
   Step,
   StepLabel,
+  // Grid, // Removed deprecated Grid import
+  Stack,
 } from "@mui/material";
 import { getStudyVisaOfferById } from "../../../../services/studyVisa";
 
@@ -350,13 +352,132 @@ const StudyVisaDetails: React.FC = () => {
   }
 
   // Extract institution details, requirements, images, etc.
-  const institution = offer.university || offer.institution_name || {};
-  const requirements = offer.requirements || [];
+  // Map the details according to the provided offer structure
+  const institution =
+    (typeof offer.university === "object" && offer.university) ||
+    (typeof offer.institution_name === "object" && offer.institution_name) ||
+    { name: offer.institution_name || "N/A" };
+
+  // --- REQUIREMENTS LOGIC MODIFIED TO INCLUDE MINIMUM ENGLISH SCORE 5.0 ---
+  const requirements = (() => {
+    // If offer.requirements is a non-empty array, use it and append the minimum_english_score
+    if (Array.isArray(offer.requirements) && offer.requirements.length > 0) {
+      // Only add the minimum_english_score if not already present
+      const minEnglishScoreText = 'Minimum English Score: 5.0';
+      const alreadyIncluded = offer.requirements.some(
+        (req: string) =>
+          req.toLowerCase().includes("minimum english score") ||
+          req.toLowerCase().includes("minimum_english_score")
+      );
+      return alreadyIncluded
+        ? offer.requirements
+        : [...offer.requirements, minEnglishScoreText];
+    }
+    // Otherwise, build the requirements array as before, but always include minimum_english_score: 5.0
+    const reqs = [
+      ...(offer.minimum_qualification ? [`Minimum Qualification: ${offer.minimum_qualification}`] : []),
+      ...(offer.minimum_grade ? [`Minimum Grade: ${offer.minimum_grade}`] : []),
+      ...(offer.english_proficiency_required
+        ? [
+            `English Proficiency Required: Yes`,
+            offer.english_test_type
+              ? `Test Type: ${offer.english_test_type}`
+              : "",
+            offer.minimum_english_score
+              ? `Minimum Score: ${offer.minimum_english_score}`
+              : "",
+          ].filter(Boolean)
+        : [`English Proficiency Required: No`]),
+      ...(offer.other_requirements
+        ? [offer.other_requirements]
+        : []),
+    ];
+    // Always include the actual minimum_english_score value from the backend if available
+    if (offer.minimum_english_score !== undefined && offer.minimum_english_score !== null) {
+      reqs.push(`Minimum English Score: ${offer.minimum_english_score}`);
+    }
+    return reqs;
+  })();
+  // --- END REQUIREMENTS LOGIC MODIFIED ---
+
   const images = offer.images || offer.institution_images || [];
   const institutionLogo =
     offer.institution_logo ||
     (typeof institution === "object" && institution.logo) ||
     null;
+
+  // Map status code to display (if available)
+  const statusDisplay =
+    offer.status_display ||
+    (typeof offer.status === "number"
+      ? `Status Code: ${offer.status}`
+      : undefined);
+
+  // Format tuition fee
+  const tuitionFee =
+    offer.tuition_fee !== undefined && offer.tuition_fee !== null
+      ? `£${Number(offer.tuition_fee).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+      : "N/A";
+
+  // Format application deadline
+  const applicationDeadline = offer.application_deadline
+    ? new Date(offer.application_deadline).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "N/A";
+
+  // Format start and end dates
+  const startDate = offer.start_date
+    ? new Date(offer.start_date).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "N/A";
+  const endDate = offer.end_date
+    ? new Date(offer.end_date).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "N/A";
+
+  // Compose program type
+  const programType =
+    offer.program_type_name ||
+    (typeof offer.program_type === "string" ? offer.program_type : undefined) ||
+    "N/A";
+
+  // Compose course of study
+  const courseOfStudy =
+    offer.course_of_study_name ||
+    (typeof offer.course_of_study === "string" ? offer.course_of_study : undefined) ||
+    "N/A";
+
+  // Compose country
+  const country =
+    offer.country ||
+    (typeof institution === "object" && institution.country) ||
+    "N/A";
+
+  // Compose offer title
+  const offerTitle = offer.offer_title || offer.program_name || offer.program || "Study Visa Offer";
+
+  // Compose description
+  const description = offer.description || offer.program_description || "No description available.";
+
+  // Compose created/updated at
+  const createdAt = offer.created_at
+    ? new Date(offer.created_at).toLocaleString()
+    : undefined;
+  const updatedAt = offer.updated_at
+    ? new Date(offer.updated_at).toLocaleString()
+    : undefined;
 
   return (
     <Box
@@ -366,7 +487,6 @@ const StudyVisaDetails: React.FC = () => {
         gap: 4,
         px: { xs: 1, sm: 2, md: 4 },
         py: { xs: 2, md: 4 },
-        // maxWidth: 1400,
         mx: "auto",
       }}
     >
@@ -380,7 +500,13 @@ const StudyVisaDetails: React.FC = () => {
                   component="img"
                   image={institutionLogo}
                   alt="Institution Logo"
-                  sx={{ width: 64, height: 64, borderRadius: 2, objectFit: "contain", bgcolor: "#f5f5f5" }}
+                  sx={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 2,
+                    objectFit: "contain",
+                    bgcolor: "#f5f5f5",
+                  }}
                 />
               )}
               <Box>
@@ -390,16 +516,84 @@ const StudyVisaDetails: React.FC = () => {
                     : institution || offer.institution_name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {offer.country || (typeof institution === "object" && institution.country)}
+                  {country}
                 </Typography>
               </Box>
             </Box>
             <Typography variant="h6" className="font-semibold mb-2">
-              Program: {offer.program_name || offer.program}
+              {offerTitle}
             </Typography>
             <Typography variant="body1" className="mb-2">
-              {offer.description || offer.program_description || "No description available."}
+              {description}
             </Typography>
+            <Divider sx={{ my: 2 }} />
+
+            {/* Replace deprecated Grid with Stack for layout */}
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              spacing={1}
+              useFlexGap
+              sx={{ mb: 2 }}
+            >
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Program Type
+                </Typography>
+                <Typography variant="body2">{programType}</Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Course of Study
+                </Typography>
+                <Typography variant="body2">{courseOfStudy}</Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Tuition Fee
+                </Typography>
+                <Typography variant="body2">{tuitionFee}</Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Application Deadline
+                </Typography>
+                <Typography variant="body2">{applicationDeadline}</Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Start Date
+                </Typography>
+                <Typography variant="body2">{startDate}</Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  End Date
+                </Typography>
+                <Typography variant="body2">{endDate}</Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Status
+                </Typography>
+                <Typography variant="body2">
+                  {statusDisplay}
+                </Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Created At
+                </Typography>
+                <Typography variant="body2">{createdAt || "N/A"}</Typography>
+              </Box>
+              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Updated At
+                </Typography>
+                <Typography variant="body2">{updatedAt || "N/A"}</Typography>
+              </Box>
+            </Stack>
+
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle1" className="font-semibold mb-1">
               Requirements
