@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Button,
@@ -28,6 +28,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { v4 as uuidv4 } from "uuid";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useAuth } from "../../../../context/AuthContext";
+import { fetchCountries, fetchSponsorshipTypes, fetchUniversities, fetchVisaTypes } from "../../../../services/definitionService";
 
 // --- DateInputField: A simple date input replacement for DatePicker ---
 const DateInputField: React.FC<{
@@ -39,6 +40,7 @@ const DateInputField: React.FC<{
   helperText?: string;
   min?: string;
   max?: string;
+  readOnly?: boolean;
 }> = ({
   label,
   required,
@@ -48,6 +50,7 @@ const DateInputField: React.FC<{
   helperText,
   min,
   max,
+  readOnly = false,
 }) => {
   // Convert Date to yyyy-MM-dd string for input value
   const getStringValue = (date: Date | null) =>
@@ -73,6 +76,7 @@ const DateInputField: React.FC<{
       inputProps={{
         min,
         max,
+        readOnly,
       }}
     />
   );
@@ -273,13 +277,18 @@ const FileUploadField: React.FC<{
 };
 
 // Step 1: Personal Information
-const StepPersonalInfo = ({ values, errors, onChange }: any) => (
+const StepPersonalInfo = ({
+  values,
+  errors,
+  onChange,
+  user,
+}: any) => (
   <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
     <TextField
       label="First Name"
       required
       value={values.firstName}
-      onChange={e => onChange("firstName", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.firstName}
       helperText={errors.firstName}
     />
@@ -287,14 +296,14 @@ const StepPersonalInfo = ({ values, errors, onChange }: any) => (
       label="Last Name"
       required
       value={values.lastName}
-      onChange={e => onChange("lastName", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.lastName}
       helperText={errors.lastName}
     />
     <TextField
       label="Middle Name"
       value={values.middleName}
-      onChange={e => onChange("middleName", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.middleName}
       helperText={errors.middleName}
     />
@@ -302,7 +311,7 @@ const StepPersonalInfo = ({ values, errors, onChange }: any) => (
       label="Email"
       required
       value={values.email}
-      onChange={e => onChange("email", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.email}
       helperText={errors.email}
     />
@@ -310,39 +319,38 @@ const StepPersonalInfo = ({ values, errors, onChange }: any) => (
       label="Phone Number"
       required
       value={values.phone}
-      onChange={e => onChange("phone", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.phone}
       helperText={errors.phone}
     />
     <DateInputField
       label="Date of Birth"
       required
-      value={values.dateOfBirth || null}
-      onChange={date => onChange("dateOfBirth", date)}
+      value={
+        // Always get date of birth from user profile if available
+        user?.date_of_birth
+          ? new Date(user.date_of_birth)
+          : values.dateOfBirth || null
+      }
+      onChange={() => {}}
       error={!!errors.dateOfBirth}
       helperText={errors.dateOfBirth}
       max={new Date().toISOString().slice(0, 10)}
+      readOnly={true}
     />
-    <FormControl required error={!!errors.gender}>
-      <InputLabel>Gender</InputLabel>
-      <Select
-        value={values.gender}
-        label="Gender"
-        onChange={e => onChange("gender", e.target.value)}
-      >
-        <MenuItem value="Male">Male</MenuItem>
-        <MenuItem value="Female">Female</MenuItem>
-        <MenuItem value="Other">Other</MenuItem>
-      </Select>
-      <Typography color="error" variant="caption">
-        {errors.gender}
-      </Typography>
-    </FormControl>
+    <TextField
+      label="Gender"
+      required
+      value={values.gender}
+      InputProps={{ readOnly: true }}
+      error={!!errors.gender}
+      helperText={errors.gender}
+    />
     <TextField
       label="Nationality"
       required
       value={values.nationality}
-      onChange={e => onChange("nationality", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.nationality}
       helperText={errors.nationality}
     />
@@ -367,7 +375,7 @@ const StepPersonalInfo = ({ values, errors, onChange }: any) => (
       label="Current Address"
       required
       value={values.currentAddress}
-      onChange={e => onChange("currentAddress", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.currentAddress}
       helperText={errors.currentAddress}
     />
@@ -375,7 +383,7 @@ const StepPersonalInfo = ({ values, errors, onChange }: any) => (
       label="Country of Residence"
       required
       value={values.countryOfResidence}
-      onChange={e => onChange("countryOfResidence", e.target.value)}
+      InputProps={{ readOnly: true }}
       error={!!errors.countryOfResidence}
       helperText={errors.countryOfResidence}
     />
@@ -433,33 +441,19 @@ const StepEducation = ({ values, errors, onChange }: any) => (
 );
 
 // Step 3: Visa & Study Details
-const StepVisaStudy = ({ values, errors, onChange }: any) => {
-  const countries = [
-    "Canada",
-    "United Kingdom",
-    "United States",
-    "Australia",
-    "Germany",
-    "Norway",
-    "France",
-    "Netherlands",
-    "China",
-    "South Africa",
-    "Nigeria",
-  ];
-  const universities = [
-    "University of Toronto",
-    "Calford University",
-    "University of Lagos",
-    "Oxford University",
-    "Harvard University",
-    "University of Sydney",
-    "Technical University of Munich",
-  ];
+const StepVisaStudy = ({
+  values,
+  errors,
+  onChange,
+  countryOptions,
+  universityOptions,
+  visaTypeOptions,
+  sponsorshipOptions,
+}: any) => {
   return (
     <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Autocomplete
-        options={countries}
+        options={countryOptions || []}
         value={values.destinationCountry || ""}
         onChange={(_, value) => onChange("destinationCountry", value)}
         renderInput={(params) => (
@@ -471,9 +465,10 @@ const StepVisaStudy = ({ values, errors, onChange }: any) => {
             helperText={errors.destinationCountry}
           />
         )}
+        loading={!countryOptions}
       />
       <Autocomplete
-        options={universities}
+        options={universityOptions || []}
         value={values.universityApplying || ""}
         onChange={(_, value) => onChange("universityApplying", value)}
         renderInput={(params) => (
@@ -485,6 +480,7 @@ const StepVisaStudy = ({ values, errors, onChange }: any) => {
             helperText={errors.universityApplying}
           />
         )}
+        loading={!universityOptions}
       />
       <DateInputField
         label="Intended Start Date"
@@ -502,7 +498,11 @@ const StepVisaStudy = ({ values, errors, onChange }: any) => {
         onChange={date => onChange("intendedEndDate", date)}
         error={!!errors.intendedEndDate}
         helperText={errors.intendedEndDate}
-        min={values.intendedStartDate ? new Date(values.intendedStartDate).toISOString().slice(0, 10) : undefined}
+        min={
+          values.intendedStartDate
+            ? new Date(values.intendedStartDate).toISOString().slice(0, 10)
+            : undefined
+        }
       />
       <FormControl required error={!!errors.visaType}>
         <InputLabel>Type of Visa</InputLabel>
@@ -511,9 +511,23 @@ const StepVisaStudy = ({ values, errors, onChange }: any) => {
           label="Type of Visa"
           onChange={e => onChange("visaType", e.target.value)}
         >
-          <MenuItem value="Student">Student</MenuItem>
-          <MenuItem value="Exchange">Exchange</MenuItem>
-          <MenuItem value="Research">Research</MenuItem>
+          {visaTypeOptions && visaTypeOptions.length > 0
+            ? visaTypeOptions.map((v: string) => (
+                <MenuItem key={v} value={v}>
+                  {v}
+                </MenuItem>
+              ))
+            : [
+                <MenuItem key="Student" value="Student">
+                  Student
+                </MenuItem>,
+                <MenuItem key="Exchange" value="Exchange">
+                  Exchange
+                </MenuItem>,
+                <MenuItem key="Research" value="Research">
+                  Research
+                </MenuItem>,
+              ]}
         </Select>
         <Typography color="error" variant="caption">
           {errors.visaType}
@@ -526,8 +540,20 @@ const StepVisaStudy = ({ values, errors, onChange }: any) => {
           label="Sponsorship"
           onChange={e => onChange("sponsorship", e.target.value)}
         >
-          <MenuItem value="Self-funded">Self-funded</MenuItem>
-          <MenuItem value="Sponsored">Sponsored</MenuItem>
+          {sponsorshipOptions && sponsorshipOptions.length > 0
+            ? sponsorshipOptions.map((s: string) => (
+                <MenuItem key={s} value={s}>
+                  {s}
+                </MenuItem>
+              ))
+            : [
+                <MenuItem key="Self-funded" value="Self-funded">
+                  Self-funded
+                </MenuItem>,
+                <MenuItem key="Sponsored" value="Sponsored">
+                  Sponsored
+                </MenuItem>,
+              ]}
         </Select>
         <Typography color="error" variant="caption">
           {errors.sponsorship}
@@ -833,6 +859,20 @@ const StudyVisaApplicationForm: React.FC = () => {
     severity: "success",
   });
 
+  // Dropdown state
+  const [countryOptions, setCountryOptions] = useState<string[] | null>(null);
+  const [universityOptions, setUniversityOptions] = useState<string[] | null>(null);
+  const [visaTypeOptions, setVisaTypeOptions] = useState<string[] | null>(null);
+  const [sponsorshipOptions, setSponsorshipOptions] = useState<string[] | null>(null);
+
+  // Fetch dropdowns on mount
+  useEffect(() => {
+    fetchCountries().then(setCountryOptions);
+    fetchUniversities().then(setUniversityOptions);
+    fetchVisaTypes().then(setVisaTypeOptions);
+    fetchSponsorshipTypes().then(setSponsorshipOptions);
+  }, []);
+
   // Form state
   // Define a type for the form values to avoid 'never' property errors
   interface StudyVisaFormValues {
@@ -877,17 +917,6 @@ const StudyVisaApplicationForm: React.FC = () => {
     emergencyContactPhone: string;
     statementOfPurpose: string;
   }
-
-  // Helper to safely extract a value from savedData or fallback
-  // function getSavedOrPrefill<T>(
-  //   key: keyof StudyVisaFormValues,
-  //   fallback: T
-  // ): T {
-  //   if (savedData && typeof savedData === "object" && key in savedData) {
-  //     return (savedData as any)[key] ?? fallback;
-  //   }
-  //   return fallback;
-  // }
 
   const [formValues, setFormValues] = useState<StudyVisaFormValues>({
     // Step 1
@@ -934,20 +963,32 @@ const StudyVisaApplicationForm: React.FC = () => {
 
   const [formErrors, setFormErrors] = useState<any>({});
 
-  // We are NOT saving progress to localStorage anymore.
-  // useEffect(() => {
-  //   saveToLocalStorage(formValues, activeStep);
-  // }, [formValues, activeStep]);
-
   // Stepper content
   const getStepContent = (step: number) => {
     switch (step) {
       case 0:
-        return <StepPersonalInfo values={formValues} errors={formErrors} onChange={handleFieldChange} />;
+        return (
+          <StepPersonalInfo
+            values={formValues}
+            errors={formErrors}
+            onChange={handleFieldChange}
+            user={user}
+          />
+        );
       case 1:
         return <StepEducation values={formValues} errors={formErrors} onChange={handleFieldChange} />;
       case 2:
-        return <StepVisaStudy values={formValues} errors={formErrors} onChange={handleFieldChange} />;
+        return (
+          <StepVisaStudy
+            values={formValues}
+            errors={formErrors}
+            onChange={handleFieldChange}
+            countryOptions={countryOptions}
+            universityOptions={universityOptions}
+            visaTypeOptions={visaTypeOptions}
+            sponsorshipOptions={sponsorshipOptions}
+          />
+        );
       case 3:
         return <StepDocuments values={formValues} errors={formErrors} onChange={handleFieldChange} />;
       case 4:
@@ -1000,7 +1041,12 @@ const StudyVisaApplicationForm: React.FC = () => {
         const values = { ...formValues };
         const payload = {
           ...values,
-          dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
+          // Always get date of birth from user profile if available
+          dateOfBirth: user?.date_of_birth
+            ? new Date(user.date_of_birth).toISOString()
+            : values.dateOfBirth
+            ? values.dateOfBirth.toISOString()
+            : null,
           passportExpiry: values.passportExpiry ? values.passportExpiry.toISOString() : null,
           intendedStartDate: values.intendedStartDate ? values.intendedStartDate.toISOString() : null,
           intendedEndDate: values.intendedEndDate ? values.intendedEndDate.toISOString() : null,
@@ -1040,7 +1086,7 @@ const StudyVisaApplicationForm: React.FC = () => {
 
   return (
     <Box
-    sx={{
+      sx={{
         px: { xs: 1, sm: 2, md: 4 },
         py: { xs: 1, sm: 2 },
         width: "100%",
@@ -1048,8 +1094,7 @@ const StudyVisaApplicationForm: React.FC = () => {
         mx: "auto",
       }}
     >
-          <CustomerPageHeader>
-        
+      <CustomerPageHeader>
         <Typography variant="h4" className="font-bold mb-6">
           Study Visa Application
         </Typography>
