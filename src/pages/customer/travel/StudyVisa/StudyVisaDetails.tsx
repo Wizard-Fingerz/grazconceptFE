@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
   Box,
@@ -15,7 +15,6 @@ import {
   Stepper,
   Step,
   StepLabel,
-  // Grid, // Removed deprecated Grid import
   Stack,
 } from "@mui/material";
 import { getStudyVisaOfferById } from "../../../../services/studyVisa";
@@ -81,6 +80,33 @@ const FORM_STEPS = [
   },
 ];
 
+// Utility: Convert plain text with \r\n or \n to React elements with paragraphs and line breaks
+function renderDescriptionLive(text: string) {
+  if (!text) return null;
+  // Split into paragraphs by double newlines
+  const paragraphs = text.split(/\r?\n\r?\n/);
+  return paragraphs.map((para, idx) => (
+    <Typography
+      key={idx}
+      variant="body1"
+      className="mb-2"
+      component="div"
+      sx={{ whiteSpace: "pre-line" }}
+    >
+      {para.split(/\r?\n/).map((line, lidx, arr) =>
+        lidx < arr.length - 1 ? (
+          <React.Fragment key={lidx}>
+            {line}
+            <br />
+          </React.Fragment>
+        ) : (
+          line
+        )
+      )}
+    </Typography>
+  ));
+}
+
 const StudyVisaDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [offer, setOffer] = useState<any>(null);
@@ -121,6 +147,10 @@ const StudyVisaDetails: React.FC = () => {
 
   // Stepper state
   const [activeStep, setActiveStep] = useState(0);
+
+  // For live description typing effect
+  const [liveDescription, setLiveDescription] = useState<string>("");
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -327,6 +357,52 @@ const StudyVisaDetails: React.FC = () => {
     setSubmitting(false);
   };
 
+  // --- Live description typing effect ---
+  useEffect(() => {
+    // Only run if offer is loaded
+    if (!offer) {
+      setLiveDescription("");
+      return;
+    }
+    // Use offer.description or offer.program_description
+    const desc: string =
+      offer.description ||
+      offer.program_description ||
+      "";
+
+    // If no description, clear
+    if (!desc) {
+      setLiveDescription("");
+      return;
+    }
+
+    // If already fully typed, do nothing
+    if (liveDescription === desc) return;
+
+    // If description is being updated, clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Typing effect: reveal one character at a time
+    let currentLength = liveDescription.length;
+    const typeNext = () => {
+      if (currentLength < desc.length) {
+        setLiveDescription(desc.slice(0, currentLength + 1));
+        currentLength++;
+        typingTimeoutRef.current = setTimeout(typeNext, 6); // Fast typing, adjust as needed
+      }
+    };
+    typeNext();
+
+    // Cleanup on unmount
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+    // eslint-disable-next-line
+  }, [offer, offer?.description, offer?.program_description]);
+  // --- End live description typing effect ---
+
   if (loading) {
     return (
       <Box className="flex items-center justify-center min-h-[300px]">
@@ -468,8 +544,8 @@ const StudyVisaDetails: React.FC = () => {
   // Compose offer title
   const offerTitle = offer.offer_title || offer.program_name || offer.program || "Study Visa Offer";
 
-  // Compose description
-  const description = offer.description || offer.program_description || "No description available.";
+  // Compose description (now handled by liveDescription)
+  // const description = offer.description || offer.program_description || "No description available.";
 
   // Compose created/updated at
   const createdAt = offer.created_at
@@ -523,9 +599,17 @@ const StudyVisaDetails: React.FC = () => {
             <Typography variant="h6" className="font-semibold mb-2">
               {offerTitle}
             </Typography>
-            <Typography variant="body1" className="mb-2">
-              {description}
-            </Typography>
+            {/* Render the description as it is being typed in the backend */}
+            <Box className="mb-2">
+              {liveDescription
+                ? renderDescriptionLive(liveDescription)
+                : (
+                  <Typography variant="body1" color="text.secondary">
+                    No description available.
+                  </Typography>
+                )
+              }
+            </Box>
             <Divider sx={{ my: 2 }} />
 
             {/* Replace deprecated Grid with Stack for layout */}
