@@ -18,16 +18,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { CountrySelect } from '../../components/CountrySelect';
 import api from '../../services/api';
-import { getPartnerType } from '../../services/definitionService';
-
-
-// Add gender options for demo
-const GENDER_OPTIONS = [
-  { value: '', label: 'Select Gender' },
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'other', label: 'Other' },
-];
+import { getPartnerType, fetchGenders } from '../../services/definitionService';
 
 type CustomerType =
   | 'institution_partner'
@@ -40,10 +31,17 @@ type PartnerTypeOption = {
   label: string;
 };
 
+type GenderOption = {
+  id: number;
+  value: string;
+  label: string;
+};
+
 export const CustomerProfileSetup: React.FC = () => {
   const { user } = useAuth();
 
   // Prefill formData with user details if available
+  // For gender, store the pk (id) if available, else empty string
   const getInitialFormData = () => ({
     institutionName: '',
     institutionType: '',
@@ -57,7 +55,7 @@ export const CustomerProfileSetup: React.FC = () => {
     email: user?.email || '',
     phone: user?.phone_number || '',
     dateOfBirth: user?.date_of_birth || '',
-    gender: user?.gender || '',
+    gender: user?.gender && typeof user.gender === 'number' ? String(user.gender) : '', // store pk as string if present
     nationality: user?.nationality || '',
     currentAddress: user?.current_address || user?.address || '',
     countryOfResidence: user?.country_of_residence || '',
@@ -77,6 +75,16 @@ export const CustomerProfileSetup: React.FC = () => {
   const [partnerTypeLoading, setPartnerTypeLoading] = useState(false);
   const [partnerTypeError, setPartnerTypeError] = useState<string | null>(null);
 
+  // Gender options from API
+  const [genderOptions, setGenderOptions] = useState<GenderOption[]>([
+    {
+      value: '', label: 'Select Gender',
+      id: 0
+    }
+  ]);
+  const [genderLoading, setGenderLoading] = useState(false);
+  const [genderError, setGenderError] = useState<string | null>(null);
+
   // Fetch customer type list from API
   useEffect(() => {
     let isMounted = true;
@@ -85,10 +93,7 @@ export const CustomerProfileSetup: React.FC = () => {
     getPartnerType()
       .then((apiData: any) => {
         if (isMounted) {
-          // The API returns an object with a "results" array
-          // Map API results to the expected { value, label } format
           const mappedOptions = (apiData?.results || []).map((item: any) => {
-            // Map API "term" to label, and value to a normalized string
             let value = '';
             switch (item.term) {
               case 'Institution Partner':
@@ -112,7 +117,6 @@ export const CustomerProfileSetup: React.FC = () => {
             };
           });
 
-          // Always add the "Skip" option at the end
           setPartnerTypeOptions([
             ...mappedOptions,
             { value: 'skip', label: 'Skip (Continue as Individual Customer)' },
@@ -130,6 +134,60 @@ export const CustomerProfileSetup: React.FC = () => {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  // Fetch gender options from API
+  useEffect(() => {
+    let isMounted = true;
+    setGenderLoading(true);
+    setGenderError(null);
+    fetchGenders()
+      .then((apiData: any) => {
+        if (isMounted) {
+          const mappedOptions: GenderOption[] = [
+            { value: '', label: 'Select Gender', id: 0 },
+            ...(apiData?.results || []).map((item: any) => ({
+              value: String(item.id), // value is string of pk
+              label: item.term ?? item.value ?? '',
+              id: item.id,
+            })),
+          ];
+          setGenderOptions(mappedOptions);
+
+          // If user.gender is a string label (e.g., "Male"), set formData.gender to the corresponding id
+          if (
+            user?.gender &&
+            typeof user.gender === 'string' &&
+            user.gender !== '' &&
+            mappedOptions.length > 1
+          ) {
+            const found = mappedOptions.find(
+              (opt) =>
+                typeof opt.label === 'string' &&
+                typeof user?.gender === 'string' &&
+                opt.label.toLowerCase() === user.gender.toLowerCase()
+            );
+            if (found) {
+              setFormData((prev) => ({
+                ...prev,
+                gender: String(found.id),
+              }));
+            }
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setGenderError('Failed to load gender options.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) setGenderLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line
   }, []);
 
   // Update formData if user changes (e.g. after login)
@@ -157,7 +215,12 @@ export const CustomerProfileSetup: React.FC = () => {
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }>
   ) => {
     const { name, value } = event.target;
-    setFormData((prev) => ({ ...prev, [name as string]: value }));
+    // For gender, always store the pk (id) as a string
+    if (name === 'gender') {
+      setFormData((prev) => ({ ...prev, [name]: String(value) }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name as keyof typeof prev]: String(value) }));
+    }
   };
 
   // Handle CountrySelect changes
@@ -213,32 +276,61 @@ export const CustomerProfileSetup: React.FC = () => {
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Build the payload for submission, including profile image if present
+  // Build the payload for submission, mapping to expected backend fields
   const buildPayload = () => {
+    // Map frontend formData fields to backend expected fields
+    const fieldMap: Record<string, string> = {
+      firstName: 'first_name',
+      middleName: 'middle_name',
+      lastName: 'last_name',
+      phone: 'phone_number',
+      dateOfBirth: 'date_of_birth',
+      gender: 'gender',
+      currentAddress: 'current_address',
+      countryOfResidence: 'country_of_residence',
+      nationality: 'nationality',
+      email: 'email',
+      // Add more mappings as needed
+    };
+
+    // Build the payload object with correct keys
+    const payload: Record<string, any> = {};
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (fieldMap[key]) {
+        // Special handling for gender: send pk (number) instead of label or string
+        if (key === "gender") {
+          // The value in formData.gender is the pk as a string (or empty string)
+          // Convert to number if not empty, else send empty string
+          const genderPk = value !== '' ? Number(value) : '';
+          payload[fieldMap[key]] = genderPk;
+        } else {
+          payload[fieldMap[key]] = value ?? '';
+        }
+        payload[key] = value ?? '';
+      }
+    });
+
+    // Map customerType to partner_type if needed
+    if (customerType === 'institution_partner' || customerType === 'high_school_partner') {
+      payload['partner_type'] = partnerTypeOptions.find(opt => opt.value === customerType)?.value || '';
+    }
+
     // If profile image is present, use FormData for multipart/form-data
     if (profileImage) {
       const form = new FormData();
-      // Add all fields
-      Object.entries(formData).forEach(([key, value]) => {
+      Object.entries(payload).forEach(([key, value]) => {
         form.append(key, value ?? '');
       });
-      form.append('customerType', customerType);
-      form.append('profileImage', profileImage);
+      form.append('profile_picture', profileImage);
       return form;
     } else {
       // No image, send as JSON
       return {
-        ...formData,
-        customerType,
+        ...payload,
       };
     }
   };
-
-  // Example: how to send the payload
-  // If using axios:
-  // await axios.post('/profile/customer-setup/', payload, {
-  //   headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-  // });
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -258,16 +350,15 @@ export const CustomerProfileSetup: React.FC = () => {
         // Build the payload
         const payload = buildPayload();
 
-        // TODO: send payload to API
-        // Example:
-        await api.post('/profile/customer-setup/', payload, {
+        // Send payload to API
+        await api.patch('/clients/update-profile/', payload, {
           headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
         });
       }
       // Other customer types (not changed for this rewrite)
       setSuccess(true);
       setTimeout(() => {
-        // TODO: navigate to dashboard or next step
+        window.location.href = '/profile';
       }, 1500);
     } catch (err) {
       setError('Failed to save profile. Please try again.');
@@ -491,12 +582,23 @@ export const CustomerProfileSetup: React.FC = () => {
                       required
                       error={!!fieldErrors.gender}
                       helperText={fieldErrors.gender}
+                      disabled={genderLoading}
                     >
-                      {GENDER_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
+                      {genderLoading ? (
+                        <MenuItem value="">
+                          <em>Loading...</em>
                         </MenuItem>
-                      ))}
+                      ) : genderError ? (
+                        <MenuItem value="">
+                          <em>{genderError}</em>
+                        </MenuItem>
+                      ) : (
+                        genderOptions.map((option) => (
+                          <MenuItem key={option.id} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))
+                      )}
                     </TextField>
                     {/* Replace Nationality field with CountrySelect */}
                     <CountrySelect

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -9,10 +9,14 @@ import {
   LinearProgress,
   IconButton,
   Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import authService from "../../services/authService";
+
+
 
 const PROFILE_FIELDS = [
   { label: "First Name", key: "first_name" },
@@ -58,10 +62,53 @@ function calculateProfileCompletion(user: any) {
 }
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const [user, setUser] = useState<any>(authUser);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  if (!user) {
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+
+    authService.getProfile()
+      .then((profileData: any) => {
+        if (isMounted) {
+          setUser(profileData);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError("Failed to load user profile.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "60vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !user) {
     return (
       <Box
         sx={{
@@ -72,7 +119,7 @@ const ProfilePage: React.FC = () => {
         }}
       >
         <Typography variant="h6" color="text.secondary">
-          User profile data is unavailable.
+          {error || "User profile data is unavailable."}
         </Typography>
       </Box>
     );

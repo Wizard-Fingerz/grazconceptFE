@@ -20,7 +20,7 @@ export async function fetchUniversities() {
 
 export async function fetchGenders() {
   try {
-    const response = await api.get("/app/genders");
+    const response = await api.get("/definitions/by-table-name/?table_name=gender");
     return response.data;
   } catch (error) {
     throw error;
