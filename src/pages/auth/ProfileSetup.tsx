@@ -38,7 +38,8 @@ type GenderOption = {
 };
 
 export const CustomerProfileSetup: React.FC = () => {
-  const { user } = useAuth();
+  // Get user and updateUser from AuthContext
+  const { user, updateUser } = useAuth();
 
   // Prefill formData with user details if available
   // For gender, store the pk (id) if available, else empty string
@@ -339,6 +340,7 @@ export const CustomerProfileSetup: React.FC = () => {
     setLoading(true);
 
     try {
+      let updatedUserData = null;
       if (customerType === 'regular_customer') {
         const errors = validateRegularCustomerProfile(formData);
         setFieldErrors(errors);
@@ -351,11 +353,22 @@ export const CustomerProfileSetup: React.FC = () => {
         const payload = buildPayload();
 
         // Send payload to API
-        await api.patch('/clients/update-profile/', payload, {
+        const response = await api.patch('/clients/update-profile/', payload, {
           headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
         });
+
+        // If the API returns updated user data, update AuthContext
+        if (response && response.data) {
+          updatedUserData = response.data;
+        }
       }
       // Other customer types (not changed for this rewrite)
+
+      // Update AuthContext with new user data if available
+      if (updatedUserData && typeof updateUser === 'function') {
+        updateUser();
+      }
+
       setSuccess(true);
       setTimeout(() => {
         window.location.href = '/profile';

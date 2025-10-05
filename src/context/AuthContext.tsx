@@ -30,6 +30,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   user: UserProfile | null;
   isStaff: boolean;
+  updateUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,6 +54,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   const isStaff = typeof user?.user_type_name === 'string' && user.user_type_name.toLowerCase() === 'agent';
+
+  // Add updateUser function that fetches the latest profile and updates state/localStorage
+  const updateUser = async () => {
+    try {
+      const updatedProfile = await authService.getProfile();
+      setUser(updatedProfile);
+      localStorage.setItem('user', JSON.stringify(updatedProfile));
+    } catch (error) {
+      // If fetching profile fails, do not update user state
+      // Optionally, you could handle token expiration here
+    }
+  };
 
   // --- checkAuth logic commented out for now ---
   /*
@@ -201,7 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, register, logout, resetPassword, user, isStaff }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, register, logout, resetPassword, user, isStaff, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
