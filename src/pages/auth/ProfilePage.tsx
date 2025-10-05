@@ -5,11 +5,14 @@ import {
   Avatar,
   Stack,
   Divider,
-  Button,
   Alert,
   LinearProgress,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const PROFILE_FIELDS = [
   { label: "First Name", key: "first_name" },
@@ -56,6 +59,7 @@ function calculateProfileCompletion(user: any) {
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) {
     return (
@@ -78,7 +82,6 @@ const ProfilePage: React.FC = () => {
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
-  
       <Box
         sx={{
           display: "flex",
@@ -102,9 +105,21 @@ const ProfilePage: React.FC = () => {
         >
           {user.first_name?.[0] || user.last_name?.[0] || ""}
         </Avatar>
-        <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: 0.5, textAlign: "center" }}>
-          {user.first_name ?? ""} {user.last_name ?? ""}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+          <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: 0.5, textAlign: "center" }}>
+            {user.first_name ?? ""} {user.last_name ?? ""}
+          </Typography>
+          <Tooltip title="Edit Profile">
+            <IconButton
+              aria-label="Edit Profile"
+              size="small"
+              sx={{ ml: 1 }}
+              onClick={() => navigate("/profile/edit")}
+            >
+              <EditIcon fontSize="medium" />
+            </IconButton>
+          </Tooltip>
+        </Box>
         {user.user_type_name && (
           <Typography
             variant="subtitle1"
@@ -161,23 +176,6 @@ const ProfilePage: React.FC = () => {
           />
         ))}
       </Stack>
-      <Box sx={{ mt: 4, textAlign: "center", width: "100vw", maxWidth: "100vw" }}>
-        <Button
-          variant="contained"
-          color="primary"
-          href="/profile/edit"
-          sx={{
-            minWidth: 180,
-            fontWeight: 600,
-            fontSize: 16,
-            borderRadius: 2,
-            boxShadow: 1,
-            textTransform: "none",
-          }}
-        >
-          Edit Profile
-        </Button>
-      </Box>
     </Box>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, type ChangeEvent } from 'react';
 import {
   Box,
   Paper,
@@ -13,24 +13,17 @@ import {
   Radio,
   FormLabel,
   MenuItem,
+  Avatar,
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
+import { CountrySelect } from '../../components/CountrySelect';
+import api from '../../services/api';
 
-
-// Add gender and nationality options for demo
+// Add gender options for demo
 const GENDER_OPTIONS = [
   { value: '', label: 'Select Gender' },
   { value: 'male', label: 'Male' },
   { value: 'female', label: 'Female' },
-  { value: 'other', label: 'Other' },
-];
-
-const NATIONALITY_OPTIONS = [
-  { value: '', label: 'Select Nationality' },
-  { value: 'nigeria', label: 'Nigeria' },
-  { value: 'ghana', label: 'Ghana' },
-  { value: 'kenya', label: 'Kenya' },
-  { value: 'south_africa', label: 'South Africa' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -51,17 +44,16 @@ export const CustomerProfileSetup: React.FC = () => {
     businessName: '',
     businessType: '',
     // Regular customer fields
-    firstName: user?.first_name || user?.first_name || '',
-    lastName: user?.last_name || user?.last_name || '',
-    middleName: user?.middle_name || user?.middle_name || '',
+    firstName: user?.first_name || '',
+    lastName: user?.last_name || '',
+    middleName: user?.middle_name || '',
     email: user?.email || '',
-    phone: user?.phone_number || user?.phone_number || '',
-    dateOfBirth: user?.date_of_birth || user?.date_of_birth || '',
+    phone: user?.phone_number || '',
+    dateOfBirth: user?.date_of_birth || '',
     gender: user?.gender || '',
     nationality: user?.nationality || '',
-    // passportNumber and passportExpiry removed
     currentAddress: user?.current_address || user?.address || '',
-    countryOfResidence: user?.country_of_residence || user?.country_of_residence || '',
+    countryOfResidence: user?.country_of_residence || '',
   });
 
   const [step, setStep] = useState(1);
@@ -70,13 +62,17 @@ export const CustomerProfileSetup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
 
   // Update formData if user changes (e.g. after login)
   useEffect(() => {
     setFormData(getInitialFormData());
+    setProfileImage(null);
+    setProfileImagePreview(null);
     // Optionally, set customerType if user has a type
     // setCustomerType(user?.customerType || '');
-  // eslint-disable-next-line
+    // eslint-disable-next-line
   }, [user]);
 
   // Step 1: Choose customer type
@@ -95,6 +91,26 @@ export const CustomerProfileSetup: React.FC = () => {
   ) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name as string]: value }));
+  };
+
+  // Handle CountrySelect changes
+  const handleCountryChange = (name: string, value: string): void => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle profile image change
+  const handleProfileImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setProfileImage(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setProfileImagePreview(null);
+    }
   };
 
   // Step navigation
@@ -123,13 +139,39 @@ export const CustomerProfileSetup: React.FC = () => {
     if (!data.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
     if (!data.gender) errors.gender = "Gender is required";
     if (!data.nationality) errors.nationality = "Nationality is required";
-    // passportNumber and passportExpiry validation removed
     if (!data.currentAddress) errors.currentAddress = "Current address is required";
     if (!data.countryOfResidence) errors.countryOfResidence = "Country of residence is required";
     return errors;
   }
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Build the payload for submission, including profile image if present
+  const buildPayload = () => {
+    // If profile image is present, use FormData for multipart/form-data
+    if (profileImage) {
+      const form = new FormData();
+      // Add all fields
+      Object.entries(formData).forEach(([key, value]) => {
+        form.append(key, value ?? '');
+      });
+      form.append('customerType', customerType);
+      form.append('profileImage', profileImage);
+      return form;
+    } else {
+      // No image, send as JSON
+      return {
+        ...formData,
+        customerType,
+      };
+    }
+  };
+
+  // Example: how to send the payload
+  // If using axios:
+  // await axios.post('/profile/customer-setup/', payload, {
+  //   headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
+  // });
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -146,11 +188,14 @@ export const CustomerProfileSetup: React.FC = () => {
           setLoading(false);
           return;
         }
-        // const payload = {
-        //   ...formData,
-        // };
+        // Build the payload
+        const payload = buildPayload();
+
         // TODO: send payload to API
-        // await api.post('/profile/customer-setup/', payload);
+        // Example:
+        await api.post('/profile/customer-setup/', payload, {
+          headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
+        });
       }
       // Other customer types (not changed for this rewrite)
       setSuccess(true);
@@ -233,6 +278,33 @@ export const CustomerProfileSetup: React.FC = () => {
           {step === 2 && (
             <form onSubmit={handleSubmit}>
               <Stack spacing={3}>
+                {/* Profile Image Upload (all customer types) */}
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Avatar
+                    src={profileImagePreview || undefined}
+                    sx={{ width: 56, height: 56 }}
+                  >
+                    {formData.firstName?.[0] || user?.first_name?.[0] || ''}
+                  </Avatar>
+                  <label htmlFor="profile-image-upload">
+                    <input
+                      accept="image/*"
+                      id="profile-image-upload"
+                      type="file"
+                      style={{ display: 'none' }}
+                      onChange={handleProfileImageChange}
+                    />
+                    <Button variant="outlined" component="span">
+                      {profileImage ? 'Change Photo' : 'Upload Photo'}
+                    </Button>
+                  </label>
+                  {profileImage && (
+                    <Typography variant="body2" color="text.secondary">
+                      {profileImage.name}
+                    </Typography>
+                  )}
+                </Stack>
+
                 {/* Institution Partner */}
                 {(customerType === 'institution_partner' ||
                   customerType === 'high_school_partner') && (
@@ -366,24 +438,17 @@ export const CustomerProfileSetup: React.FC = () => {
                         </MenuItem>
                       ))}
                     </TextField>
-                    <TextField
-                      select
+                    {/* Replace Nationality field with CountrySelect */}
+                    <CountrySelect
                       label="Nationality"
                       name="nationality"
                       value={formData.nationality}
-                      onChange={handleChange}
+                      onChange={(value: string | null) => handleCountryChange('nationality', value)}
                       fullWidth
                       required
                       error={!!fieldErrors.nationality}
                       helperText={fieldErrors.nationality}
-                    >
-                      {NATIONALITY_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                    {/* Passport Number and Passport Expiry Date fields removed */}
+                    />
                     <TextField
                       label="Current Address"
                       name="currentAddress"
@@ -394,11 +459,12 @@ export const CustomerProfileSetup: React.FC = () => {
                       error={!!fieldErrors.currentAddress}
                       helperText={fieldErrors.currentAddress}
                     />
-                    <TextField
+                    {/* Replace Country of Residence field with CountrySelect */}
+                    <CountrySelect
                       label="Country of Residence"
                       name="countryOfResidence"
                       value={formData.countryOfResidence}
-                      onChange={handleChange}
+                      onChange={(value: string | null) => handleCountryChange('countryOfResidence', value)}
                       fullWidth
                       required
                       error={!!fieldErrors.countryOfResidence}
