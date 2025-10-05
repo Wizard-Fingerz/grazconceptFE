@@ -45,6 +45,15 @@ export async function fetchSponsorshipTypes() {
   }
 }
 
+export async function getPartnerType() {
+  try {
+    const response = await api.get("/definitions/by-table-name/?table_name=partner_types");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function getHotelSuggestions() {
   try {
     const response = await api.get(`/app/hotels`);

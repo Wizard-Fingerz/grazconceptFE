@@ -18,6 +18,8 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { CountrySelect } from '../../components/CountrySelect';
 import api from '../../services/api';
+import { getPartnerType } from '../../services/definitionService';
+
 
 // Add gender options for demo
 const GENDER_OPTIONS = [
@@ -32,6 +34,11 @@ type CustomerType =
   | 'high_school_partner'
   | 'business_owner'
   | 'regular_customer';
+
+type PartnerTypeOption = {
+  value: string;
+  label: string;
+};
 
 export const CustomerProfileSetup: React.FC = () => {
   const { user } = useAuth();
@@ -64,6 +71,40 @@ export const CustomerProfileSetup: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+
+  // Customer type options from API
+  const [partnerTypeOptions, setPartnerTypeOptions] = useState<PartnerTypeOption[]>([]);
+  const [partnerTypeLoading, setPartnerTypeLoading] = useState(false);
+  const [partnerTypeError, setPartnerTypeError] = useState<string | null>(null);
+
+  // Fetch customer type list from API
+  useEffect(() => {
+    let isMounted = true;
+    setPartnerTypeLoading(true);
+    setPartnerTypeError(null);
+    getPartnerType()
+      .then((data: { value: string; label: string }[]) => {
+        if (isMounted) {
+          // Always add the "Individual Customer" and "Skip" options
+          setPartnerTypeOptions([
+            ...data,
+            { value: 'regular_customer', label: 'Individual Customer' },
+            { value: 'skip', label: 'Skip (Continue as Individual Customer)' },
+          ]);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setPartnerTypeError('Failed to load customer types.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) setPartnerTypeLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Update formData if user changes (e.g. after login)
   useEffect(() => {
@@ -232,42 +273,35 @@ export const CustomerProfileSetup: React.FC = () => {
           {step === 1 && (
             <>
               <FormLabel component="legend">What type of customer are you?</FormLabel>
-              <RadioGroup
-                value={customerType}
-                onChange={handleCustomerTypeChange}
-                name="customerType"
-              >
-                <FormControlLabel
-                  value="institution_partner"
-                  control={<Radio />}
-                  label="Institution Partner"
-                />
-                <FormControlLabel
-                  value="high_school_partner"
-                  control={<Radio />}
-                  label="High School Partner"
-                />
-                <FormControlLabel
-                  value="business_owner"
-                  control={<Radio />}
-                  label="Business Owner"
-                />
-                <FormControlLabel
-                  value="regular_customer"
-                  control={<Radio />}
-                  label="Individual Customer"
-                />
-                <FormControlLabel
-                  value="skip"
-                  control={<Radio />}
-                  label="Skip (Continue as Individual Customer)"
-                />
-              </RadioGroup>
+              {partnerTypeError && (
+                <Alert severity="error">{partnerTypeError}</Alert>
+              )}
+              {partnerTypeLoading ? (
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <CircularProgress size={20} />
+                  <Typography variant="body2">Loading customer types...</Typography>
+                </Stack>
+              ) : (
+                <RadioGroup
+                  value={customerType}
+                  onChange={handleCustomerTypeChange}
+                  name="customerType"
+                >
+                  {partnerTypeOptions.map((option) => (
+                    <FormControlLabel
+                      key={option.value}
+                      value={option.value}
+                      control={<Radio />}
+                      label={option.label}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleNext}
-                disabled={loading}
+                disabled={loading || partnerTypeLoading}
                 fullWidth
               >
                 Next
