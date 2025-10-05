@@ -16,8 +16,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 
-
-
 const PROFILE_FIELDS = [
   { label: "First Name", key: "first_name" },
   { label: "Last Name", key: "last_name" },
@@ -127,6 +125,13 @@ const ProfilePage: React.FC = () => {
 
   const profileCompletion = calculateProfileCompletion(user);
 
+  // Determine the correct profile image URL
+  // Prefer profile_picture_url, then profile_picture, else fallback to undefined
+  const profileImageUrl =
+    user.profile_picture_url ||
+    user.profile_picture ||
+    undefined;
+
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
       <Box
@@ -140,7 +145,8 @@ const ProfilePage: React.FC = () => {
         }}
       >
         <Avatar
-          src={user.profile_picture}
+          src={profileImageUrl}
+          alt={`${user.first_name ?? ""} ${user.last_name ?? ""}`}
           sx={{
             width: 96,
             height: 96,
@@ -150,7 +156,8 @@ const ProfilePage: React.FC = () => {
             color: "white",
           }}
         >
-          {user.first_name?.[0] || user.last_name?.[0] || ""}
+          {/* Only show initials if no image */}
+          {!profileImageUrl && (user.first_name?.[0] || user.last_name?.[0] || "")}
         </Avatar>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
           <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: 0.5, textAlign: "center" }}>
