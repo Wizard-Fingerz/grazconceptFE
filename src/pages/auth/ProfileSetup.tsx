@@ -442,8 +442,8 @@ export const CustomerProfileSetup: React.FC = () => {
                     <CountrySelect
                       label="Nationality"
                       name="nationality"
-                      value={formData.nationality}
-                      onChange={(value: string | null) => handleCountryChange('nationality', value)}
+                      value={formData.nationality || ""}
+                      onChange={(value: string | null) => handleCountryChange('nationality', value ?? "")}
                       fullWidth
                       required
                       error={!!fieldErrors.nationality}
@@ -463,8 +463,8 @@ export const CustomerProfileSetup: React.FC = () => {
                     <CountrySelect
                       label="Country of Residence"
                       name="countryOfResidence"
-                      value={formData.countryOfResidence}
-                      onChange={(value: string | null) => handleCountryChange('countryOfResidence', value)}
+                      value={formData.countryOfResidence || ""}
+                      onChange={(value: string | null) => handleCountryChange('countryOfResidence', value ?? "")}
                       fullWidth
                       required
                       error={!!fieldErrors.countryOfResidence}
