@@ -47,7 +47,7 @@ export async function fetchSponsorshipTypes() {
 
 export async function getPartnerType() {
   try {
-    const response = await api.get("/definitions/by-table-name/?table_name=partner_types");
+    const response = await api.get("/definitions/by-table-name/?table_name=partner_type");
     return response.data;
   } catch (error) {
     throw error;

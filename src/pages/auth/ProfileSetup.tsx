@@ -83,12 +83,38 @@ export const CustomerProfileSetup: React.FC = () => {
     setPartnerTypeLoading(true);
     setPartnerTypeError(null);
     getPartnerType()
-      .then((data: { value: string; label: string }[]) => {
+      .then((apiData: any) => {
         if (isMounted) {
-          // Always add the "Individual Customer" and "Skip" options
+          // The API returns an object with a "results" array
+          // Map API results to the expected { value, label } format
+          const mappedOptions = (apiData?.results || []).map((item: any) => {
+            // Map API "term" to label, and value to a normalized string
+            let value = '';
+            switch (item.term) {
+              case 'Institution Partner':
+                value = 'institution_partner';
+                break;
+              case 'High School Partner':
+                value = 'high_school_partner';
+                break;
+              case 'Business Owner':
+                value = 'business_owner';
+                break;
+              case 'Individual Customer':
+                value = 'regular_customer';
+                break;
+              default:
+                value = item.term.toLowerCase().replace(/\s+/g, '_');
+            }
+            return {
+              value,
+              label: item.term,
+            };
+          });
+
+          // Always add the "Skip" option at the end
           setPartnerTypeOptions([
-            ...data,
-            { value: 'regular_customer', label: 'Individual Customer' },
+            ...mappedOptions,
             { value: 'skip', label: 'Skip (Continue as Individual Customer)' },
           ]);
         }
