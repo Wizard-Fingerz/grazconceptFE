@@ -91,6 +91,7 @@ const actionResultRoutes: Record<string, string> = {
   "Attractions": "/customer/dashboard/attractions-result",
   "Airport Taxis": "/customer/dashboard/airport-taxis-result",
   // Add more as needed
+  "Study Visa Offers": "/travel/study-visa/offers",
 };
 
 export const Dashboard: React.FC = () => {
@@ -163,6 +164,9 @@ export const Dashboard: React.FC = () => {
         break;
       case "Create Savings Plan":
         route = "/customer/dashboard/savings-result";
+        break;
+      case "Study Visa Offers":
+        route = "/travel/study-visa/offers";
         break;
       default:
         // fallback to modal for unknown actions (for banners, etc)
@@ -302,6 +306,7 @@ export const Dashboard: React.FC = () => {
             <ActionCard icon={<AirplaneTicket />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
             <ActionCard icon={<Hotel />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
             <ActionCard icon={<School />} label="Study Visa" onClick={() => handleActionClick("Study Visa")} />
+            <ActionCard icon={<School />} label="Study Visa Offers" onClick={() => handleActionClick("Study Visa Offers")} />
             <ActionCard icon={<School />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
             <ActionCard icon={<School />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
             <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
