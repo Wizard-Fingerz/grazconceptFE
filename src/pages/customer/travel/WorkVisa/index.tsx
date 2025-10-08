@@ -71,13 +71,13 @@ export const ApplyWorkVisa: React.FC = () => {
     navigate("/travel/work-visa/countries-jobs");
   };
   const handleScheduleInterview = () => {
-    navigate("/customer/travel/work-visa/schedule-interview");
+    navigate("/travel/work-visa/schedule-interview");
   };
   const handleTrackProgress = () => {
-    navigate("/customer/travel/work-visa/track-progress");
+    navigate("/travel/work-visa/track-progress");
   };
   const handleSubmitCV = () => {
-    navigate("/customer/travel/work-visa/submit-cv");
+    navigate("/travel/work-visa/submit-cv");
   };
 
   return (

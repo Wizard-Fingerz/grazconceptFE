@@ -60,6 +60,9 @@ import AllStudyOffers from '../pages/customer/travel/StudyVisa/AllstudyOffers';
 import StudyVisaDetails from '../pages/customer/travel/StudyVisa/StudyVisaDetails';
 import AllStudyVisaApplication from '../pages/customer/travel/StudyVisa/AllStudyVisaApplication';
 import ProfilePage from '../pages/auth/ProfilePage';
+import ScheduleInterview from '../pages/customer/travel/WorkVisa/ScheduleInterview';
+import SubmitCV from '../pages/customer/travel/WorkVisa/SubmitCV';
+import TrackProgress from '../pages/customer/travel/WorkVisa/TrackProgress';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -237,6 +240,18 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'travel/work-visa/countries-jobs',
         element: <CountriesJob/>,
+      },
+      {
+        path: 'travel/work-visa/schedule-interview',
+        element: <ScheduleInterview/>,
+      },
+      {
+        path: 'travel/work-visa/submit-cv',
+        element: <SubmitCV/>,
+      },
+      {
+        path: 'travel/work-visa/track-progress',
+        element: <TrackProgress/>,
       },
       {
         path: 'travel/pilgrimage',
