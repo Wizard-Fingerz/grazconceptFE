@@ -44,6 +44,7 @@ import {
   CardGiftcard as CardGiftcardIcon,
   Loyalty as LoyaltyIcon,
   SupportAgent as SupportAgentIcon,
+  EventAvailable,
 } from '@mui/icons-material';
 import { useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -137,8 +138,58 @@ export const MainLayout: React.FC = () => {
         section: 'Value-Added Services',
         icon: <StarIcon />,
         items: [
-          { icon: <CardGiftcardIcon />, label: 'Gift Cards', to: '/value-added/gift-cards' },
-          { icon: <LoyaltyIcon />, label: 'Loyalty Program', to: '/value-added/loyalty' },
+          { 
+            icon: <CardGiftcardIcon />, 
+            label: 'Gift Cards', 
+            to: '/value-added/gift-cards'
+          },
+          { 
+            icon: <LoyaltyIcon />, 
+            label: 'Loyalty Program', 
+            to: '/value-added/loyalty' 
+          },
+          { 
+            icon: <AssignmentIndIcon />, 
+            label: 'Visa & Document Review',
+            to: '/value-added/visa-document-review',
+            description: 'Upload your visa or admission documents for expert verification before submission. Avoid rejection with our professional checks.'
+          },
+           { 
+            icon: <EventAvailable />, 
+            label: 'Embassy Appointment Booking',
+            to: '/value-added/embassy-appointment',
+            description: 'Secure your embassy or biometric appointment quickly and stress-free through our support system.'
+          },
+          { 
+            icon: <NotificationsIcon />, 
+            label: 'Visa Tracking & Update Notification',
+            to: '/value-added/visa-tracking',
+            description: 'Follow your visa or admission progress in real time and get automatic status updates on your dashboard.'
+          },
+          { 
+            icon: <AssignmentIndIcon />, 
+            label: 'SOP & CV Assistance',
+            to: '/value-added/sop-cv',
+            description: 'Get a custom SOP or CV written to strengthen your study or work visa application.'
+          },
+          { 
+            icon: <SchoolIcon />, 
+            label: 'English Proficiency Exam Registration',
+            to: '/value-added/english-exam',
+            description: 'Register for IELTS, TOEFL, PTE, or Duolingo with guidance and preparation support.'
+          },
+          { 
+            icon: <AccountBalanceIcon />, 
+            label: 'Sponsorship & Financial Proof Assistance',
+            to: '/value-added/financial-proof',
+            description: 'We help prepare valid bank statements, sponsor letters, and affidavits that meet embassy requirements.'
+          },
+          { 
+            icon: <PublicIcon />, 
+            label: 'Pre-Departure Orientation & Country Guide',
+            to: '/value-added/pre-departure-guide',
+            description: 'Learn practical travel tips, settlement guidance, and what to expect in your new country before departure.'
+          },
         ]
       },
       {

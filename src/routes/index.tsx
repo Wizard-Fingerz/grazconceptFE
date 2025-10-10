@@ -63,6 +63,7 @@ import ProfilePage from '../pages/auth/ProfilePage';
 import ScheduleInterview from '../pages/customer/travel/WorkVisa/ScheduleInterview';
 import SubmitCV from '../pages/customer/travel/WorkVisa/SubmitCV';
 import TrackProgress from '../pages/customer/travel/WorkVisa/TrackProgress';
+import CVBuilder from '../pages/customer/valueServices/CVBuilder';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -296,6 +297,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'value-added/loyalty',
         element: <CustomerPlaceholderPage title="Loyalty Program" />,
+      },
+      {
+        path: 'value-added/cv-builder',
+        element: <CVBuilder/>,
       },
       {
         path: 'referrals',
