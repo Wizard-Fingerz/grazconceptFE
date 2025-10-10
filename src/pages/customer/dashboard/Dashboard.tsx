@@ -305,8 +305,8 @@ export const Dashboard: React.FC = () => {
           >
             <ActionCard icon={<AirplaneTicket />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
             <ActionCard icon={<Hotel />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
-            <ActionCard icon={<School />} label="Study Visa" onClick={() => handleActionClick("Study Visa")} />
-            <ActionCard icon={<School />} label="Study Visa Offers" onClick={() => handleActionClick("Study Visa Offers")} />
+            <ActionCard icon={<School />} label="Apply Study Program" onClick={() => handleActionClick("Study Visa")} />
+            <ActionCard icon={<School />} label="Search Study Program" onClick={() => handleActionClick("Study Visa Offers")} />
             <ActionCard icon={<School />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
             <ActionCard icon={<School />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
             <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />

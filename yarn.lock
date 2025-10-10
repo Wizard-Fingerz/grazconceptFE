@@ -684,6 +684,14 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@nwpr/airport-codes@^3.0.3":
+  version "3.0.3"
+  resolved "https://registry.npmjs.org/@nwpr/airport-codes/-/airport-codes-3.0.3.tgz"
+  integrity sha512-8tWoRdHixVaI7rg77JJxTROqEJ6DwDmbO2Iu7fNG4gxb1aSlmkH5o+ohc6zz6j1Qteu7l5VFH7oU/sGTxyY1aw==
+  dependencies:
+    https "^1.0.0"
+    papaparse "^5.4.1"
+
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"
   resolved "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz"
@@ -1227,6 +1235,11 @@ cosmiconfig@^7.0.0:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
+countries-cities@^0.0.11:
+  version "0.0.11"
+  resolved "https://registry.npmjs.org/countries-cities/-/countries-cities-0.0.11.tgz"
+  integrity sha512-5AbUqMaUDCXZwQG+CmtuO2WsUQNtBfVOWIalpeHjWPxgjG18k+9w9BIyJ+iIVs7TKZw/VsqxQ9I+5uDq6kkusg==
+
 cross-spawn@^7.0.6:
   version "7.0.6"
   resolved "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz"
@@ -1723,6 +1736,11 @@ hoist-non-react-statics@^3.3.1:
   dependencies:
     react-is "^16.7.0"
 
+https@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/https/-/https-1.0.0.tgz"
+  integrity sha512-4EC57ddXrkaF0x83Oj8sM6SLQHAWXw90Skqu2M4AEWENZ3F02dFJE/GARA8igO79tcgYqGrD7ae4f5L3um2lgg==
+
 ignore@^5.2.0:
   version "5.3.2"
   resolved "https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz"
@@ -2032,6 +2050,11 @@ package-json-from-dist@^1.0.0:
   version "1.0.1"
   resolved "https://registry.npmjs.org/package-json-from-dist/-/package-json-from-dist-1.0.1.tgz"
   integrity sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==
+
+papaparse@^5.4.1:
+  version "5.5.3"
+  resolved "https://registry.npmjs.org/papaparse/-/papaparse-5.5.3.tgz"
+  integrity sha512-5QvjGxYVjxO59MGU2lHVYpRWBBtKHnlIAcSe1uNFCkkptUh63NFRj0FJQm7nR67puEruUci/ZkjmEFrjCAyP4A==
 
 parent-module@^1.0.0:
   version "1.0.1"

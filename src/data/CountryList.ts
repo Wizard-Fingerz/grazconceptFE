@@ -1,7 +1,33 @@
-// --- Country Data and CountrySelect Component ---
-// IATA country codes are not officially defined (IATA uses 2-letter codes for airlines and 3-letter codes for airports), 
-// but for countries, the IATA standard typically uses the ISO 3166-1 alpha-3 codes.
-// Here is a static list of countries with IATA (ISO 3166-1 alpha-3) codes and English names:
+// --- How to get a list of all cities for these countries ---
+// The country list below provides ISO 3166-1 alpha-3 codes and names. 
+// However, this file does NOT contain city data. 
+// To get a list of all the cities in these countries, here are common approaches:
+
+/*
+1. Use an external dataset or API that provides city data mapped to each country code.
+   - Examples:
+     - GeoNames (http://www.geonames.org/)
+     - countries-cities NPM package
+     - https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes (CSV data)
+     - Google Places API
+     - OpenStreetMap (via Nominatim or Overpass API)
+
+2. Example with GeoNames API:
+   - Register for an account at http://www.geonames.org/login
+   - Use their API, e.g., to get cities in France (code: FRA):
+      fetch('http://api.geonames.org/searchJSON?country=FR&featureClass=P&maxRows=1000&username=YOUR_USERNAME')
+
+3. Example with an NPM package:
+   - Install: npm install countries-cities
+   - Usage:
+      import { getCities } from 'countries-cities';
+      const citiesInUS = getCities('United States'); // returns an array of city names
+
+4. Use static datasets (CSV, JSON) from resources above, and programmatically filter cities by country code.
+
+*/
+
+// For completeness, we still export the country list in case you want to cross-reference:
 export const countryList = [
   { code: "AFG", label: "Afghanistan" },
   { code: "ALB", label: "Albania" },

@@ -8,9 +8,9 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
-import { CountrySelect } from '../../../components/CountrySelect';
+import { AirportSelect } from '../../../components/AirportSelect';
 
-// --- Modal form content for each action, using CountrySelect where appropriate ---
+// --- Modal form content for each action, using AirportSelect where appropriate ---
 export const actionForms = (
   formState: Record<string, any>,
   setFormState: React.Dispatch<React.SetStateAction<Record<string, any>>>
@@ -55,12 +55,12 @@ export const actionForms = (
       {/* Round Trip & One Way */}
       {(formState.flightType === "Round Trip" || !formState.flightType || formState.flightType === undefined) && (
         <>
-          <CountrySelect
+          <AirportSelect
             label="From"
             value={formState.from || null}
             onChange={(val) => setFormState((s) => ({ ...s, from: val }))}
           />
-          <CountrySelect
+          <AirportSelect
             label="To"
             value={formState.to || null}
             onChange={(val) => setFormState((s) => ({ ...s, to: val }))}
@@ -90,12 +90,12 @@ export const actionForms = (
       {/* One Way */}
       {formState.flightType === "One Way" && (
         <>
-          <CountrySelect
+          <AirportSelect
             label="From"
             value={formState.from || null}
             onChange={(val) => setFormState((s) => ({ ...s, from: val }))}
           />
-          <CountrySelect
+          <AirportSelect
             label="To"
             value={formState.to || null}
             onChange={(val) => setFormState((s) => ({ ...s, to: val }))}
@@ -130,7 +130,7 @@ export const actionForms = (
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Segment {idx + 1}
               </Typography>
-              <CountrySelect
+              <AirportSelect
                 label="From"
                 value={segment.from || null}
                 onChange={(val) =>
@@ -141,7 +141,7 @@ export const actionForms = (
                   })
                 }
               />
-              <CountrySelect
+              <AirportSelect
                 label="To"
                 value={segment.to || null}
                 onChange={(val) =>
@@ -296,7 +296,7 @@ export const actionForms = (
   ),
   "Reserve Hotel": (
     <>
-      <CountrySelect
+      <AirportSelect
         label="Destination"
         value={formState.destination || ""}
         onChange={(val) =>
@@ -491,7 +491,7 @@ export const actionForms = (
   ),
   "Car Rentals": (
     <>
-      <CountrySelect
+      <AirportSelect
         label="Pick-up Location"
         value={formState.pickupLocation || null}
         onChange={(val) => setFormState((s) => ({ ...s, pickupLocation: val }))}
@@ -514,7 +514,7 @@ export const actionForms = (
         value={formState.dropoffDate || ''}
         onChange={(e) => setFormState((s) => ({ ...s, dropoffDate: e.target.value }))}
       />
-      <CountrySelect
+      <AirportSelect
         label="Drop-off Location (optional)"
         value={formState.dropoffLocation || null}
         onChange={(val) => setFormState((s) => ({ ...s, dropoffLocation: val }))}
@@ -531,7 +531,7 @@ export const actionForms = (
   ),
   "Attractions": (
     <>
-      <CountrySelect
+      <AirportSelect
         label="Destination"
         value={formState.destination || null}
         onChange={(val) => setFormState((s) => ({ ...s, destination: val }))}
@@ -564,12 +564,12 @@ export const actionForms = (
   ),
   "Airport Taxis": (
     <>
-      <CountrySelect
+      <AirportSelect
         label="Pick-up Location"
         value={formState.pickupLocation || null}
         onChange={(val) => setFormState((s) => ({ ...s, pickupLocation: val }))}
       />
-      <CountrySelect
+      <AirportSelect
         label="Drop-off Location"
         value={formState.dropoffLocation || null}
         onChange={(val) => setFormState((s) => ({ ...s, dropoffLocation: val }))}
@@ -604,7 +604,7 @@ export const actionForms = (
   ),
   "Apply for Visa": (
     <>
-      <CountrySelect
+      <AirportSelect
         label="Country"
         value={formState.country || null}
         onChange={(val) => setFormState((s) => ({ ...s, country: val }))}
@@ -671,7 +671,7 @@ export const actionForms = (
   ),
   "Study Abroad Loan": (
     <>
-      <CountrySelect
+      <AirportSelect
         label="Country"
         value={formState.country || null}
         onChange={(val) => setFormState((s) => ({ ...s, country: val }))}
@@ -688,7 +688,7 @@ export const actionForms = (
   ),
   "Pilgrimage Package": (
     <>
-      <CountrySelect
+      <AirportSelect
         label="Destination"
         value={formState.destination || null}
         onChange={(val) => setFormState((s) => ({ ...s, destination: val }))}

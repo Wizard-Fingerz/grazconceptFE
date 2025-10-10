@@ -107,6 +107,7 @@ export const MainLayout: React.FC = () => {
         section: 'Travel Solution',
         icon: <FlightIcon />,
         items: [
+          { icon: <FlightIcon />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
           { icon: <FlightIcon />, label: 'Study Visa', to: '/travel/study-visa' },
           { icon: <WorkIcon />, label: 'Work Visa', to: '/travel/work-visa' },
           { icon: <PublicIcon />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
