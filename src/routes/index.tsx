@@ -332,7 +332,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: 'settings/profile',
-        element: <CustomerPlaceholderPage title="Profile" />,
+        element: <ProfilePage/>,
       },
       {
         path: 'profile-setup',
