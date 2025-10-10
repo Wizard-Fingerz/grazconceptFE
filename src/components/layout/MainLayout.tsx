@@ -28,15 +28,12 @@ import {
   MenuBook,
   Transform,
   Translate,
-  Flight as FlightIcon,
-  Hotel as HotelIcon,
   AttachMoney as AttachMoneyIcon,
   BusinessCenter as BusinessCenterIcon,
   EmojiEvents as EmojiEventsIcon,
   People as PeopleIcon,
   AssignmentInd as AssignmentIndIcon,
   AccountBalance as AccountBalanceIcon,
-  Work as WorkIcon,
   Public as PublicIcon,
   Star as StarIcon,
   Person as PersonIcon,
@@ -45,6 +42,13 @@ import {
   Loyalty as LoyaltyIcon,
   SupportAgent as SupportAgentIcon,
   EventAvailable,
+  FlightTakeoff,
+  School,
+  SchoolOutlined,
+  WorkOutline,
+  Groups,
+  BeachAccess,
+  Hotel,
 } from '@mui/icons-material';
 import { useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -106,14 +110,14 @@ export const MainLayout: React.FC = () => {
       },
       {
         section: 'Travel Solution',
-        icon: <FlightIcon />,
+        icon: <FlightTakeoff />, // Fixed: Use correct imported icon name
         items: [
-          { icon: <FlightIcon />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
-          { icon: <FlightIcon />, label: 'Study Visa', to: '/travel/study-visa' },
-          { icon: <WorkIcon />, label: 'Work Visa', to: '/travel/work-visa' },
-          { icon: <PublicIcon />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
-          { icon: <HotelIcon />, label: 'Vacation', to: '/travel/vacation' },
-          { icon: <HotelIcon />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
+          { icon: <School />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
+          { icon: <SchoolOutlined />, label: 'Study Visa', to: '/travel/study-visa' },
+          { icon: <WorkOutline />, label: 'Work Visa', to: '/travel/work-visa' },
+          { icon: <Groups />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
+          { icon: <BeachAccess />, label: 'Vacation', to: '/travel/vacation' },
+          { icon: <Hotel />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
         ]
       },
       {
