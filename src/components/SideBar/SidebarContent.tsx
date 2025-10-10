@@ -112,7 +112,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
         p: 2,
         width: '100%',
         textAlign: 'center',
-        position: 'absolute',
+        // position: 'absolute',
         bottom: 0,
         left: 0,
         bgcolor: 'background.paper'
