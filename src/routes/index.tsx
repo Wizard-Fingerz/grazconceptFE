@@ -49,7 +49,7 @@ import PerformanceAnalytics from '../pages/staff/PerformanceAnalytics';
 import ServiceUsageSummary from '../pages/staff/ServiceUsageSummary';
 import { ApplyStudyVisa } from '../pages/customer/travel/StudyVisa';
 import { ApplyWorkVisa } from '../pages/customer/travel/WorkVisa';
-import { ApplyPilgrimageVisa } from '../pages/customer/travel/Prigrimage';
+import { ApplyPilgrimageVisa } from '../pages/customer/travel/Pilgrimage/Prigrimage';
 import VacationPage from '../pages/customer/travel/Vacation';
 import HotelReservation from '../pages/customer/travel/HotelReservation';
 import FlightListPage from '../pages/customer/flight';
@@ -65,6 +65,7 @@ import SubmitCV from '../pages/customer/travel/WorkVisa/SubmitCV';
 import TrackProgress from '../pages/customer/travel/WorkVisa/TrackProgress';
 import CVBuilder from '../pages/customer/valueServices/CVBuilder';
 import JobDetails from '../pages/customer/travel/WorkVisa/JobDetails';
+import AllPilgrimageOffers from '../pages/customer/travel/Pilgrimage/AllPilgrimageOffers';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -262,6 +263,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'travel/pilgrimage',
         element: <ApplyPilgrimageVisa />,
+      },
+      {
+        path: 'travel/pilgrimage/offers',
+        element: <AllPilgrimageOffers />,
       },
       {
         path: 'travel/vacation',
