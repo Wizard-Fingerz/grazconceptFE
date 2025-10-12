@@ -10,7 +10,12 @@ import {
   Chip,
   Stack,
   Divider,
+  Pagination,
+  TextField,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { getAllWorkVisas } from "../../../../services/workVisaService";
 import FilterPanel from "../../../../components/Filter/FilterPanel";
@@ -18,7 +23,6 @@ import FilterPanel from "../../../../components/Filter/FilterPanel";
 // Helper: Format salary with currency
 function formatSalary(salary: string, currency: string) {
   if (!salary) return "N/A";
-  // Simple currency formatting, can be improved
   return `${currency} ${Number(salary).toLocaleString()}`;
 }
 
@@ -33,7 +37,21 @@ function formatDate(dateStr: string) {
   });
 }
 
-// New Card for Work Visa Jobs
+// Helper: Case-insensitive search (simple substring matching)
+function searchMatch(visa: any, search: string) {
+  if (!search) return true;
+  const lc = (val: any) => (val ? String(val).toLowerCase() : "");
+  const s = search.toLowerCase();
+  return (
+    lc(visa.job_title).includes(s) ||
+    lc(visa.job_description).includes(s) ||
+    lc(visa.country).includes(s) ||
+    lc(visa.city).includes(s) ||
+    lc(visa.organization?.name).includes(s)
+  );
+}
+
+// Card for Work Visa Jobs
 const WorkVisaJobCard: React.FC<{ visa: any }> = ({ visa }) => (
   <Card
     sx={{
@@ -117,15 +135,18 @@ const WorkVisaJobCard: React.FC<{ visa: any }> = ({ visa }) => (
   </Card>
 );
 
+const PAGE_SIZE = 8;
+
 const CountriesJob: React.FC = () => {
   const [workVisas, setWorkVisas] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<any>({});
+  const [search, setSearch] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
 
   // For filter options, extract unique values from workVisas
   const filterConfig = useMemo(() => {
-    // Get unique countries, cities, organizations, job titles, currencies, salary range
     const countries = Array.from(
       new Set(workVisas.map((v) => v.country).filter(Boolean))
     );
@@ -210,7 +231,7 @@ const CountriesJob: React.FC = () => {
     fetchWorkVisas();
   }, []);
 
-  // Filtering logic
+  // Filtering and searching logic
   const filteredVisas = useMemo(() => {
     if (!workVisas.length) return [];
     return workVisas.filter((visa) => {
@@ -271,9 +292,31 @@ const CountriesJob: React.FC = () => {
           return false;
         }
       }
+      // Search filter
+      if (search && !searchMatch(visa, search)) {
+        return false;
+      }
       return true;
     });
-  }, [workVisas, filters]);
+  }, [workVisas, filters, search]);
+
+  // Pagination derived variables
+  const count = filteredVisas.length;
+  const numPages = Math.ceil(count / PAGE_SIZE);
+
+  const visasToRender = useMemo(
+    () =>
+      filteredVisas.slice(
+        (page - 1) * PAGE_SIZE,
+        Math.min(page * PAGE_SIZE, filteredVisas.length)
+      ),
+    [filteredVisas, page]
+  );
+
+  // Reset to page 1 whenever filters/search change (for good UX)
+  useEffect(() => {
+    setPage(1);
+  }, [filters, search]);
 
   const handleChange = (name: string, value: any) => {
     setFilters((prev: any) => ({ ...prev, [name]: value }));
@@ -281,6 +324,32 @@ const CountriesJob: React.FC = () => {
 
   const handleClear = () => {
     setFilters({});
+  };
+
+  // Search handlers (standalone TextField, debounced type possible, but keep it simple for now)
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setFilters((prev: any) => ({
+      ...prev,
+      search: e.target.value,
+    }));
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Optionally, you could trigger filtering/search logic here
+    setFilters((prev: any) => ({
+      ...prev,
+      search: search,
+    }));
+  };
+
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+    // Scroll to top of card list (optional UX improvement)
+    if (typeof window !== "undefined" && window.scrollTo) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
@@ -301,6 +370,55 @@ const CountriesJob: React.FC = () => {
           Explore countries and job opportunities you can apply for with a work visa.
         </Typography>
       </CustomerPageHeader>
+
+      {/* Count and search bar */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          justifyContent: "space-between",
+          mb: 2,
+          gap: 2,
+        }}
+      >
+        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+          {loading
+            ? "Loading visas..."
+            : error
+            ? ""
+            : `${count} job opportunit${count === 1 ? 'y' : 'ies'} found`}
+        </Typography>
+        {/* Search field */}
+        <Box
+          component="form"
+          onSubmit={handleSearchSubmit}
+          sx={{ width: { xs: "100%", sm: 320 } }}
+        >
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="Search jobs, country, city, organization..."
+            value={search}
+            onChange={handleSearchChange}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    type="submit"
+                    aria-label="search"
+                    edge="end"
+                    size="small"
+                  >
+                    <SearchIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{ background: "#fff" }}
+          />
+        </Box>
+      </Box>
 
       <Box
         sx={{
@@ -335,14 +453,28 @@ const CountriesJob: React.FC = () => {
               </Box>
             ) : error ? (
               <Typography color="error">{error}</Typography>
-            ) : filteredVisas.length === 0 ? (
+            ) : visasToRender.length === 0 ? (
               <Typography>No available work visas found.</Typography>
             ) : (
-              filteredVisas.map((visa: any, idx: number) => (
+              visasToRender.map((visa: any, idx: number) => (
                 <WorkVisaJobCard key={visa.id || idx} visa={visa} />
               ))
             )}
           </Box>
+          {/* Pagination */}
+          {!loading && !error && numPages > 1 && (
+            <Stack direction="row" justifyContent="center" sx={{ mt: 4 }}>
+              <Pagination
+                count={numPages}
+                page={page}
+                onChange={handlePageChange}
+                color="primary"
+                shape="rounded"
+                showFirstButton
+                showLastButton
+              />
+            </Stack>
+          )}
         </Box>
 
         {/* Filter Panel */}
