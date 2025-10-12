@@ -19,6 +19,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { getAllWorkVisas } from "../../../../services/workVisaService";
 import FilterPanel from "../../../../components/Filter/FilterPanel";
+import { useNavigate } from "react-router-dom";
 
 // Helper: Format salary with currency
 function formatSalary(salary: string, currency: string) {
@@ -52,88 +53,91 @@ function searchMatch(visa: any, search: string) {
 }
 
 // Card for Work Visa Jobs
-const WorkVisaJobCard: React.FC<{ visa: any }> = ({ visa }) => (
-  <Card
-    sx={{
-      width: { xs: 320, sm: 350, md: 380 },
-      minHeight: 320,
-      borderRadius: 3,
-      boxShadow: 3,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-      p: 2,
-    }}
-  >
-    <CardContent sx={{ flex: 1 }}>
-      <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-        <Chip
-          label={visa.organization?.name || "Unknown Org"}
-          size="small"
-          color="primary"
-          sx={{ fontWeight: 500, fontSize: 13 }}
-        />
-        <Chip
-          label={visa.city ? `${visa.city}, ${visa.country}` : visa.country}
-          size="small"
-          color="secondary"
-          sx={{ fontWeight: 500, fontSize: 13 }}
-        />
-      </Stack>
-      <Typography variant="h6" fontWeight="bold" gutterBottom>
-        {visa.job_title}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        {visa.job_description}
-      </Typography>
-      <Divider sx={{ my: 1 }} />
-      <Stack direction="row" spacing={2} alignItems="center" mb={1}>
-        <Typography variant="body2" fontWeight={500}>
-          Salary:
+const WorkVisaJobCard: React.FC<{ visa: any }> = ({ visa }) => {
+  const navigate = useNavigate();
+
+  return (
+    <Card
+      sx={{
+        width: { xs: 320, sm: 350, md: 380 },
+        minHeight: 320,
+        borderRadius: 3,
+        boxShadow: 3,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        p: 2,
+      }}
+    >
+      <CardContent sx={{ flex: 1 }}>
+        <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+          <Chip
+            label={visa.organization?.name || "Unknown Org"}
+            size="small"
+            color="primary"
+            sx={{ fontWeight: 500, fontSize: 13 }}
+          />
+          <Chip
+            label={visa.city ? `${visa.city}, ${visa.country}` : visa.country}
+            size="small"
+            color="secondary"
+            sx={{ fontWeight: 500, fontSize: 13 }}
+          />
+        </Stack>
+        <Typography variant="h6" fontWeight="bold" gutterBottom>
+          {visa.job_title}
         </Typography>
-        <Typography variant="body2">
-          {formatSalary(visa.salary, visa.currency)}
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          {visa.job_description}
         </Typography>
-      </Stack>
-      <Stack direction="row" spacing={2} alignItems="center" mb={1}>
-        <Typography variant="body2" fontWeight={500}>
-          Duration:
-        </Typography>
-        <Typography variant="body2">
-          {formatDate(visa.start_date)} - {formatDate(visa.end_date)}
-        </Typography>
-      </Stack>
-      {visa.requirements && visa.requirements.length > 0 && (
-        <Box mt={1}>
-          <Typography variant="body2" fontWeight={500} sx={{ mb: 0.5 }}>
-            Requirements:
+        <Divider sx={{ my: 1 }} />
+        <Stack direction="row" spacing={2} alignItems="center" mb={1}>
+          <Typography variant="body2" fontWeight={500}>
+            Salary:
           </Typography>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {visa.requirements.map((req: any) => (
-              <li key={req.id} style={{ fontSize: 13 }}>
-                {req.description}
-              </li>
-            ))}
-          </ul>
-        </Box>
-      )}
-    </CardContent>
-    <CardActions sx={{ justifyContent: "flex-end" }}>
-      <Button
-        variant="contained"
-        color="primary"
-        sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-        onClick={() => {
-          // You can navigate to an application form or details page here
-          // e.g., navigate(`/customer/travel/work-visa/apply/${visa.id}`)
-          alert(`Apply for ${visa.job_title} work visa`);
-        }}
-      >
-        Apply Now
-      </Button>
-    </CardActions>
-  </Card>
-);
+          <Typography variant="body2">
+            {formatSalary(visa.salary, visa.currency)}
+          </Typography>
+        </Stack>
+        <Stack direction="row" spacing={2} alignItems="center" mb={1}>
+          <Typography variant="body2" fontWeight={500}>
+            Duration:
+          </Typography>
+          <Typography variant="body2">
+            {formatDate(visa.start_date)} - {formatDate(visa.end_date)}
+          </Typography>
+        </Stack>
+        {visa.requirements && visa.requirements.length > 0 && (
+          <Box mt={1}>
+            <Typography variant="body2" fontWeight={500} sx={{ mb: 0.5 }}>
+              Requirements:
+            </Typography>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {visa.requirements.map((req: any) => (
+                <li key={req.id} style={{ fontSize: 13 }}>
+                  {req.description}
+                </li>
+              ))}
+            </ul>
+          </Box>
+        )}
+      </CardContent>
+      <CardActions sx={{ justifyContent: "flex-end" }}>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+          onClick={() => {
+            // Navigate to the details page for the visa/job
+            navigate(`/travel/work-visa/countries-jobs/${visa.id}`);
+          }}
+        >
+          Apply Now
+        </Button>
+      </CardActions>
+    </Card>
+  );
+};
 
 const PAGE_SIZE = 8;
 

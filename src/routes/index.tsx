@@ -64,6 +64,7 @@ import ScheduleInterview from '../pages/customer/travel/WorkVisa/ScheduleIntervi
 import SubmitCV from '../pages/customer/travel/WorkVisa/SubmitCV';
 import TrackProgress from '../pages/customer/travel/WorkVisa/TrackProgress';
 import CVBuilder from '../pages/customer/valueServices/CVBuilder';
+import JobDetails from '../pages/customer/travel/WorkVisa/JobDetails';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -241,6 +242,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'travel/work-visa/countries-jobs',
         element: <CountriesJob/>,
+      },
+      {
+        path: 'travel/work-visa/countries-jobs/:id',
+        element: <JobDetails/>,
       },
       {
         path: 'travel/work-visa/schedule-interview',
