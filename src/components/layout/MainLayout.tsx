@@ -113,7 +113,7 @@ export const MainLayout: React.FC = () => {
         icon: <FlightTakeoff />, // Fixed: Use correct imported icon name
         items: [
           { icon: <School />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
-          { icon: <SchoolOutlined />, label: 'Study Visa', to: '/travel/study-visa' },
+          { icon: <SchoolOutlined />, label: 'Apply Study Program', to: '/travel/study-visa' },
           { icon: <WorkOutline />, label: 'Work Visa', to: '/travel/work-visa' },
           { icon: <Groups />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
           { icon: <BeachAccess />, label: 'Vacation', to: '/travel/vacation' },
@@ -139,7 +139,7 @@ export const MainLayout: React.FC = () => {
         ]
       },
       {
-        section: 'Value-Added Services',
+        section: 'Other Services',
         icon: <StarIcon />,
         items: [
           { 
