@@ -286,7 +286,7 @@ const AllPilgrimageOffers: React.FC = () => {
   };
 
   const handleViewOffer = (offerId: string | number) => {
-    navigate(`/customer/travel/pilgrimage/offer/${offerId}`);
+    navigate(`/travel/pilgrimage/offers/${offerId}`);
   };
 
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {

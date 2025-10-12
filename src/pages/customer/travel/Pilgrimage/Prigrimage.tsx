@@ -627,7 +627,7 @@ export const ApplyPilgrimageVisa: React.FC = () => {
             sx={{ ml: 2, textTransform: "none", fontWeight: 600 }}
             onClick={() => {
               // Use useNavigate for navigation instead of window.location
-              navigate("/customer/travel/all-pilgrimage-applications");
+              navigate("/travel/pilgrimage/applications");
             }}
           >
             View all

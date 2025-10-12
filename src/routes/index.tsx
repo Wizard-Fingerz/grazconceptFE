@@ -66,6 +66,7 @@ import TrackProgress from '../pages/customer/travel/WorkVisa/TrackProgress';
 import CVBuilder from '../pages/customer/valueServices/CVBuilder';
 import JobDetails from '../pages/customer/travel/WorkVisa/JobDetails';
 import AllPilgrimageOffers from '../pages/customer/travel/Pilgrimage/AllPilgrimageOffers';
+import PilgrimageDetails from '../pages/customer/travel/Pilgrimage/PilgrimageDetails';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -267,6 +268,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'travel/pilgrimage/offers',
         element: <AllPilgrimageOffers />,
+      },
+      {
+        path: 'travel/pilgrimage/offers/:id',
+        element: <PilgrimageDetails />,
       },
       {
         path: 'travel/vacation',
