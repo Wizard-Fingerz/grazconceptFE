@@ -2,9 +2,11 @@
 import api from './api';
 
 // Get all vacation packages
-export async function getAllVacations() {
+export async function getAllVacations(params?: Record<string, any
+  // Get all vacation packages
+  >) {
   try {
-    const response = await api.get(`/app/vacation-offer`);
+    const response = await api.get(`/app/vacation-offer`, { params });
     return response.data;
   } catch (error) {
     throw error;
