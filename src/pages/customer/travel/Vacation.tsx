@@ -5,6 +5,17 @@ import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
 import { VacationCard } from "../../../components/VacationCard";
 import { getAllVacations } from "../../../services/vacationService";
 
+const getMainImage = (vac: any) => {
+  // Priority: vac.image > first of vac.images > fallback image
+  if (vac.image) {
+    return vac.image;
+  }
+  if (Array.isArray(vac.images) && vac.images.length > 0 && vac.images[0].image) {
+    return vac.images[0].image;
+  }
+  return "/vacation.jpg";
+};
+
 const VacationPage: React.FC = () => {
   const [filters, setFilters] = useState<any>({});
   const [vacationData, setVacationData] = useState<any[]>([]);
@@ -105,7 +116,7 @@ const VacationPage: React.FC = () => {
               vacationData.map((vac: any, idx: number) => (
                 <VacationCard
                   key={vac.id || idx}
-                  image={vac.image || "/vacation.jpg"}
+                  image={getMainImage(vac)}
                   title={vac.title}
                   price={vac.price}
                   currency={vac.currency}
