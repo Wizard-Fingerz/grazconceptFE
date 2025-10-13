@@ -581,14 +581,14 @@ const StudyVisaDetails: React.FC = () => {
       ...(offer.minimum_grade ? [`Minimum Grade: ${offer.minimum_grade}`] : []),
       ...(offer.english_proficiency_required
         ? [
-            `English Proficiency Required: Yes`,
-            offer.english_test_type
-              ? `Test Type: ${offer.english_test_type}`
-              : "",
-            offer.minimum_english_score
-              ? `Minimum Score: ${offer.minimum_english_score}`
-              : "",
-          ].filter(Boolean)
+          `English Proficiency Required: Yes`,
+          offer.english_test_type
+            ? `Test Type: ${offer.english_test_type}`
+            : "",
+          offer.minimum_english_score
+            ? `Minimum Score: ${offer.minimum_english_score}`
+            : "",
+        ].filter(Boolean)
         : [`English Proficiency Required: No`]),
       ...(offer.other_requirements
         ? [offer.other_requirements]
@@ -616,32 +616,32 @@ const StudyVisaDetails: React.FC = () => {
   const tuitionFee =
     offer.tuition_fee !== undefined && offer.tuition_fee !== null
       ? `£${Number(offer.tuition_fee).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
       : "N/A";
 
   const applicationDeadline = offer.application_deadline
     ? new Date(offer.application_deadline).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
     : "N/A";
 
   const startDate = offer.start_date
     ? new Date(offer.start_date).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
     : "N/A";
   const endDate = offer.end_date
     ? new Date(offer.end_date).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
     : "N/A";
 
   const programType =
@@ -755,38 +755,38 @@ const StudyVisaDetails: React.FC = () => {
     );
   };
 
-  
+
 
   return (
     <Box
-    sx={{
-      flex: 1,
-      alignSelf: "flex-start",
-      p: 1,
-      width: "100%",
-      minWidth: 0,
-    }}
-  >
+      sx={{
+        flex: 1,
+        alignSelf: "flex-start",
+        p: 1,
+        width: "100%",
+        minWidth: 0,
+      }}
+    >
       {/* Breadcrumb */}
       <Box sx={{ mb: 2 }}>
-          <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
-            <Link
-              color="inherit"
-              component="button"
-              underline="hover"
-              onClick={() => navigate(-1)}
-              sx={{
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              Back
-            </Link>
-            <Typography color="text.primary">
-              Program Details
-            </Typography>
-          </Breadcrumbs>
-        </Box>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
+          <Link
+            color="inherit"
+            component="button"
+            underline="hover"
+            onClick={() => navigate(-1)}
+            sx={{
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Back
+          </Link>
+          <Typography color="text.primary">
+            Program Details
+          </Typography>
+        </Breadcrumbs>
+      </Box>
 
       <Box
         sx={{
