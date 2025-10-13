@@ -9,10 +9,10 @@ import {
   IconButton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import FilterPanel from "../../../components/Filter/FilterPanel";
-import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
-import { VacationCard } from "../../../components/VacationCard";
-import { getAllVacations } from "../../../services/vacationService";
+import FilterPanel from "../../../../components/Filter/FilterPanel";
+import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
+import { VacationCard } from "../../../../components/VacationCard";
+import { getAllVacations } from "../../../../services/vacationService";
 
 const PAGE_SIZE = 15; // Adjustable based on desired page size
 
