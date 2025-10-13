@@ -136,6 +136,7 @@ function formatValue(val: any) {
 const JobDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Compose full name from user details
   const getUserFullName = () => {
@@ -179,7 +180,9 @@ const JobDetails: React.FC = () => {
     statement_of_purpose: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // NOTE: We remove submitSuccess from here, so we do not keep internal state of submitSuccess.
+  // const [submitSuccess, setSubmitSuccess] = useState(false); // Removed
 
   const [activeStep, setActiveStep] = useState(0);
   const [offer, setOffer] = useState<any>(null);
@@ -188,7 +191,8 @@ const JobDetails: React.FC = () => {
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
   // Track work visa application(s)
-  const [existingApplications, setExistingApplications] = useState<any[]>([]);
+  // Removed the unused existingApplications state
+  // const [existingApplications, setExistingApplications] = useState<any[]>([]);
   const [latestApplication, setLatestApplication] = useState<any>(null);
   const [applicationLoading, setApplicationLoading] = useState(false);
   const [applicationError, setApplicationError] = useState<string | null>(null);
@@ -231,7 +235,7 @@ const JobDetails: React.FC = () => {
   // Check if user has already applied for this offer
   useEffect(() => {
     if (!id || !user) {
-      setExistingApplications([]);
+      // Removed setExistingApplications([])
       setLatestApplication(null);
       return;
     }
@@ -243,7 +247,6 @@ const JobDetails: React.FC = () => {
         params: { offer_id: id },
       })
       .then((res) => {
-        // The backend response may have extra metadata, but always has .results array.
         const results = Array.isArray(res.data?.results)
           ? res.data.results
           : Array.isArray(res.data)
@@ -253,14 +256,13 @@ const JobDetails: React.FC = () => {
         // Filter by matching user's client or applicant (best effort)
         let matches = results.filter(
           (a: any) =>
-            (a?.client === user.id) || // ideal: compare client/user id
+            (a?.client === user.id) ||
             (a?.applicant &&
               getUserFullName() &&
               String(a.applicant).toLowerCase().trim() ===
                 getUserFullName().toLowerCase().trim())
         );
 
-        // Sort: most recent first (by submitted_at or id)
         matches = matches.sort((a: any, b: any) => {
           if (a.submitted_at && b.submitted_at) {
             return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
@@ -268,12 +270,12 @@ const JobDetails: React.FC = () => {
           return (b.id || 0) - (a.id || 0);
         });
 
-        setExistingApplications(matches);
+        // Removed setExistingApplications(matches);
         setLatestApplication(matches[0] || null);
         setApplicationLoading(false);
       })
       .catch(() => {
-        setExistingApplications([]);
+        // Removed setExistingApplications([]);
         setLatestApplication(null);
         setApplicationError("Could not determine application status.");
         setApplicationLoading(false);
@@ -408,7 +410,8 @@ const JobDetails: React.FC = () => {
   const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setSubmitSuccess(false);
+
+    // No need to manage submitSuccess state variable, so we remove setSubmitSuccess.
     setFormErrors({});
 
     try {
@@ -455,7 +458,6 @@ const JobDetails: React.FC = () => {
         },
       });
 
-      setSubmitSuccess(true);
       setToastMessage("Application submitted successfully!");
       setToastSeverity("success");
       setToastOpen(true);
@@ -491,9 +493,15 @@ const JobDetails: React.FC = () => {
       setActiveStep(0);
 
       // After successful submission, trigger a refetch to show status view
+      // Directly update latestApplication to reflect submission and show "application submitted" UI
+      setLatestApplication({
+        ...form,
+        status: "Submitted",
+        submitted_at: new Date().toISOString(),
+      });
+
+      // In background, fire actual refetch to update with backend's canonical data
       setTimeout(() => {
-        setExistingApplications([]);
-        setLatestApplication(null);
         setApplicationLoading(true);
         api
           .get("/app/work-visa-application/", { params: { offer_id: id } })
@@ -503,7 +511,6 @@ const JobDetails: React.FC = () => {
               : Array.isArray(res.data)
               ? res.data
               : [];
-
             let matches = results.filter(
               (a: any) =>
                 (user && a?.client === user.id) ||
@@ -522,12 +529,11 @@ const JobDetails: React.FC = () => {
               return (b.id || 0) - (a.id || 0);
             });
 
-            setExistingApplications(matches);
+            // Only update latestApplication, do not use existingApplications
             setLatestApplication(matches[0] || null);
             setApplicationLoading(false);
           })
           .catch(() => {
-            setExistingApplications([]);
             setLatestApplication(null);
             setApplicationLoading(false);
           });
@@ -820,392 +826,421 @@ const JobDetails: React.FC = () => {
       <Box
         sx={{
           display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          gap: 4,
+          flexDirection: "column",
+          gap: 2,
           px: { xs: 1, sm: 2, md: 4 },
           py: { xs: 2, md: 4 },
           mx: "auto",
         }}
       >
-        {/* Main Details Section */}
-        <Box sx={{ flex: 2, minWidth: 0 }}>
-          <Card className="mb-4 rounded-2xl shadow-md">
-            <CardContent>
-              <Box className="flex items-center gap-4 mb-4">
-                {employerLogo && (
-                  <CardMedia
-                    component="img"
-                    image={employerLogo}
-                    alt="Company Logo"
-                    sx={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: 2,
-                      objectFit: "contain",
-                      bgcolor: "#f5f5f5",
-                    }}
-                  />
-                )}
-                <Box>
-                  <Typography variant="h5" className="font-bold">
-                    {orgName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {location}
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography variant="h6" className="font-semibold mb-2">
-                {jobTitle}
-              </Typography>
-              {/* Render the description as it is being typed */}
-              <Box className="mb-2">
-                {liveDescription
-                  ? renderDescriptionLive(liveDescription)
-                  : (
-                    <Typography variant="body1" color="text.secondary">
-                      No description available.
-                    </Typography>
-                  )
-                }
-              </Box>
-              <Divider sx={{ my: 2 }} />
-
-              <Stack
-                direction="row"
-                flexWrap="wrap"
-                spacing={1}
-                useFlexGap
-                sx={{ mb: 2 }}
-              >
-                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Salary
-                  </Typography>
-                  <Typography variant="body2">{salary}</Typography>
-                </Box>
-                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Start Date
-                  </Typography>
-                  <Typography variant="body2">{startDate}</Typography>
-                </Box>
-                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    End Date
-                  </Typography>
-                  <Typography variant="body2">{endDate}</Typography>
-                </Box>
-                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Created At
-                  </Typography>
-                  <Typography variant="body2">{createdAt || "N/A"}</Typography>
-                </Box>
-                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Updated At
-                  </Typography>
-                  <Typography variant="body2">{updatedAt || "N/A"}</Typography>
-                </Box>
-              </Stack>
-
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle1" className="font-semibold mb-1">
-                Requirements
-              </Typography>
-              {requirements && requirements.length > 0 ? (
-                <ul className="list-disc pl-6">
-                  {requirements.map((req, idx) => (
-                    <li key={idx}>
-                      <Typography variant="body2">{req}</Typography>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No specific requirements listed.
-                </Typography>
-              )}
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle1" className="font-semibold mb-1">
-                Company Images
-              </Typography>
-              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
-                {images.length > 0 ? (
-                  images.map((img: string, idx: number) => (
+        {/* Breadcrumb / Navigation Section */}
+        <Box sx={{ mb: 2 }}>
+          <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
+            <Link
+              color="inherit"
+              component="button"
+              underline="hover"
+              onClick={() => navigate(-1)}
+              sx={{
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              Back
+            </Link>
+            <Typography color="text.primary">
+              Job Details
+            </Typography>
+          </Breadcrumbs>
+        </Box>
+        {/* Main Details & Application - restore flex row */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 4,
+          }}
+        >
+          {/* Main Details Section */}
+          <Box sx={{ flex: 2, minWidth: 0 }}>
+            <Card className="mb-4 rounded-2xl shadow-md">
+              <CardContent>
+                <Box className="flex items-center gap-4 mb-4">
+                  {employerLogo && (
                     <CardMedia
-                      key={idx}
                       component="img"
-                      image={img}
-                      alt={`Company Image ${idx + 1}`}
+                      image={employerLogo}
+                      alt="Company Logo"
                       sx={{
-                        width: 120,
-                        height: 80,
+                        width: 64,
+                        height: 64,
                         borderRadius: 2,
-                        objectFit: "cover",
+                        objectFit: "contain",
                         bgcolor: "#f5f5f5",
                       }}
                     />
-                  ))
+                  )}
+                  <Box>
+                    <Typography variant="h5" className="font-bold">
+                      {orgName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {location}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="h6" className="font-semibold mb-2">
+                  {jobTitle}
+                </Typography>
+                {/* Render the description as it is being typed */}
+                <Box className="mb-2">
+                  {liveDescription
+                    ? renderDescriptionLive(liveDescription)
+                    : (
+                      <Typography variant="body1" color="text.secondary">
+                        No description available.
+                      </Typography>
+                    )
+                  }
+                </Box>
+                <Divider sx={{ my: 2 }} />
+
+                <Stack
+                  direction="row"
+                  flexWrap="wrap"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ mb: 2 }}
+                >
+                  <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Salary
+                    </Typography>
+                    <Typography variant="body2">{salary}</Typography>
+                  </Box>
+                  <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Start Date
+                    </Typography>
+                    <Typography variant="body2">{startDate}</Typography>
+                  </Box>
+                  <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      End Date
+                    </Typography>
+                    <Typography variant="body2">{endDate}</Typography>
+                  </Box>
+                  <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Created At
+                    </Typography>
+                    <Typography variant="body2">{createdAt || "N/A"}</Typography>
+                  </Box>
+                  <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Updated At
+                    </Typography>
+                    <Typography variant="body2">{updatedAt || "N/A"}</Typography>
+                  </Box>
+                </Stack>
+
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" className="font-semibold mb-1">
+                  Requirements
+                </Typography>
+                {requirements && requirements.length > 0 ? (
+                  <ul className="list-disc pl-6">
+                    {requirements.map((req, idx) => (
+                      <li key={idx}>
+                        <Typography variant="body2">{req}</Typography>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    No images available.
+                    No specific requirements listed.
                   </Typography>
                 )}
-              </Box>
-            </CardContent>
-          </Card>
-          {/* Additional details can go here */}
-          <Paper className="p-4 mt-4" elevation={0} sx={{ bgcolor: "#f9f9f9" }}>
-            <Typography variant="subtitle1" className="font-semibold mb-1">
-              More about the Employer
-            </Typography>
-            <Typography variant="body2">
-              {(org && (org.description || org.registration_number || org.address)) ||
-                "No additional information provided."}
-            </Typography>
-          </Paper>
-        </Box>
-
-        {/* Application Form/Status Section */}
-        {applicationError && (
-          <Box
-            sx={{
-              flex: 1,
-              alignSelf: "flex-start",
-              bgcolor: "#fff",
-              borderRadius: 3,
-              boxShadow: 2,
-              p: 3,
-            }}
-          >
-            <Typography color="error" sx={{ mb: 2 }}>
-              {applicationError}
-            </Typography>
-          </Box>
-        )}
-
-        {/* If user has already applied, show application details instead of form */}
-        {!applicationError && latestApplication ? (
-          renderApplicationDetails(latestApplication)
-        ) : (
-          <Box
-            sx={{
-              flex: 1,
-              alignSelf: "flex-start",
-              bgcolor: "#fff",
-              borderRadius: 3,
-              boxShadow: 2,
-              p: 3,
-            }}
-          >
-            <Typography variant="h6" className="font-bold mb-2">
-              Apply for this Job
-            </Typography>
-            <Typography variant="body2" color="text.secondary" className="mb-3">
-              Fill in your details to start your application for this work visa job.
-            </Typography>
-            <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
-              {visibleSteps.map((step, idx) => (
-                <Step key={step.label} completed={activeStep > idx}>
-                  <StepLabel
-                    sx={{
-                      '& .MuiStepLabel-label': {
-                        fontSize: '0.7rem',
-                      },
-                    }}
-                  >
-                    {step.label}
-                  </StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-            <form
-              onSubmit={handleApplicationSubmit}
-              encType="multipart/form-data"
-              autoComplete="off"
-            >
-              {visibleSteps[activeStep]?.fields.map((fname) => {
-                const field = visibleFormFieldsMap[fname];
-                if (!field) return null;
-                let errorMsg = formErrors[fname];
-
-                if (field.type === "textarea") {
-                  return (
-                    <TextField
-                      key={field.name}
-                      name={field.name}
-                      label={field.label}
-                      value={form[field.name as keyof typeof form] as string}
-                      onChange={handleInputChange}
-                      fullWidth
-                      required={field.required}
-                      margin="normal"
-                      multiline
-                      minRows={4}
-                      error={!!errorMsg}
-                      helperText={errorMsg}
-                    />
-                  );
-                }
-                if (field.type === "file") {
-                  return (
-                    <Box key={field.name} sx={{ my: 1 }}>
-                      <InputLabel shrink>
-                        {field.label}
-                        {field.required ? " *" : ""}
-                      </InputLabel>
-                      <input
-                        name={field.name}
-                        type="file"
-                        accept={field.name === "passport_photo" ? "image/*" : undefined}
-                        onChange={handleInputChange}
-                        required={field.required}
-                        style={{ marginTop: 4, marginBottom: 8 }}
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" className="font-semibold mb-1">
+                  Company Images
+                </Typography>
+                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
+                  {images.length > 0 ? (
+                    images.map((img: string, idx: number) => (
+                      <CardMedia
+                        key={idx}
+                        component="img"
+                        image={img}
+                        alt={`Company Image ${idx + 1}`}
+                        sx={{
+                          width: 120,
+                          height: 80,
+                          borderRadius: 2,
+                          objectFit: "cover",
+                          bgcolor: "#f5f5f5",
+                        }}
                       />
-                      {errorMsg && (
-                        <Typography color="error" sx={{ fontSize: "0.8rem" }}>
-                          {errorMsg}
-                        </Typography>
-                      )}
-                    </Box>
-                  );
-                }
-                if (field.type === "date") {
-                  return (
-                    <TextField
-                      key={field.name}
-                      name={field.name}
-                      label={field.label}
-                      type="date"
-                      value={form[field.name as keyof typeof form] as string}
-                      onChange={handleInputChange}
-                      fullWidth
-                      required={field.required}
-                      margin="normal"
-                      InputLabelProps={{ shrink: true }}
-                      error={!!errorMsg}
-                      helperText={errorMsg}
-                    />
-                  );
-                }
-                if (field.type === "boolean") {
-                  return (
-                    <FormControlLabel
-                      key={field.name}
-                      control={
-                        <Checkbox
-                          name={field.name}
-                          checked={!!form[field.name as keyof typeof form]}
-                          onChange={handleInputChange}
-                          color="primary"
-                        />
-                      }
-                      label={field.label}
-                      sx={{ my: 1 }}
-                    />
-                  );
-                }
-                if (field.name === "applicant") {
-                  return (
-                    <TextField
-                      key={field.name}
-                      name={field.name}
-                      label={field.label}
-                      value={getUserFullName()}
-                      fullWidth
-                      required={field.required}
-                      margin="normal"
-                      disabled
-                      error={!!errorMsg}
-                      helperText={errorMsg}
-                    />
-                  );
-                }
-                // Handle number/integer fields
-                if (field.type === "number") {
-                  return (
-                    <TextField
-                      key={field.name}
-                      name={field.name}
-                      label={field.label}
-                      value={form[field.name as keyof typeof form] as string}
-                      onChange={handleInputChange}
-                      fullWidth
-                      required={field.required}
-                      margin="normal"
-                      type="number"
-                      inputProps={{
-                        step: "1",
-                        min: "0",
-                      }}
-                      error={!!errorMsg}
-                      helperText={errorMsg}
-                    />
-                  );
-                }
-                return (
-                  <TextField
-                    key={field.name}
-                    name={field.name}
-                    label={field.label}
-                    value={form[field.name as keyof typeof form] as string}
-                    onChange={handleInputChange}
-                    fullWidth
-                    required={field.required}
-                    margin="normal"
-                    error={!!errorMsg}
-                    helperText={errorMsg}
-                  />
-                );
-              })}
-              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                {activeStep > 0 && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={handleBack}
-                    disabled={submitting}
-                    fullWidth
-                  >
-                    Back
-                  </Button>
-                )}
-                {activeStep < visibleSteps.length - 1 && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleNext}
-                    disabled={!isStepValid() || submitting}
-                    fullWidth
-                  >
-                    Next
-                  </Button>
-                )}
-                {activeStep === visibleSteps.length - 1 && (
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    className="rounded-full"
-                    disabled={
-                      submitting ||
-                      !isStepValid()
-                    }
-                  >
-                    {submitting ? (
-                      <CircularProgress size={22} color="inherit" />
-                    ) : (
-                      "Submit Application"
-                    )}
-                  </Button>
-                )}
-              </Box>
-            </form>
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No images available.
+                    </Typography>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
+            {/* Additional details can go here */}
+            <Paper className="p-4 mt-4" elevation={0} sx={{ bgcolor: "#f9f9f9" }}>
+              <Typography variant="subtitle1" className="font-semibold mb-1">
+                More about the Employer
+              </Typography>
+              <Typography variant="body2">
+                {(org && (org.description || org.registration_number || org.address)) ||
+                  "No additional information provided."}
+              </Typography>
+            </Paper>
           </Box>
-        )}
+
+          {/* Application Form/Status Section */}
+          {applicationError && (
+            <Box
+              sx={{
+                flex: 1,
+                alignSelf: "flex-start",
+                bgcolor: "#fff",
+                borderRadius: 3,
+                boxShadow: 2,
+                p: 3,
+              }}
+            >
+              <Typography color="error" sx={{ mb: 2 }}>
+                {applicationError}
+              </Typography>
+            </Box>
+          )}
+
+          {/* If user has already applied, show application details instead of form */}
+          {!applicationError && latestApplication ? (
+            renderApplicationDetails(latestApplication)
+          ) : (
+            <Box
+              sx={{
+                flex: 1,
+                alignSelf: "flex-start",
+                bgcolor: "#fff",
+                borderRadius: 3,
+                boxShadow: 2,
+                p: 3,
+              }}
+            >
+              <Typography variant="h6" className="font-bold mb-2">
+                Apply for this Job
+              </Typography>
+              <Typography variant="body2" color="text.secondary" className="mb-3">
+                Fill in your details to start your application for this work visa job.
+              </Typography>
+              <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
+                {visibleSteps.map((step, idx) => (
+                  <Step key={step.label} completed={activeStep > idx}>
+                    <StepLabel
+                      sx={{
+                        '& .MuiStepLabel-label': {
+                          fontSize: '0.7rem',
+                        },
+                      }}
+                    >
+                      {step.label}
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+              <form
+                onSubmit={handleApplicationSubmit}
+                encType="multipart/form-data"
+                autoComplete="off"
+              >
+                {visibleSteps[activeStep]?.fields.map((fname) => {
+                  const field = visibleFormFieldsMap[fname];
+                  if (!field) return null;
+                  let errorMsg = formErrors[fname];
+
+                  if (field.type === "textarea") {
+                    return (
+                      <TextField
+                        key={field.name}
+                        name={field.name}
+                        label={field.label}
+                        value={form[field.name as keyof typeof form] as string}
+                        onChange={handleInputChange}
+                        fullWidth
+                        required={field.required}
+                        margin="normal"
+                        multiline
+                        minRows={4}
+                        error={!!errorMsg}
+                        helperText={errorMsg}
+                      />
+                    );
+                  }
+                  if (field.type === "file") {
+                    return (
+                      <Box key={field.name} sx={{ my: 1 }}>
+                        <InputLabel shrink>
+                          {field.label}
+                          {field.required ? " *" : ""}
+                        </InputLabel>
+                        <input
+                          name={field.name}
+                          type="file"
+                          accept={field.name === "passport_photo" ? "image/*" : undefined}
+                          onChange={handleInputChange}
+                          required={field.required}
+                          style={{ marginTop: 4, marginBottom: 8 }}
+                        />
+                        {errorMsg && (
+                          <Typography color="error" sx={{ fontSize: "0.8rem" }}>
+                            {errorMsg}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  }
+                  if (field.type === "date") {
+                    return (
+                      <TextField
+                        key={field.name}
+                        name={field.name}
+                        label={field.label}
+                        type="date"
+                        value={form[field.name as keyof typeof form] as string}
+                        onChange={handleInputChange}
+                        fullWidth
+                        required={field.required}
+                        margin="normal"
+                        InputLabelProps={{ shrink: true }}
+                        error={!!errorMsg}
+                        helperText={errorMsg}
+                      />
+                    );
+                  }
+                  if (field.type === "boolean") {
+                    return (
+                      <FormControlLabel
+                        key={field.name}
+                        control={
+                          <Checkbox
+                            name={field.name}
+                            checked={!!form[field.name as keyof typeof form]}
+                            onChange={handleInputChange}
+                            color="primary"
+                          />
+                        }
+                        label={field.label}
+                        sx={{ my: 1 }}
+                      />
+                    );
+                  }
+                  if (field.name === "applicant") {
+                    return (
+                      <TextField
+                        key={field.name}
+                        name={field.name}
+                        label={field.label}
+                        value={getUserFullName()}
+                        fullWidth
+                        required={field.required}
+                        margin="normal"
+                        disabled
+                        error={!!errorMsg}
+                        helperText={errorMsg}
+                      />
+                    );
+                  }
+                  // Handle number/integer fields
+                  if (field.type === "number") {
+                    return (
+                      <TextField
+                        key={field.name}
+                        name={field.name}
+                        label={field.label}
+                        value={form[field.name as keyof typeof form] as string}
+                        onChange={handleInputChange}
+                        fullWidth
+                        required={field.required}
+                        margin="normal"
+                        type="number"
+                        inputProps={{
+                          step: "1",
+                          min: "0",
+                        }}
+                        error={!!errorMsg}
+                        helperText={errorMsg}
+                      />
+                    );
+                  }
+                  return (
+                    <TextField
+                      key={field.name}
+                      name={field.name}
+                      label={field.label}
+                      value={form[field.name as keyof typeof form] as string}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required={field.required}
+                      margin="normal"
+                      error={!!errorMsg}
+                      helperText={errorMsg}
+                    />
+                  );
+                })}
+                <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                  {activeStep > 0 && (
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={handleBack}
+                      disabled={submitting}
+                      fullWidth
+                    >
+                      Back
+                    </Button>
+                  )}
+                  {activeStep < visibleSteps.length - 1 && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleNext}
+                      disabled={!isStepValid() || submitting}
+                      fullWidth
+                    >
+                      Next
+                    </Button>
+                  )}
+                  {activeStep === visibleSteps.length - 1 && (
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      className="rounded-full"
+                      disabled={
+                        submitting ||
+                        !isStepValid()
+                      }
+                    >
+                      {submitting ? (
+                        <CircularProgress size={22} color="inherit" />
+                      ) : (
+                        "Submit Application"
+                      )}
+                    </Button>
+                  )}
+                </Box>
+              </form>
+            </Box>
+          )}
+        </Box>
       </Box>
     </>
   );
