@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -18,9 +18,24 @@ import {
   Stack,
   FormControlLabel,
   Checkbox,
+  Chip,
+  Link,
+  Breadcrumbs
 } from "@mui/material";
 import { useAuth } from "../../../../context/AuthContext";
 import api from "../../../../services/api";
+
+// *** Toasts ***
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert, { type AlertProps } from "@mui/material/Alert";
+
+// Alert component for Snackbar/Toast
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
+  props,
+  ref
+) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 
 const FORM_STEPS = [
   {
@@ -77,6 +92,7 @@ const FORM_STEPS = [
   },
 ];
 
+// Reuse live description
 function renderDescriptionLive(text: string) {
   if (!text) return null;
   const paragraphs = text.split(/\r?\n\r?\n/);
@@ -100,6 +116,21 @@ function renderDescriptionLive(text: string) {
       )}
     </Typography>
   ));
+}
+
+// Helper to prettify status, draft, submitted, etc.
+function prettyStatus(status: any) {
+  if (!status) return "Submitted";
+  if (typeof status === "string") return status.charAt(0).toUpperCase() + status.slice(1);
+  if (typeof status === "object" && status.term)
+    return status.term.charAt(0).toUpperCase() + status.term.slice(1);
+  return String(status);
+}
+
+// Format a value or show fallback
+function formatValue(val: any) {
+  if (val === null || val === undefined || String(val).trim() === "") return <em>Not Provided</em>;
+  return val;
 }
 
 const JobDetails: React.FC = () => {
@@ -156,10 +187,22 @@ const JobDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
+  // Track work visa application(s)
+  const [existingApplications, setExistingApplications] = useState<any[]>([]);
+  const [latestApplication, setLatestApplication] = useState<any>(null);
+  const [applicationLoading, setApplicationLoading] = useState(false);
+  const [applicationError, setApplicationError] = useState<string | null>(null);
+
   // For live description typing effect
   const [liveDescription, setLiveDescription] = useState<string>("");
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Toast state
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastSeverity, setToastSeverity] = useState<"success" | "info" | "warning" | "error">("info");
+
+  // Fetch job offer
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -176,6 +219,7 @@ const JobDetails: React.FC = () => {
       });
   }, [id]);
 
+  // Set full name if user changes
   useEffect(() => {
     setForm((prev) => ({
       ...prev,
@@ -183,6 +227,59 @@ const JobDetails: React.FC = () => {
     }));
     // eslint-disable-next-line
   }, [user]);
+
+  // Check if user has already applied for this offer
+  useEffect(() => {
+    if (!id || !user) {
+      setExistingApplications([]);
+      setLatestApplication(null);
+      return;
+    }
+    setApplicationLoading(true);
+    setApplicationError(null);
+
+    api
+      .get("/app/work-visa-application/", {
+        params: { offer_id: id },
+      })
+      .then((res) => {
+        // The backend response may have extra metadata, but always has .results array.
+        const results = Array.isArray(res.data?.results)
+          ? res.data.results
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+
+        // Filter by matching user's client or applicant (best effort)
+        let matches = results.filter(
+          (a: any) =>
+            (a?.client === user.id) || // ideal: compare client/user id
+            (a?.applicant &&
+              getUserFullName() &&
+              String(a.applicant).toLowerCase().trim() ===
+                getUserFullName().toLowerCase().trim())
+        );
+
+        // Sort: most recent first (by submitted_at or id)
+        matches = matches.sort((a: any, b: any) => {
+          if (a.submitted_at && b.submitted_at) {
+            return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+          }
+          return (b.id || 0) - (a.id || 0);
+        });
+
+        setExistingApplications(matches);
+        setLatestApplication(matches[0] || null);
+        setApplicationLoading(false);
+      })
+      .catch(() => {
+        setExistingApplications([]);
+        setLatestApplication(null);
+        setApplicationError("Could not determine application status.");
+        setApplicationLoading(false);
+      });
+    // eslint-disable-next-line
+  }, [id, user]);
 
   // Compose visible form fields
   const formFields = [
@@ -217,16 +314,13 @@ const JobDetails: React.FC = () => {
 
   // Remove fields not for input
   const visibleFormFields = formFields.filter((field) => {
-    // hide fields not for input or already present in offer
     const forbidden = [
       "id", "work_visa_offer", "employer", "job_title", "location",
       "status", "notes", "application_date", "is_submitted", "submitted_at"
     ];
     if (forbidden.includes(field.name)) return false;
-
     const present = offer && (offer[field.name] || (offer.employer && offer.employer[field.name]));
     if (present) return false;
-
     return true;
   });
   const visibleFormFieldsMap = Object.fromEntries(
@@ -238,14 +332,13 @@ const JobDetails: React.FC = () => {
     fields: step.fields.filter((fname) => visibleFormFieldsMap[fname]),
   })).filter((step) => step.fields.length > 0);
 
-  // Form input changes (ensures number fields are forced into numbers for correct server-side validation!)
+  // Form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type, files, checked } = e.target as any;
     setFormErrors((prev) => ({ ...prev, [name]: undefined }));
 
     if (name === "applicant") return;
 
-    // For number input, parse to integer (if blank, use blank)
     if (type === "number") {
       setForm((prev) => ({
         ...prev,
@@ -302,6 +395,16 @@ const JobDetails: React.FC = () => {
     }
   };
 
+  const handleToastClose = (
+    _event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setToastOpen(false);
+  };
+
   const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -313,9 +416,7 @@ const JobDetails: React.FC = () => {
       for (const key in form) {
         if (Object.prototype.hasOwnProperty.call(form, key)) {
           if (visibleFormFields.find((f) => f.name === key)) {
-            if (key === "applicant") {
-              continue;
-            }
+            if (key === "applicant") continue;
             if (key === "previous_visa_applications") {
               formData.append(key, form[key] ? "true" : "false");
               continue;
@@ -355,6 +456,9 @@ const JobDetails: React.FC = () => {
       });
 
       setSubmitSuccess(true);
+      setToastMessage("Application submitted successfully!");
+      setToastSeverity("success");
+      setToastOpen(true);
       setForm({
         applicant: getUserFullName(),
         passport_number: "",
@@ -385,29 +489,72 @@ const JobDetails: React.FC = () => {
         statement_of_purpose: "",
       });
       setActiveStep(0);
+
+      // After successful submission, trigger a refetch to show status view
+      setTimeout(() => {
+        setExistingApplications([]);
+        setLatestApplication(null);
+        setApplicationLoading(true);
+        api
+          .get("/app/work-visa-application/", { params: { offer_id: id } })
+          .then((res) => {
+            const results = Array.isArray(res.data?.results)
+              ? res.data.results
+              : Array.isArray(res.data)
+              ? res.data
+              : [];
+
+            let matches = results.filter(
+              (a: any) =>
+                (user && a?.client === user.id) ||
+                (
+                  a?.applicant &&
+                  getUserFullName() &&
+                  String(a.applicant).toLowerCase().trim() ===
+                    getUserFullName().toLowerCase().trim()
+                )
+            );
+
+            matches = matches.sort((a: any, b: any) => {
+              if (a.submitted_at && b.submitted_at) {
+                return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+              }
+              return (b.id || 0) - (a.id || 0);
+            });
+
+            setExistingApplications(matches);
+            setLatestApplication(matches[0] || null);
+            setApplicationLoading(false);
+          })
+          .catch(() => {
+            setExistingApplications([]);
+            setLatestApplication(null);
+            setApplicationLoading(false);
+          });
+      }, 1600);
     } catch (err: any) {
-      // Server-side validation error display
       if (err?.response?.data) {
         const serverErrors = err.response.data;
         const mappedErrors: { [key: string]: string } = {};
 
-        // Map errors nicely
         for (const field in serverErrors) {
           if (Array.isArray(serverErrors[field]) && serverErrors[field][0]) {
-            // Example: Only show the first error for brevity
             mappedErrors[field] = serverErrors[field][0];
           }
         }
         setFormErrors(mappedErrors);
 
-        // Top-level error for key field
         if (serverErrors["offer_id"]) {
-          setError("This field is required.");
+          setToastMessage("This field is required.");
         } else {
-          setError("Submission failed. Please correct highlighted fields.");
+          setToastMessage("Submission failed. Please correct highlighted fields.");
         }
+        setToastSeverity("error");
+        setToastOpen(true);
       } else {
-        setError("Submission failed. Please try again.");
+        setToastMessage("Submission failed. Please try again.");
+        setToastSeverity("error");
+        setToastOpen(true);
       }
     }
     setSubmitting(false);
@@ -443,7 +590,7 @@ const JobDetails: React.FC = () => {
     // eslint-disable-next-line
   }, [offer, offer?.description, offer?.job_description]);
 
-  if (loading) {
+  if (loading || applicationLoading) {
     return (
       <Box className="flex items-center justify-center min-h-[300px]">
         <CircularProgress />
@@ -520,159 +667,61 @@ const JobDetails: React.FC = () => {
   const images: string[] = [];
   const employerLogo = null;
 
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: { xs: "column", md: "row" },
-        gap: 4,
-        px: { xs: 1, sm: 2, md: 4 },
-        py: { xs: 2, md: 4 },
-        mx: "auto",
-      }}
-    >
-      {/* Main Details Section */}
-      <Box sx={{ flex: 2, minWidth: 0 }}>
-        <Card className="mb-4 rounded-2xl shadow-md">
-          <CardContent>
-            <Box className="flex items-center gap-4 mb-4">
-              {employerLogo && (
-                <CardMedia
-                  component="img"
-                  image={employerLogo}
-                  alt="Company Logo"
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 2,
-                    objectFit: "contain",
-                    bgcolor: "#f5f5f5",
-                  }}
-                />
-              )}
-              <Box>
-                <Typography variant="h5" className="font-bold">
-                  {orgName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {location}
-                </Typography>
-              </Box>
-            </Box>
-            <Typography variant="h6" className="font-semibold mb-2">
-              {jobTitle}
-            </Typography>
-            {/* Render the description as it is being typed */}
-            <Box className="mb-2">
-              {liveDescription
-                ? renderDescriptionLive(liveDescription)
-                : (
-                  <Typography variant="body1" color="text.secondary">
-                    No description available.
-                  </Typography>
-                )
-              }
-            </Box>
-            <Divider sx={{ my: 2 }} />
+  // -- Render Application Status/Details if already applied --
+  function renderApplicationDetails(app: any) {
+    if (!app) return null;
+    // Gather application fields (all keys except offer, id, client, status objects)
+    // Show a summary card with main fields, plus links to uploaded files
+    const summaryFields: { key: string; label: string; render?: (val: any) => React.ReactNode }[] = [
+      { key: "applicant", label: "Applicant" },
+      { key: "passport_number", label: "Passport Number" },
+      { key: "country", label: "Country of Citizenship" },
+      { key: "passport_expiry_date", label: "Passport Expiry Date" },
+      { key: "highest_degree", label: "Highest Degree" },
+      { key: "years_of_experience", label: "Years of Experience" },
+      { key: "previous_employer", label: "Previous Employer" },
+      { key: "previous_job_title", label: "Previous Job Title" },
+      { key: "year_left_previous_job", label: "Year Left Previous Job" },
+      { key: "intended_start_date", label: "Intended Start Date" },
+      { key: "intended_end_date", label: "Intended End Date" },
+      { key: "visa_type", label: "Visa Type" },
+      { key: "sponsorship_details", label: "Sponsorship Details" },
+      { key: "previous_visa_applications", label: "Has Previous Visa Applications?", render: (v) => String(v) },
+      { key: "previous_visa_details", label: "Previous Visa Details" },
+      { key: "travel_history", label: "Travel History" },
+      { key: "emergency_contact_name", label: "Emergency Contact Name" },
+      { key: "emergency_contact_relationship", label: "Emergency Contact Relationship" },
+      { key: "emergency_contact_phone", label: "Emergency Contact Phone" },
+      { key: "statement_of_purpose", label: "Statement of Purpose" },
+      // File fields
+      { key: "passport_photo", label: "Passport Photo", render: (url) => url ? <Link href={url} target="_blank" rel="noopener noreferrer" underline="hover">View</Link> : <em>Not Uploaded</em> },
+      { key: "international_passport", label: "International Passport", render: (url) => url ? <Link href={url} target="_blank" rel="noopener noreferrer" underline="hover">View</Link> : <em>Not Uploaded</em> },
+      { key: "updated_resume", label: "Resume", render: (url) => url ? <Link href={url} target="_blank" rel="noopener noreferrer" underline="hover">View</Link> : <em>Not Uploaded</em> },
+      { key: "reference_letter", label: "Reference Letter", render: (url) => url ? <Link href={url} target="_blank" rel="noopener noreferrer" underline="hover">View</Link> : <em>Not Uploaded</em> },
+      { key: "employment_letter", label: "Employment Letter", render: (url) => url ? <Link href={url} target="_blank" rel="noopener noreferrer" underline="hover">View</Link> : <em>Not Uploaded</em> },
+      { key: "financial_statement", label: "Financial Statement", render: (url) => url ? <Link href={url} target="_blank" rel="noopener noreferrer" underline="hover">View</Link> : <em>Not Uploaded</em> },
+      { key: "english_proficiency_test", label: "English Proficiency Test", render: (url) => url ? <Link href={url} target="_blank" rel="noopener noreferrer" underline="hover">View</Link> : <em>Not Uploaded</em> },
+    ];
 
-            <Stack
-              direction="row"
-              flexWrap="wrap"
-              spacing={1}
-              useFlexGap
-              sx={{ mb: 2 }}
-            >
-              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Salary
-                </Typography>
-                <Typography variant="body2">{salary}</Typography>
-              </Box>
-              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Start Date
-                </Typography>
-                <Typography variant="body2">{startDate}</Typography>
-              </Box>
-              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  End Date
-                </Typography>
-                <Typography variant="body2">{endDate}</Typography>
-              </Box>
-              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Created At
-                </Typography>
-                <Typography variant="body2">{createdAt || "N/A"}</Typography>
-              </Box>
-              <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Updated At
-                </Typography>
-                <Typography variant="body2">{updatedAt || "N/A"}</Typography>
-              </Box>
-            </Stack>
+    // Format status chip color
+    const mainStatus = prettyStatus(app.status);
 
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle1" className="font-semibold mb-1">
-              Requirements
-            </Typography>
-            {requirements && requirements.length > 0 ? (
-              <ul className="list-disc pl-6">
-                {requirements.map((req, idx) => (
-                  <li key={idx}>
-                    <Typography variant="body2">{req}</Typography>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No specific requirements listed.
-              </Typography>
-            )}
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle1" className="font-semibold mb-1">
-              Company Images
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
-              {images.length > 0 ? (
-                images.map((img: string, idx: number) => (
-                  <CardMedia
-                    key={idx}
-                    component="img"
-                    image={img}
-                    alt={`Company Image ${idx + 1}`}
-                    sx={{
-                      width: 120,
-                      height: 80,
-                      borderRadius: 2,
-                      objectFit: "cover",
-                      bgcolor: "#f5f5f5",
-                    }}
-                  />
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No images available.
-                </Typography>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
-        {/* Additional details can go here */}
-        <Paper className="p-4 mt-4" elevation={0} sx={{ bgcolor: "#f9f9f9" }}>
-          <Typography variant="subtitle1" className="font-semibold mb-1">
-            More about the Employer
-          </Typography>
-          <Typography variant="body2">
-            {(org && (org.description || org.registration_number || org.address)) ||
-              "No additional information provided."}
-          </Typography>
-        </Paper>
-      </Box>
+    let chipColor: "success" | "error" | "info" | "warning" = "info";
+    if (mainStatus.toLowerCase() === "approved") chipColor = "success";
+    else if (mainStatus.toLowerCase() === "rejected") chipColor = "error";
+    else if (mainStatus.toLowerCase() === "draft") chipColor = "info";
+    else if (mainStatus.toLowerCase() === "under review") chipColor = "warning";
 
-      {/* Application Form Section */}
+    const submittedAt = app.submitted_at
+      ? new Date(app.submitted_at).toLocaleString()
+      : app.application_date
+      ? new Date(app.application_date).toLocaleString()
+      : "";
+
+    // Admin note field (renamed in sample as admin_note)
+    const notes = app.admin_note || app.notes;
+
+    return (
       <Box
         sx={{
           flex: 1,
@@ -681,219 +730,484 @@ const JobDetails: React.FC = () => {
           borderRadius: 3,
           boxShadow: 2,
           p: 3,
+          width: "100%",
+          minWidth: 0,
         }}
       >
         <Typography variant="h6" className="font-bold mb-2">
-          Apply for this Job
+          Your Application Details
         </Typography>
-        <Typography variant="body2" color="text.secondary" className="mb-3">
-          Fill in your details to start your application for this work visa job.
-        </Typography>
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
-          {visibleSteps.map((step, idx) => (
-            <Step key={step.label} completed={activeStep > idx}>
-              <StepLabel
-                sx={{
-                  '& .MuiStepLabel-label': {
-                    fontSize: '0.7rem',
-                  },
-                }}
-              >
-                {step.label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-        <form
-          onSubmit={handleApplicationSubmit}
-          encType="multipart/form-data"
-          autoComplete="off"
-        >
-          {visibleSteps[activeStep]?.fields.map((fname) => {
-            const field = visibleFormFieldsMap[fname];
-            if (!field) return null;
-            let errorMsg = formErrors[fname];
 
-            if (field.type === "textarea") {
-              return (
-                <TextField
-                  key={field.name}
-                  name={field.name}
-                  label={field.label}
-                  value={form[field.name as keyof typeof form] as string}
-                  onChange={handleInputChange}
-                  fullWidth
-                  required={field.required}
-                  margin="normal"
-                  multiline
-                  minRows={4}
-                  error={!!errorMsg}
-                  helperText={errorMsg}
-                />
-              );
-            }
-            if (field.type === "file") {
-              return (
-                <Box key={field.name} sx={{ my: 1 }}>
-                  <InputLabel shrink>
-                    {field.label}
-                    {field.required ? " *" : ""}
-                  </InputLabel>
-                  <input
-                    name={field.name}
-                    type="file"
-                    accept={field.name === "passport_photo" ? "image/*" : undefined}
-                    onChange={handleInputChange}
-                    required={field.required}
-                    style={{ marginTop: 4, marginBottom: 8 }}
-                  />
-                  {errorMsg && (
-                    <Typography color="error" sx={{ fontSize: "0.8rem" }}>
-                      {errorMsg}
-                    </Typography>
-                  )}
-                </Box>
-              );
-            }
-            if (field.type === "date") {
-              return (
-                <TextField
-                  key={field.name}
-                  name={field.name}
-                  label={field.label}
-                  type="date"
-                  value={form[field.name as keyof typeof form] as string}
-                  onChange={handleInputChange}
-                  fullWidth
-                  required={field.required}
-                  margin="normal"
-                  InputLabelProps={{ shrink: true }}
-                  error={!!errorMsg}
-                  helperText={errorMsg}
-                />
-              );
-            }
-            if (field.type === "boolean") {
-              return (
-                <FormControlLabel
-                  key={field.name}
-                  control={
-                    <Checkbox
-                      name={field.name}
-                      checked={!!form[field.name as keyof typeof form]}
-                      onChange={handleInputChange}
-                      color="primary"
-                    />
-                  }
-                  label={field.label}
-                  sx={{ my: 1 }}
-                />
-              );
-            }
-            if (field.name === "applicant") {
-              return (
-                <TextField
-                  key={field.name}
-                  name={field.name}
-                  label={field.label}
-                  value={getUserFullName()}
-                  fullWidth
-                  required={field.required}
-                  margin="normal"
-                  disabled
-                  error={!!errorMsg}
-                  helperText={errorMsg}
-                />
-              );
-            }
-            // Handle number/integer fields
-            if (field.type === "number") {
-              return (
-                <TextField
-                  key={field.name}
-                  name={field.name}
-                  label={field.label}
-                  value={form[field.name as keyof typeof form] as string}
-                  onChange={handleInputChange}
-                  fullWidth
-                  required={field.required}
-                  margin="normal"
-                  type="number"
-                  inputProps={{
-                    step: "1",
-                    min: "0",
-                  }}
-                  error={!!errorMsg}
-                  helperText={errorMsg}
-                />
-              );
-            }
-            return (
-              <TextField
-                key={field.name}
-                name={field.name}
-                label={field.label}
-                value={form[field.name as keyof typeof form] as string}
-                onChange={handleInputChange}
-                fullWidth
-                required={field.required}
-                margin="normal"
-                error={!!errorMsg}
-                helperText={errorMsg}
-              />
-            );
-          })}
-          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-            {activeStep > 0 && (
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleBack}
-                disabled={submitting}
-                fullWidth
-              >
-                Back
-              </Button>
-            )}
-            {activeStep < visibleSteps.length - 1 && (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleNext}
-                disabled={!isStepValid() || submitting}
-                fullWidth
-              >
-                Next
-              </Button>
-            )}
-            {activeStep === visibleSteps.length - 1 && (
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                className="rounded-full"
-                disabled={
-                  submitting ||
-                  !isStepValid()
-                }
-              >
-                {submitting ? (
-                  <CircularProgress size={22} color="inherit" />
-                ) : (
-                  "Submit Application"
-                )}
-              </Button>
-            )}
-          </Box>
-          {submitSuccess && (
-            <Typography color="success.main" className="mt-2">
-              Application submitted successfully!
+        <Box sx={{ mb: 2 }}>
+          <Chip
+            label={`Status: ${mainStatus}`}
+            color={chipColor}
+            sx={{ fontWeight: 500, mb: 1 }}
+            variant="outlined"
+          />
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <strong>Submitted:</strong> {submittedAt || "Unknown"}
+          </Typography>
+          {notes && (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              <strong>Notes:</strong>{" "}
+              {notes}
             </Typography>
           )}
-        </form>
+        </Box>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          Your application for this work visa job has been{" "}
+          {mainStatus === "Approved"
+            ? "approved."
+            : mainStatus === "Rejected"
+            ? "rejected."
+            : mainStatus === "Draft"
+            ? "saved as a draft and not yet finalized."
+            : mainStatus === "Submitted"
+            ? "submitted and is currently under review."
+            : `marked as "${mainStatus}".`}
+        </Typography>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
+          Application Overview
+        </Typography>
+        <Box component="dl" sx={{ mb: 0 }}>
+          {summaryFields.map(({ key, label, render }) =>
+            app.hasOwnProperty(key) ? (
+              <Box key={key} sx={{ mb: 1.1, display: "flex" }}>
+                <Typography
+                  variant="subtitle2"
+                  component="dt"
+                  sx={{ minWidth: 150, fontWeight: 500 }}
+                >
+                  {label}:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  component="dd"
+                  sx={{ ml: 1 }}
+                >
+                  {render
+                    ? render(app[key])
+                    : formatValue(app[key])}
+                </Typography>
+              </Box>
+            ) : null
+          )}
+        </Box>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="body2" color="text.secondary">
+          If you need to amend your application or provide more information, please contact support.
+        </Typography>
       </Box>
-    </Box>
+    );
+  }
+
+  // ----------- Main Render -----------
+  return (
+    <>
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={6000}
+        onClose={handleToastClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleToastClose} severity={toastSeverity} sx={{ width: "100%" }}>
+          {toastMessage}
+        </Alert>
+      </Snackbar>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          gap: 4,
+          px: { xs: 1, sm: 2, md: 4 },
+          py: { xs: 2, md: 4 },
+          mx: "auto",
+        }}
+      >
+        {/* Main Details Section */}
+        <Box sx={{ flex: 2, minWidth: 0 }}>
+          <Card className="mb-4 rounded-2xl shadow-md">
+            <CardContent>
+              <Box className="flex items-center gap-4 mb-4">
+                {employerLogo && (
+                  <CardMedia
+                    component="img"
+                    image={employerLogo}
+                    alt="Company Logo"
+                    sx={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 2,
+                      objectFit: "contain",
+                      bgcolor: "#f5f5f5",
+                    }}
+                  />
+                )}
+                <Box>
+                  <Typography variant="h5" className="font-bold">
+                    {orgName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {location}
+                  </Typography>
+                </Box>
+              </Box>
+              <Typography variant="h6" className="font-semibold mb-2">
+                {jobTitle}
+              </Typography>
+              {/* Render the description as it is being typed */}
+              <Box className="mb-2">
+                {liveDescription
+                  ? renderDescriptionLive(liveDescription)
+                  : (
+                    <Typography variant="body1" color="text.secondary">
+                      No description available.
+                    </Typography>
+                  )
+                }
+              </Box>
+              <Divider sx={{ my: 2 }} />
+
+              <Stack
+                direction="row"
+                flexWrap="wrap"
+                spacing={1}
+                useFlexGap
+                sx={{ mb: 2 }}
+              >
+                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Salary
+                  </Typography>
+                  <Typography variant="body2">{salary}</Typography>
+                </Box>
+                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Start Date
+                  </Typography>
+                  <Typography variant="body2">{startDate}</Typography>
+                </Box>
+                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    End Date
+                  </Typography>
+                  <Typography variant="body2">{endDate}</Typography>
+                </Box>
+                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Created At
+                  </Typography>
+                  <Typography variant="body2">{createdAt || "N/A"}</Typography>
+                </Box>
+                <Box sx={{ flex: "1 1 300px", minWidth: 0, maxWidth: { xs: "100%", sm: "50%", md: "33.33%" }, mb: 1 }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Updated At
+                  </Typography>
+                  <Typography variant="body2">{updatedAt || "N/A"}</Typography>
+                </Box>
+              </Stack>
+
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" className="font-semibold mb-1">
+                Requirements
+              </Typography>
+              {requirements && requirements.length > 0 ? (
+                <ul className="list-disc pl-6">
+                  {requirements.map((req, idx) => (
+                    <li key={idx}>
+                      <Typography variant="body2">{req}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No specific requirements listed.
+                </Typography>
+              )}
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="subtitle1" className="font-semibold mb-1">
+                Company Images
+              </Typography>
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
+                {images.length > 0 ? (
+                  images.map((img: string, idx: number) => (
+                    <CardMedia
+                      key={idx}
+                      component="img"
+                      image={img}
+                      alt={`Company Image ${idx + 1}`}
+                      sx={{
+                        width: 120,
+                        height: 80,
+                        borderRadius: 2,
+                        objectFit: "cover",
+                        bgcolor: "#f5f5f5",
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No images available.
+                  </Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+          {/* Additional details can go here */}
+          <Paper className="p-4 mt-4" elevation={0} sx={{ bgcolor: "#f9f9f9" }}>
+            <Typography variant="subtitle1" className="font-semibold mb-1">
+              More about the Employer
+            </Typography>
+            <Typography variant="body2">
+              {(org && (org.description || org.registration_number || org.address)) ||
+                "No additional information provided."}
+            </Typography>
+          </Paper>
+        </Box>
+
+        {/* Application Form/Status Section */}
+        {applicationError && (
+          <Box
+            sx={{
+              flex: 1,
+              alignSelf: "flex-start",
+              bgcolor: "#fff",
+              borderRadius: 3,
+              boxShadow: 2,
+              p: 3,
+            }}
+          >
+            <Typography color="error" sx={{ mb: 2 }}>
+              {applicationError}
+            </Typography>
+          </Box>
+        )}
+
+        {/* If user has already applied, show application details instead of form */}
+        {!applicationError && latestApplication ? (
+          renderApplicationDetails(latestApplication)
+        ) : (
+          <Box
+            sx={{
+              flex: 1,
+              alignSelf: "flex-start",
+              bgcolor: "#fff",
+              borderRadius: 3,
+              boxShadow: 2,
+              p: 3,
+            }}
+          >
+            <Typography variant="h6" className="font-bold mb-2">
+              Apply for this Job
+            </Typography>
+            <Typography variant="body2" color="text.secondary" className="mb-3">
+              Fill in your details to start your application for this work visa job.
+            </Typography>
+            <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
+              {visibleSteps.map((step, idx) => (
+                <Step key={step.label} completed={activeStep > idx}>
+                  <StepLabel
+                    sx={{
+                      '& .MuiStepLabel-label': {
+                        fontSize: '0.7rem',
+                      },
+                    }}
+                  >
+                    {step.label}
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+            <form
+              onSubmit={handleApplicationSubmit}
+              encType="multipart/form-data"
+              autoComplete="off"
+            >
+              {visibleSteps[activeStep]?.fields.map((fname) => {
+                const field = visibleFormFieldsMap[fname];
+                if (!field) return null;
+                let errorMsg = formErrors[fname];
+
+                if (field.type === "textarea") {
+                  return (
+                    <TextField
+                      key={field.name}
+                      name={field.name}
+                      label={field.label}
+                      value={form[field.name as keyof typeof form] as string}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required={field.required}
+                      margin="normal"
+                      multiline
+                      minRows={4}
+                      error={!!errorMsg}
+                      helperText={errorMsg}
+                    />
+                  );
+                }
+                if (field.type === "file") {
+                  return (
+                    <Box key={field.name} sx={{ my: 1 }}>
+                      <InputLabel shrink>
+                        {field.label}
+                        {field.required ? " *" : ""}
+                      </InputLabel>
+                      <input
+                        name={field.name}
+                        type="file"
+                        accept={field.name === "passport_photo" ? "image/*" : undefined}
+                        onChange={handleInputChange}
+                        required={field.required}
+                        style={{ marginTop: 4, marginBottom: 8 }}
+                      />
+                      {errorMsg && (
+                        <Typography color="error" sx={{ fontSize: "0.8rem" }}>
+                          {errorMsg}
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                }
+                if (field.type === "date") {
+                  return (
+                    <TextField
+                      key={field.name}
+                      name={field.name}
+                      label={field.label}
+                      type="date"
+                      value={form[field.name as keyof typeof form] as string}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required={field.required}
+                      margin="normal"
+                      InputLabelProps={{ shrink: true }}
+                      error={!!errorMsg}
+                      helperText={errorMsg}
+                    />
+                  );
+                }
+                if (field.type === "boolean") {
+                  return (
+                    <FormControlLabel
+                      key={field.name}
+                      control={
+                        <Checkbox
+                          name={field.name}
+                          checked={!!form[field.name as keyof typeof form]}
+                          onChange={handleInputChange}
+                          color="primary"
+                        />
+                      }
+                      label={field.label}
+                      sx={{ my: 1 }}
+                    />
+                  );
+                }
+                if (field.name === "applicant") {
+                  return (
+                    <TextField
+                      key={field.name}
+                      name={field.name}
+                      label={field.label}
+                      value={getUserFullName()}
+                      fullWidth
+                      required={field.required}
+                      margin="normal"
+                      disabled
+                      error={!!errorMsg}
+                      helperText={errorMsg}
+                    />
+                  );
+                }
+                // Handle number/integer fields
+                if (field.type === "number") {
+                  return (
+                    <TextField
+                      key={field.name}
+                      name={field.name}
+                      label={field.label}
+                      value={form[field.name as keyof typeof form] as string}
+                      onChange={handleInputChange}
+                      fullWidth
+                      required={field.required}
+                      margin="normal"
+                      type="number"
+                      inputProps={{
+                        step: "1",
+                        min: "0",
+                      }}
+                      error={!!errorMsg}
+                      helperText={errorMsg}
+                    />
+                  );
+                }
+                return (
+                  <TextField
+                    key={field.name}
+                    name={field.name}
+                    label={field.label}
+                    value={form[field.name as keyof typeof form] as string}
+                    onChange={handleInputChange}
+                    fullWidth
+                    required={field.required}
+                    margin="normal"
+                    error={!!errorMsg}
+                    helperText={errorMsg}
+                  />
+                );
+              })}
+              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                {activeStep > 0 && (
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={handleBack}
+                    disabled={submitting}
+                    fullWidth
+                  >
+                    Back
+                  </Button>
+                )}
+                {activeStep < visibleSteps.length - 1 && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleNext}
+                    disabled={!isStepValid() || submitting}
+                    fullWidth
+                  >
+                    Next
+                  </Button>
+                )}
+                {activeStep === visibleSteps.length - 1 && (
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    className="rounded-full"
+                    disabled={
+                      submitting ||
+                      !isStepValid()
+                    }
+                  >
+                    {submitting ? (
+                      <CircularProgress size={22} color="inherit" />
+                    ) : (
+                      "Submit Application"
+                    )}
+                  </Button>
+                )}
+              </Box>
+            </form>
+          </Box>
+        )}
+      </Box>
+    </>
   );
 };
 
