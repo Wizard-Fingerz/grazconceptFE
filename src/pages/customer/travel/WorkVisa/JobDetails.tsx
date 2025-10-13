@@ -181,9 +181,6 @@ const JobDetails: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // NOTE: We remove submitSuccess from here, so we do not keep internal state of submitSuccess.
-  // const [submitSuccess, setSubmitSuccess] = useState(false); // Removed
-
   const [activeStep, setActiveStep] = useState(0);
   const [offer, setOffer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -191,8 +188,6 @@ const JobDetails: React.FC = () => {
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
   // Track work visa application(s)
-  // Removed the unused existingApplications state
-  // const [existingApplications, setExistingApplications] = useState<any[]>([]);
   const [latestApplication, setLatestApplication] = useState<any>(null);
   const [applicationLoading, setApplicationLoading] = useState(false);
   const [applicationError, setApplicationError] = useState<string | null>(null);
@@ -235,7 +230,6 @@ const JobDetails: React.FC = () => {
   // Check if user has already applied for this offer
   useEffect(() => {
     if (!id || !user) {
-      // Removed setExistingApplications([])
       setLatestApplication(null);
       return;
     }
@@ -270,12 +264,17 @@ const JobDetails: React.FC = () => {
           return (b.id || 0) - (a.id || 0);
         });
 
-        // Removed setExistingApplications(matches);
-        setLatestApplication(matches[0] || null);
+        // If application does NOT match this offer_id, ignore it and set null.
+        const found = matches.find(
+          (a: any) =>
+            (!!a.offer_id && String(a.offer_id) === String(id)) ||
+            (!!a.offer && (typeof a.offer === 'object' ? String(a.offer.id) === String(id) : String(a.offer) === String(id)))
+        );
+        setLatestApplication(found || null);
+
         setApplicationLoading(false);
       })
       .catch(() => {
-        // Removed setExistingApplications([]);
         setLatestApplication(null);
         setApplicationError("Could not determine application status.");
         setApplicationLoading(false);
@@ -411,7 +410,6 @@ const JobDetails: React.FC = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    // No need to manage submitSuccess state variable, so we remove setSubmitSuccess.
     setFormErrors({});
 
     try {
@@ -498,6 +496,7 @@ const JobDetails: React.FC = () => {
         ...form,
         status: "Submitted",
         submitted_at: new Date().toISOString(),
+        offer_id: id, // Ensure the offer_id matches for correct gating in UI
       });
 
       // In background, fire actual refetch to update with backend's canonical data
@@ -529,8 +528,14 @@ const JobDetails: React.FC = () => {
               return (b.id || 0) - (a.id || 0);
             });
 
-            // Only update latestApplication, do not use existingApplications
-            setLatestApplication(matches[0] || null);
+            // Only update latestApplication if it matches current offer id
+            const found = matches.find(
+              (a: any) =>
+                (!!a.offer_id && String(a.offer_id) === String(id)) ||
+                (!!a.offer && (typeof a.offer === 'object' ? String(a.offer.id) === String(id) : String(a.offer) === String(id)))
+            );
+            setLatestApplication(found || null);
+
             setApplicationLoading(false);
           })
           .catch(() => {
@@ -811,6 +816,20 @@ const JobDetails: React.FC = () => {
   }
 
   // ----------- Main Render -----------
+  // Gate for whether latestApplication matches the offer id
+  let hasApplied = false;
+  if (latestApplication && id) {
+    // This covers various API styles: offer_id (number or string), offer (object or id)
+    if (
+      (!!latestApplication.offer_id && String(latestApplication.offer_id) === String(id)) ||
+      (!!latestApplication.offer && (typeof latestApplication.offer === 'object'
+        ? String(latestApplication.offer.id) === String(id)
+        : String(latestApplication.offer) === String(id)))
+    ) {
+      hasApplied = true;
+    }
+  }
+
   return (
     <>
       <Snackbar
@@ -1020,8 +1039,8 @@ const JobDetails: React.FC = () => {
             </Box>
           )}
 
-          {/* If user has already applied, show application details instead of form */}
-          {!applicationError && latestApplication ? (
+          {/* If user has already applied for this offer, show application details instead of form */}
+          {!applicationError && hasApplied ? (
             renderApplicationDetails(latestApplication)
           ) : (
             <Box
