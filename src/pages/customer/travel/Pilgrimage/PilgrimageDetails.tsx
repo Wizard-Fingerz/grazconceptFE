@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -18,11 +18,13 @@ import {
   Stack,
   FormControlLabel,
   Checkbox,
+  Chip,
+  Link,
+  Breadcrumbs,
 } from "@mui/material";
 import { useAuth } from "../../../../context/AuthContext";
 import api from "../../../../services/api";
 import { capitalizeWords } from "../../../../utils";
-// Import MUI Snackbar and Alert for toast error display
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { type AlertProps } from "@mui/material/Alert";
 
@@ -38,7 +40,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
 const FORM_STEPS = [
   {
     label: "Personal Information",
-    fields: ["applicant", "passport_number", "country", "date_of_birth"],
+    fields: ["applicant", "passport_number", "date_of_birth"],
   },
   {
     label: "Pilgrimage Details",
@@ -89,8 +91,44 @@ function renderDescriptionLive(text: string) {
   ));
 }
 
+// Prettify status string
+function prettyStatus(status: any) {
+  if (!status) return "Submitted";
+  if (typeof status === "string")
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  if (typeof status === "object" && status.term)
+    return status.term.charAt(0).toUpperCase() + status.term.slice(1);
+  return String(status);
+}
+
+// Format value or fallback if not provided
+function formatValue(val: any) {
+  if (val === null || val === undefined || String(val).trim() === "")
+    return <em>Not Provided</em>;
+  return val;
+}
+
+// Render application field value
+function renderApplicationField(app: any, field: any) {
+  if (!field) return null;
+  const value = app[field.name];
+  if (field.type === "boolean") {
+    return value === true || value === "true" ? "Yes" : "No";
+  }
+  if (field.type === "file" && value && typeof value === "string") {
+    // Try to show a file download link/image for images
+    return (
+      <Link href={value} target="_blank" rel="noopener noreferrer">
+        {field.label}
+      </Link>
+    );
+  }
+  return formatValue(value);
+}
+
 const PilgrimageDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   // Compose full name for the applicant
@@ -109,7 +147,6 @@ const PilgrimageDetails: React.FC = () => {
   const [form, setForm] = useState({
     applicant: getUserFullName(),
     passport_number: "",
-    country: "",
     date_of_birth: "",
     pilgrimage_type: "",
     accommodation_type: "",
@@ -136,40 +173,19 @@ const PilgrimageDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // User's previous application state
+  const [latestApplication, setLatestApplication] = useState<any>(null);
+  const [applicationLoading, setApplicationLoading] = useState(false);
+  const [applicationError, setApplicationError] = useState<string | null>(null);
+
   // For animated typing effect in the description
   const [liveDescription, setLiveDescription] = useState<string>("");
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    api
-      .get(`/app/pilgrimage-offer/${id}/`)
-      .then((res: any) => {
-        setOffer(res.data || res);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load pilgrimage offer details.");
-        setLoading(false);
-      });
-  }, [id]);
-
-  // Update applicant name if user changes
-  useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      applicant: getUserFullName(),
-    }));
-    // eslint-disable-next-line
-  }, [user]);
 
   // Field config for application form
   const formFields = [
     { name: "applicant", label: "Full Name", type: "text", required: true },
     { name: "passport_number", label: "Passport Number", type: "text", required: true },
-    { name: "country", label: "Country", type: "text", required: true },
     { name: "date_of_birth", label: "Date of Birth", type: "date", required: true },
     { name: "pilgrimage_type", label: "Type of Pilgrimage", type: "text", required: true },
     { name: "accommodation_type", label: "Accommodation Preference", type: "text", required: true },
@@ -267,7 +283,7 @@ const PilgrimageDetails: React.FC = () => {
     setToastOpen(false);
   };
 
-  // Submit the application
+  // Submit application
   const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -300,7 +316,7 @@ const PilgrimageDetails: React.FC = () => {
           }
         }
       }
-      formData.append("pilgrimage_offer", id as string);
+      formData.append("offer", id as string);
 
       await api.post("/app/pilgrimage-application/", formData, {
         headers: {
@@ -311,7 +327,6 @@ const PilgrimageDetails: React.FC = () => {
       setForm({
         applicant: getUserFullName(),
         passport_number: "",
-        country: "",
         date_of_birth: "",
         pilgrimage_type: "",
         accommodation_type: "",
@@ -333,7 +348,6 @@ const PilgrimageDetails: React.FC = () => {
         } else if (typeof err.response.data === "object") {
           if (err.response.data.detail) errorMsg = err.response.data.detail;
           else {
-            // Compose error from first error field (if available)
             const keys = Object.keys(err.response.data);
             if (keys.length > 0) {
               const messages = keys.map(
@@ -351,11 +365,89 @@ const PilgrimageDetails: React.FC = () => {
       }
       setSubmitError(errorMsg);
       setToastOpen(true);
-      // Do not clear the form or change page
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Load offer details
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    api
+      .get(`/app/pilgrimage-offer/${id}/`)
+      .then((res: any) => {
+        setOffer(res.data || res);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load pilgrimage offer details.");
+        setLoading(false);
+      });
+  }, [id]);
+
+  // Reset applicant field if user changes
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      applicant: getUserFullName(),
+    }));
+    // eslint-disable-next-line
+  }, [user]);
+
+  // Fetch this user's application for this pilgrimage offer
+  useEffect(() => {
+    if (!id || !user) {
+      setLatestApplication(null);
+      setApplicationError(null);
+      return;
+    }
+    setApplicationLoading(true);
+    setApplicationError(null);
+
+    api
+      .get("/app/pilgrimage-application/", {
+        params: { offer_id: id }
+      })
+      .then((res) => {
+        const results = Array.isArray(res.data?.results)
+          ? res.data.results
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+
+        let matches = results.filter(
+          (a: any) =>
+            (a?.client === user.id) ||
+            (a?.applicant &&
+              getUserFullName() &&
+              String(a.applicant).toLowerCase().trim() === getUserFullName().toLowerCase().trim())
+        );
+        matches = matches.sort((a: any, b: any) => {
+          if (a.submitted_at && b.submitted_at)
+            return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+          return (b.id || 0) - (a.id || 0);
+        });
+
+        const found = matches.find(
+          (a: any) =>
+            (!!a.pilgrimage_offer && String(a.pilgrimage_offer) === String(id)) ||
+            (!!a.offer &&
+              (typeof a.offer === "object"
+                ? String(a.offer.id) === String(id)
+                : String(a.offer) === String(id)))
+        );
+        setLatestApplication(found || null);
+        setApplicationLoading(false);
+      })
+      .catch(() => {
+        setLatestApplication(null);
+        setApplicationError("Failed to check previous applications.");
+        setApplicationLoading(false);
+      });
+    // eslint-disable-next-line
+  }, [id, user]);
 
   // Animated description typing effect
   useEffect(() => {
@@ -486,6 +578,74 @@ const PilgrimageDetails: React.FC = () => {
     : offer.sponsorship_display || undefined;
   const organizationLogo = offer.organization_logo || null;
 
+  // Visible details for application summary (fields to display, in order)
+  const displayFields = [
+    "applicant",
+    "passport_number",
+    "date_of_birth",
+    "pilgrimage_type",
+    "accommodation_type",
+    "preferred_travel_date",
+    "group_travel",
+    "passport_photo",
+    "medical_certificate",
+    "emergency_contact_name",
+    "emergency_contact_phone",
+    "emergency_contact_relationship",
+    "status",
+    "submitted_at",
+    "created_at",
+  ];
+
+  function renderApplicationDetails(app: any) {
+    return (
+      <Box>
+        <Typography variant="h6" className="font-bold mb-2">
+          Application Details
+        </Typography>
+        <Typography variant="body2" color="text.secondary" className="mb-2">
+          You have already submitted your application for this pilgrimage offer.
+        </Typography>
+        {app.status && (
+          <Chip
+            label={prettyStatus(app.status)}
+            color={String(app.status).toLowerCase().includes("approved") ? "success" : "primary"}
+            sx={{ mb: 2 }}
+          />
+        )}
+        <Stack spacing={1} sx={{ mb: 2 }}>
+          {displayFields.map((fname) => {
+            // Show only fields that exist and are configured
+            const field = formFields.find((f) => f.name === fname);
+            if (!field || typeof app[fname] === "undefined") return null;
+            return (
+              <Box key={fname}>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {field.label}
+                </Typography>
+                <Typography variant="body2" sx={{ ml: 1, mb: 1 }}>
+                  {renderApplicationField(app, field)}
+                </Typography>
+              </Box>
+            );
+          })}
+          {app.submitted_at && (
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              Submitted at:&nbsp;{new Date(app.submitted_at).toLocaleString()}
+            </Typography>
+          )}
+        </Stack>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={() => navigate("/customer/applications")}
+        >
+          View all Applications
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <>
       {/* Error Toast Snackbar */}
@@ -501,438 +661,489 @@ const PilgrimageDetails: React.FC = () => {
       </Snackbar>
       <Box
         sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          gap: 4,
-          px: { xs: 1, sm: 2, md: 4 },
-          py: { xs: 2, md: 4 },
-          mx: "auto",
+          flex: 1,
+          alignSelf: "flex-start",
+          p: 1,
+          width: "100%",
+          minWidth: 0,
         }}
       >
-        {/* Main Details Section */}
-        <Box sx={{ flex: 2, minWidth: 0 }}>
-          <Card className="mb-4 rounded-2xl shadow-md">
-            <CardContent>
-              <Box className="flex items-center gap-4 mb-4">
-                {organizationLogo && (
-                  <CardMedia
-                    component="img"
-                    image={organizationLogo}
-                    alt="Organization Logo"
-                    sx={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: 2,
-                      objectFit: "contain",
-                      bgcolor: "#f5f5f5",
-                    }}
-                  />
-                )}
-                <Box>
-                  <Typography variant="h5" className="font-bold">
-                    {capitalizeWords(organization)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {country}
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography variant="h6" className="font-semibold mb-2">
-                {pilgrimageTitle}
-              </Typography>
-              <Box className="mb-2">
-                {liveDescription ? (
-                  renderDescriptionLive(liveDescription)
-                ) : (
-                  <Typography variant="body1" color="text.secondary">
-                    No description available.
-                  </Typography>
-                )}
-              </Box>
-              <Divider sx={{ my: 2 }} />
+        {/* Breadcrumb */}
+        <Box sx={{ mb: 2 }}>
+          <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
+            <Link
+              color="inherit"
+              component="button"
+              underline="hover"
+              onClick={() => navigate(-1)}
+              sx={{
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              Back
+            </Link>
+            <Typography color="text.primary">
+              Offer Details
+            </Typography>
+          </Breadcrumbs>
+        </Box>
 
-              {/* Details */}
-              <Stack
-                direction="row"
-                flexWrap="wrap"
-                spacing={1}
-                useFlexGap
-                sx={{ mb: 2 }}
-              >
-                <Box
-                  sx={{
-                    flex: "1 1 300px",
-                    minWidth: 0,
-                    maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Cost
-                  </Typography>
-                  <Typography variant="body2">{cost}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    flex: "1 1 300px",
-                    minWidth: 0,
-                    maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Application Deadline
-                  </Typography>
-                  <Typography variant="body2">{deadline}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    flex: "1 1 300px",
-                    minWidth: 0,
-                    maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Start Date
-                  </Typography>
-                  <Typography variant="body2">{startDate}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    flex: "1 1 300px",
-                    minWidth: 0,
-                    maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    End Date
-                  </Typography>
-                  <Typography variant="body2">{endDate}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    flex: "1 1 300px",
-                    minWidth: 0,
-                    maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Typography variant="body2">{statusDisplay}</Typography>
-                </Box>
-                {typeof seatsAvailable !== "undefined" && (
-                  <Box
-                    sx={{
-                      flex: "1 1 300px",
-                      minWidth: 0,
-                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                      mb: 1,
-                    }}
-                  >
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Seats Available
-                    </Typography>
-                    <Typography variant="body2">{seatsAvailable}</Typography>
-                  </Box>
-                )}
-                {pilgrimageTypeDisplay && (
-                  <Box
-                    sx={{
-                      flex: "1 1 300px",
-                      minWidth: 0,
-                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                      mb: 1,
-                    }}
-                  >
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Pilgrimage Type
-                    </Typography>
-                    <Typography variant="body2">{pilgrimageTypeDisplay}</Typography>
-                  </Box>
-                )}
-                {sponsorshipDisplay && (
-                  <Box
-                    sx={{
-                      flex: "1 1 300px",
-                      minWidth: 0,
-                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                      mb: 1,
-                    }}
-                  >
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Sponsorship
-                    </Typography>
-                    <Typography variant="body2">{sponsorshipDisplay}</Typography>
-                  </Box>
-                )}
-                <Box
-                  sx={{
-                    flex: "1 1 300px",
-                    minWidth: 0,
-                    maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Created At
-                  </Typography>
-                  <Typography variant="body2">{createdAt || "N/A"}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    flex: "1 1 300px",
-                    minWidth: 0,
-                    maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Updated At
-                  </Typography>
-                  <Typography variant="body2">{updatedAt || "N/A"}</Typography>
-                </Box>
-              </Stack>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle1" className="font-semibold mb-1">
-                Requirements
-              </Typography>
-              {Array.isArray(requirements) && requirements.length > 0 ? (
-                <ul className="list-disc pl-6">
-                  {requirements.map((req: any, idx: number) => (
-                    <li key={idx}>
-                      <Typography variant="body2">{req}</Typography>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No specific requirements listed.
-                </Typography>
-              )}
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle1" className="font-semibold mb-1">
-                Images
-              </Typography>
-              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
-                {Array.isArray(images) && images.length > 0 ? (
-                  images.map((img: string, idx: number) => (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 4,
+            px: { xs: 1, sm: 2, md: 4 },
+            py: { xs: 2, md: 4 },
+            mx: "auto",
+          }}
+        >
+          {/* Main Details Section */}
+          <Box sx={{ flex: 2, minWidth: 0 }}>
+            <Card className="mb-4 rounded-2xl shadow-md">
+              <CardContent>
+                <Box className="flex items-center gap-4 mb-4">
+                  {organizationLogo && (
                     <CardMedia
-                      key={idx}
                       component="img"
-                      image={img}
-                      alt={`Image ${idx + 1}`}
+                      image={organizationLogo}
+                      alt="Organization Logo"
                       sx={{
-                        width: 120,
-                        height: 80,
+                        width: 64,
+                        height: 64,
                         borderRadius: 2,
-                        objectFit: "cover",
+                        objectFit: "contain",
                         bgcolor: "#f5f5f5",
                       }}
                     />
-                  ))
+                  )}
+                  <Box>
+                    <Typography variant="h5" className="font-bold">
+                      {capitalizeWords(organization)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {country}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography variant="h6" className="font-semibold mb-2">
+                  {pilgrimageTitle}
+                </Typography>
+                <Box className="mb-2">
+                  {liveDescription ? (
+                    renderDescriptionLive(liveDescription)
+                  ) : (
+                    <Typography variant="body1" color="text.secondary">
+                      No description available.
+                    </Typography>
+                  )}
+                </Box>
+                <Divider sx={{ my: 2 }} />
+
+                {/* Details */}
+                <Stack
+                  direction="row"
+                  flexWrap="wrap"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ mb: 2 }}
+                >
+                  <Box
+                    sx={{
+                      flex: "1 1 300px",
+                      minWidth: 0,
+                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Cost
+                    </Typography>
+                    <Typography variant="body2">{cost}</Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      flex: "1 1 300px",
+                      minWidth: 0,
+                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Application Deadline
+                    </Typography>
+                    <Typography variant="body2">{deadline}</Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      flex: "1 1 300px",
+                      minWidth: 0,
+                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Start Date
+                    </Typography>
+                    <Typography variant="body2">{startDate}</Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      flex: "1 1 300px",
+                      minWidth: 0,
+                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="text.secondary">
+                      End Date
+                    </Typography>
+                    <Typography variant="body2">{endDate}</Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      flex: "1 1 300px",
+                      minWidth: 0,
+                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Status
+                    </Typography>
+                    <Typography variant="body2">{statusDisplay}</Typography>
+                  </Box>
+                  {typeof seatsAvailable !== "undefined" && (
+                    <Box
+                      sx={{
+                        flex: "1 1 300px",
+                        minWidth: 0,
+                        maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                        mb: 1,
+                      }}
+                    >
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Seats Available
+                      </Typography>
+                      <Typography variant="body2">{seatsAvailable}</Typography>
+                    </Box>
+                  )}
+                  {pilgrimageTypeDisplay && (
+                    <Box
+                      sx={{
+                        flex: "1 1 300px",
+                        minWidth: 0,
+                        maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                        mb: 1,
+                      }}
+                    >
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Pilgrimage Type
+                      </Typography>
+                      <Typography variant="body2">{pilgrimageTypeDisplay}</Typography>
+                    </Box>
+                  )}
+                  {sponsorshipDisplay && (
+                    <Box
+                      sx={{
+                        flex: "1 1 300px",
+                        minWidth: 0,
+                        maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                        mb: 1,
+                      }}
+                    >
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Sponsorship
+                      </Typography>
+                      <Typography variant="body2">{sponsorshipDisplay}</Typography>
+                    </Box>
+                  )}
+                  <Box
+                    sx={{
+                      flex: "1 1 300px",
+                      minWidth: 0,
+                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Created At
+                    </Typography>
+                    <Typography variant="body2">{createdAt || "N/A"}</Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      flex: "1 1 300px",
+                      minWidth: 0,
+                      maxWidth: { xs: "100%", sm: "50%", md: "33.33%" },
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Updated At
+                    </Typography>
+                    <Typography variant="body2">{updatedAt || "N/A"}</Typography>
+                  </Box>
+                </Stack>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" className="font-semibold mb-1">
+                  Requirements
+                </Typography>
+                {Array.isArray(requirements) && requirements.length > 0 ? (
+                  <ul className="list-disc pl-6">
+                    {requirements.map((req: any, idx: number) => (
+                      <li key={idx}>
+                        <Typography variant="body2">{req}</Typography>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    No images available.
+                    No specific requirements listed.
                   </Typography>
                 )}
-              </Box>
-            </CardContent>
-          </Card>
-          <Paper className="p-4 mt-4" elevation={0} sx={{ bgcolor: "#f9f9f9" }}>
-            <Typography variant="subtitle1" className="font-semibold mb-1">
-              More about the Organization
-            </Typography>
-            <Typography variant="body2">
-              {offer.organization_description ||
-                (typeof offer.organization === "object" && offer.organization.description) ||
-                "No additional information provided."}
-            </Typography>
-          </Paper>
-        </Box>
-
-        {/* Application Form Section */}
-        <Box
-          sx={{
-            flex: 1,
-            alignSelf: "flex-start",
-            bgcolor: "#fff",
-            borderRadius: 3,
-            boxShadow: 2,
-            p: 3,
-          }}
-        >
-          <Typography variant="h6" className="font-bold mb-2">
-            Apply for this Pilgrimage
-          </Typography>
-          <Typography variant="body2" color="text.secondary" className="mb-3">
-            Fill in your details to start your application for this pilgrimage offer.
-          </Typography>
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
-            {visibleSteps.map((step, idx) => (
-              <Step key={step.label} completed={activeStep > idx}>
-                <StepLabel
-                  sx={{
-                    "& .MuiStepLabel-label": {
-                      fontSize: "0.7rem",
-                    },
-                  }}
-                >
-                  {step.label}
-                </StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-          <form
-            onSubmit={handleApplicationSubmit}
-            encType="multipart/form-data"
-            autoComplete="off"
-          >
-            {visibleSteps[activeStep]?.fields.map((fname) => {
-              const field = visibleFormFieldsMap[fname];
-              if (!field) return null;
-              if (field.type === "textarea") {
-                return (
-                  <TextField
-                    key={field.name}
-                    name={field.name}
-                    label={field.label}
-                    value={form[field.name as keyof typeof form] as string}
-                    onChange={handleInputChange}
-                    fullWidth
-                    required={field.required}
-                    margin="normal"
-                    multiline
-                    minRows={4}
-                  />
-                );
-              }
-              if (field.type === "file") {
-                return (
-                  <Box key={field.name} sx={{ my: 1 }}>
-                    <InputLabel shrink>
-                      {field.label}
-                      {field.required ? " *" : ""}
-                    </InputLabel>
-                    <input
-                      name={field.name}
-                      type="file"
-                      onChange={handleInputChange}
-                      required={field.required}
-                      style={{ marginTop: 4, marginBottom: 8 }}
-                    />
-                  </Box>
-                );
-              }
-              if (field.type === "date") {
-                return (
-                  <TextField
-                    key={field.name}
-                    name={field.name}
-                    label={field.label}
-                    type="date"
-                    value={form[field.name as keyof typeof form] as string}
-                    onChange={handleInputChange}
-                    fullWidth
-                    required={field.required}
-                    margin="normal"
-                    InputLabelProps={{ shrink: true }}
-                  />
-                );
-              }
-              if (field.type === "boolean") {
-                return (
-                  <FormControlLabel
-                    key={field.name}
-                    control={
-                      <Checkbox
-                        name={field.name}
-                        checked={!!form[field.name as keyof typeof form]}
-                        onChange={handleInputChange}
-                        color="primary"
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" className="font-semibold mb-1">
+                  Images
+                </Typography>
+                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 1 }}>
+                  {Array.isArray(images) && images.length > 0 ? (
+                    images.map((img: string, idx: number) => (
+                      <CardMedia
+                        key={idx}
+                        component="img"
+                        image={img}
+                        alt={`Image ${idx + 1}`}
+                        sx={{
+                          width: 120,
+                          height: 80,
+                          borderRadius: 2,
+                          objectFit: "cover",
+                          bgcolor: "#f5f5f5",
+                        }}
                       />
-                    }
-                    label={field.label}
-                    sx={{ my: 1 }}
-                  />
-                );
-              }
-              if (field.name === "applicant") {
-                return (
-                  <TextField
-                    key={field.name}
-                    name={field.name}
-                    label={field.label}
-                    value={getUserFullName()}
-                    fullWidth
-                    required={field.required}
-                    margin="normal"
-                    disabled
-                  />
-                );
-              }
-              return (
-                <TextField
-                  key={field.name}
-                  name={field.name}
-                  label={field.label}
-                  value={form[field.name as keyof typeof form] as string}
-                  onChange={handleInputChange}
-                  fullWidth
-                  required={field.required}
-                  margin="normal"
-                />
-              );
-            })}
-            <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-              {activeStep > 0 && (
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={handleBack}
-                  disabled={submitting}
-                  fullWidth
-                >
-                  Back
-                </Button>
-              )}
-              {activeStep < visibleSteps.length - 1 && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleNext}
-                  disabled={!isStepValid() || submitting}
-                  fullWidth
-                >
-                  Next
-                </Button>
-              )}
-              {activeStep === visibleSteps.length - 1 && (
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  className="rounded-full"
-                  disabled={submitting || !isStepValid()}
-                >
-                  {submitting ? (
-                    <CircularProgress size={22} color="inherit" />
+                    ))
                   ) : (
-                    "Submit Application"
+                    <Typography variant="body2" color="text.secondary">
+                      No images available.
+                    </Typography>
                   )}
-                </Button>
-              )}
-            </Box>
-            {submitSuccess && (
-              <Typography color="success.main" className="mt-2">
-                Application submitted successfully!
+                </Box>
+              </CardContent>
+            </Card>
+            <Paper className="p-4 mt-4" elevation={0} sx={{ bgcolor: "#f9f9f9" }}>
+              <Typography variant="subtitle1" className="font-semibold mb-1">
+                More about the Organization
+              </Typography>
+              <Typography variant="body2">
+                {offer.organization_description ||
+                  (typeof offer.organization === "object" && offer.organization.description) ||
+                  "No additional information provided."}
+              </Typography>
+            </Paper>
+          </Box>
+
+          {/* Application Section */}
+          <Box
+            sx={{
+              flex: 1,
+              alignSelf: "flex-start",
+              bgcolor: "#fff",
+              borderRadius: 3,
+              boxShadow: 2,
+              p: 3,
+            }}
+          >
+            {applicationLoading && (
+              <Box sx={{ display: "flex", alignItems: "center", minHeight: 130, mb: 2 }}>
+                <CircularProgress size={28} sx={{ mr: 2 }} />
+                <Typography>Loading your application...</Typography>
+              </Box>
+            )}
+
+            {applicationError && (
+              <Typography color="error" sx={{ mb: 1 }}>
+                {applicationError}
               </Typography>
             )}
-          </form>
+
+            {/* If user already applied, show their application (do not show form) */}
+            {!applicationError && latestApplication ? (
+              renderApplicationDetails(latestApplication)
+            ) : (
+              <>
+                <Typography variant="h6" className="font-bold mb-2">
+                  Apply for this Pilgrimage
+                </Typography>
+                <Typography variant="body2" color="text.secondary" className="mb-3">
+                  Fill in your details to start your application for this pilgrimage offer.
+                </Typography>
+                <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
+                  {visibleSteps.map((step, idx) => (
+                    <Step key={step.label} completed={activeStep > idx}>
+                      <StepLabel
+                        sx={{
+                          "& .MuiStepLabel-label": {
+                            fontSize: "0.7rem",
+                          },
+                        }}
+                      >
+                        {step.label}
+                      </StepLabel>
+                    </Step>
+                  ))}
+                </Stepper>
+                <form
+                  onSubmit={handleApplicationSubmit}
+                  encType="multipart/form-data"
+                  autoComplete="off"
+                >
+                  {visibleSteps[activeStep]?.fields.map((fname) => {
+                    const field = visibleFormFieldsMap[fname];
+                    if (!field) return null;
+                    if (field.type === "textarea") {
+                      return (
+                        <TextField
+                          key={field.name}
+                          name={field.name}
+                          label={field.label}
+                          value={form[field.name as keyof typeof form] as string}
+                          onChange={handleInputChange}
+                          fullWidth
+                          required={field.required}
+                          margin="normal"
+                          multiline
+                          minRows={4}
+                        />
+                      );
+                    }
+                    if (field.type === "file") {
+                      return (
+                        <Box key={field.name} sx={{ my: 1 }}>
+                          <InputLabel shrink>
+                            {field.label}
+                            {field.required ? " *" : ""}
+                          </InputLabel>
+                          <input
+                            name={field.name}
+                            type="file"
+                            onChange={handleInputChange}
+                            required={field.required}
+                            style={{ marginTop: 4, marginBottom: 8 }}
+                          />
+                        </Box>
+                      );
+                    }
+                    if (field.type === "date") {
+                      return (
+                        <TextField
+                          key={field.name}
+                          name={field.name}
+                          label={field.label}
+                          type="date"
+                          value={form[field.name as keyof typeof form] as string}
+                          onChange={handleInputChange}
+                          fullWidth
+                          required={field.required}
+                          margin="normal"
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      );
+                    }
+                    if (field.type === "boolean") {
+                      return (
+                        <FormControlLabel
+                          key={field.name}
+                          control={
+                            <Checkbox
+                              name={field.name}
+                              checked={!!form[field.name as keyof typeof form]}
+                              onChange={handleInputChange}
+                              color="primary"
+                            />
+                          }
+                          label={field.label}
+                          sx={{ my: 1 }}
+                        />
+                      );
+                    }
+                    if (field.name === "applicant") {
+                      return (
+                        <TextField
+                          key={field.name}
+                          name={field.name}
+                          label={field.label}
+                          value={getUserFullName()}
+                          fullWidth
+                          required={field.required}
+                          margin="normal"
+                          disabled
+                        />
+                      );
+                    }
+                    return (
+                      <TextField
+                        key={field.name}
+                        name={field.name}
+                        label={field.label}
+                        value={form[field.name as keyof typeof form] as string}
+                        onChange={handleInputChange}
+                        fullWidth
+                        required={field.required}
+                        margin="normal"
+                      />
+                    );
+                  })}
+                  <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+                    {activeStep > 0 && (
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={handleBack}
+                        disabled={submitting}
+                        fullWidth
+                      >
+                        Back
+                      </Button>
+                    )}
+                    {activeStep < visibleSteps.length - 1 && (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleNext}
+                        disabled={!isStepValid() || submitting}
+                        fullWidth
+                      >
+                        Next
+                      </Button>
+                    )}
+                    {activeStep === visibleSteps.length - 1 && (
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        className="rounded-full"
+                        disabled={submitting || !isStepValid()}
+                      >
+                        {submitting ? (
+                          <CircularProgress size={22} color="inherit" />
+                        ) : (
+                          "Submit Application"
+                        )}
+                      </Button>
+                    )}
+                  </Box>
+                  {submitSuccess && (
+                    <Typography color="success.main" className="mt-2">
+                      Application submitted successfully!
+                    </Typography>
+                  )}
+                </form>
+              </>
+            )}
+          </Box>
         </Box>
       </Box>
     </>
