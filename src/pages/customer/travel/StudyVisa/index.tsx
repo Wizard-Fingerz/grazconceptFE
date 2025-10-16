@@ -11,7 +11,12 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import { getAllInstitutions, getMyRecentSudyVisaApplicaton, getMyRecentSudyVisaOffer } from "../../../../services/studyVisa";
+import {
+  getAllInstitutions,
+  getMyRecentSudyVisaApplicaton,
+  getMyRecentSudyVisaOffer,
+  getCoursesForInstitutionAndProgramType, // <-- You must implement this in your /services/studyVisa
+} from "../../../../services/studyVisa";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../services/api";
@@ -114,7 +119,6 @@ export const ApplicationCard: React.FC<{
   </Card>
 );
 
-
 /**
  * GuideCard - Reusable card for displaying a guide/resource.
  */
@@ -135,9 +139,9 @@ export const ApplyStudyVisa: React.FC = () => {
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // This will now be the institution id
-  const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // This will be the program type id
-  const [selectedCourse, setSelectedCourse] = useState<string>(""); // New: course of study id
+  const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // institution id
+  const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // program type id
+  const [selectedCourse, setSelectedCourse] = useState<string>(""); // course of study id
   const [submitting, setSubmitting] = useState(false);
 
   // State for recent applications
@@ -150,6 +154,10 @@ export const ApplyStudyVisa: React.FC = () => {
   // State for recent study visa offers (for the new tab)
   const [recentStudyVisaOffers, setRecentStudyVisaOffers] = useState<any[]>([]);
   const [loadingRecentStudyVisaOffers, setLoadingRecentStudyVisaOffers] = useState(true);
+
+  // NEW: State for loading and storing the fetched courses
+  const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
 
   // Fetch institutions on mount
   useEffect(() => {
@@ -207,8 +215,7 @@ export const ApplyStudyVisa: React.FC = () => {
     ? institutions.filter((inst) => inst.country === selectedCountry)
     : institutions;
 
-  // Derive program types from filtered institutions (using new API structure)
-  // Each program type will be an object with id and name
+  // Derive program types from filtered institutions
   const programTypeObjects: { id: string; name: string }[] = Array.from(
     filteredInstitutions.flatMap((inst) =>
       Array.isArray(inst.program_types)
@@ -223,33 +230,29 @@ export const ApplyStudyVisa: React.FC = () => {
       arr.findIndex((x) => x.id === pt.id) === idx // unique by id
   );
 
-  // Derive courses of study for the selected institution and program type
-  // We'll assume each institution has a "courses" array, and each course has a "program_type" field (id)
-  // If not, adjust as needed for your API shape
-  let courseObjects: { id: string; name: string }[] = [];
-  if (selectedInstitution && selectedProgramType) {
-    const inst = institutions.find((i) => String(i.id) === String(selectedInstitution));
-    if (inst && Array.isArray(inst.courses)) {
-      courseObjects = inst.courses
-        .filter(
-          (course: any) =>
-            course &&
-            course.id &&
-            course.name &&
-            (String(course.program_type) === String(selectedProgramType) ||
-              (typeof course.program_type === "object" &&
-                String(course.program_type?.id) === String(selectedProgramType)))
-        )
-        .map((course: any) => ({
-          id: String(course.id),
-          name: course.name,
-        }));
-      // Remove duplicates by id
-      courseObjects = courseObjects.filter(
-        (c, idx, arr) => arr.findIndex((x) => x.id === c.id) === idx
-      );
+  // NEW: Fetch courses from API whenever institution and program type are selected and change
+  useEffect(() => {
+    if (selectedInstitution && selectedProgramType) {
+      setLoadingCourses(true);
+      setCourses([]);
+      getCoursesForInstitutionAndProgramType(selectedInstitution, selectedProgramType)
+        .then((data) => {
+          // data is assumed to be array of courses { id, name }
+          setCourses(
+            Array.isArray(data)
+              ? data.map((course) => ({ id: String(course.id), name: course.name }))
+              : []
+          );
+          setLoadingCourses(false);
+        })
+        .catch(() => {
+          setCourses([]);
+          setLoadingCourses(false);
+        });
+    } else {
+      setCourses([]);
     }
-  }
+  }, [selectedInstitution, selectedProgramType]);
 
   // Handle form changes
   const handleCountryChange = (e: any) => {
@@ -257,17 +260,20 @@ export const ApplyStudyVisa: React.FC = () => {
     setSelectedInstitution("");
     setSelectedProgramType("");
     setSelectedCourse("");
+    setCourses([]);
   };
 
   const handleInstitutionChange = (e: any) => {
-    setSelectedInstitution(e.target.value); // Now this is the institution id
+    setSelectedInstitution(e.target.value); // institution id
     setSelectedProgramType("");
     setSelectedCourse("");
+    setCourses([]);
   };
 
   const handleProgramTypeChange = (e: any) => {
-    setSelectedProgramType(e.target.value); // This will be the id
+    setSelectedProgramType(e.target.value); // program type id
     setSelectedCourse("");
+    // Do not reset courses here - effect will handle
   };
 
   const handleCourseChange = (e: any) => {
@@ -278,12 +284,11 @@ export const ApplyStudyVisa: React.FC = () => {
   const handleStartApplication = async () => {
     setSubmitting(true);
     try {
-      // Prepare payload
       const payload: Record<string, any> = {
         country: selectedCountry,
-        institution: selectedInstitution, // This is now the institution id
-        program_type: selectedProgramType, // This is the id
-        course_of_study: selectedCourse, // New: course of study id
+        institution: selectedInstitution,
+        program_type: selectedProgramType,
+        course_of_study: selectedCourse,
       };
 
       // Get the latest token from localStorage
@@ -296,17 +301,13 @@ export const ApplyStudyVisa: React.FC = () => {
         payload,
         { headers }
       );
-
-      // On success, get the id from response data and navigate
       const id = response.data?.id;
       if (id) {
         navigate(`/travel/study-visa/continue/${id}`);
       } else {
-        // Optionally handle missing id
         alert("Application submitted but no ID returned.");
       }
     } catch (error: any) {
-      // Optionally handle error
       alert(
         error?.response?.data?.detail ||
           "Failed to submit application. Please try again."
@@ -340,13 +341,16 @@ export const ApplyStudyVisa: React.FC = () => {
   };
 
   // Helper: get course name by id
-  // Fix: handle both app.course and app.course_of_study for backward/forward compatibility
   const getCourseName = (id: number | string | null | undefined) => {
     if (!id) return "";
+    // Try to find from loaded courses
+    const course = courses.find((c) => String(c.id) === String(id));
+    if (course) return course.name;
+    // Optionally, fallback to any institution
     for (const inst of institutions) {
       if (Array.isArray(inst.courses)) {
-        const course = inst.courses.find((c: any) => String(c.id) === String(id));
-        if (course) return course.name;
+        const cObj = inst.courses.find((c: any) => String(c.id) === String(id));
+        if (cObj) return cObj.name;
       }
     }
     return "Unknown Course";
@@ -354,7 +358,6 @@ export const ApplyStudyVisa: React.FC = () => {
 
   // Helper: get status label from status code
   const getStatusLabel = (status: number | string | null | undefined) => {
-    // You can expand this mapping as needed
     const statusMap: Record<string, string> = {
       "33": "Draft",
       "34": "Submitted",
@@ -367,9 +370,7 @@ export const ApplyStudyVisa: React.FC = () => {
   };
 
   // Helper: get program string for recent applications
-  // This will show "ProgramType - Course" if course exists, else just ProgramType
   const getProgramString = (app: any) => {
-    // Try both app.course and app.course_of_study for compatibility
     const courseId = app.course_of_study ?? app.course;
     const programTypeName = getProgramTypeName(app.program_type);
     const courseName = getCourseName(courseId);
@@ -392,10 +393,8 @@ export const ApplyStudyVisa: React.FC = () => {
   // Handler for "View More" button click, which depends on the current tab
   const handleViewMore = () => {
     if (tabValue === 0) {
-      // Applications tab
       navigate("/travel/study-visa/applications");
     } else if (tabValue === 1) {
-      // Offers tab
       navigate("/travel/study-visa/offers");
     }
   };
@@ -406,18 +405,15 @@ export const ApplyStudyVisa: React.FC = () => {
         px: { xs: 1, sm: 2, md: 4 },
         py: { xs: 1, sm: 2 },
         width: "100%",
-        // maxWidth: 1400,
         mx: "auto",
       }}
     >
       <CustomerPageHeader>
-        {/* Page Header */}
         <Typography variant="h4" className="font-bold mb-6">
           Study visa
         </Typography>
       </CustomerPageHeader>
 
-      {/* Service Section (moved above) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <Typography variant="body1" className="text-gray-700 max-w-md">
           Get assistance with your student visa application from our experienced
@@ -544,7 +540,6 @@ export const ApplyStudyVisa: React.FC = () => {
             className="flex flex-col items-center justify-center"
             sx={{ height: { xs: 180, sm: 200, md: 220 }, width: "100%" }}
           >
-      
             {loading ? (
               <CircularProgress size={28} />
             ) : (
@@ -598,8 +593,7 @@ export const ApplyStudyVisa: React.FC = () => {
             className="flex flex-col items-center justify-center"
             sx={{ height: { xs: 180, sm: 200, md: 220 }, width: "100%" }}
           >
-   
-            {loading ? (
+            {(loading || loadingCourses) ? (
               <CircularProgress size={28} />
             ) : (
               <TextField
@@ -609,7 +603,7 @@ export const ApplyStudyVisa: React.FC = () => {
                 value={selectedCourse}
                 onChange={handleCourseChange}
                 variant="outlined"
-                disabled={!selectedInstitution || !selectedProgramType}
+                disabled={!selectedInstitution || !selectedProgramType || loadingCourses}
                 InputProps={{
                   sx: {
                     fontWeight: 500,
@@ -634,12 +628,12 @@ export const ApplyStudyVisa: React.FC = () => {
                   <MenuItem value="" disabled>
                     Select institution and program type first
                   </MenuItem>
-                ) : courseObjects.length === 0 ? (
+                ) : courses.length === 0 ? (
                   <MenuItem value="" disabled>
                     No courses available
                   </MenuItem>
                 ) : (
-                  courseObjects.map((course) => (
+                  courses.map((course) => (
                     <MenuItem key={course.id} value={course.id}>
                       {course.name}
                     </MenuItem>
@@ -682,7 +676,6 @@ export const ApplyStudyVisa: React.FC = () => {
         </Tabs>
       </Box>
 
-      {/* Tab Panels */}
       <Box
         sx={{
           overflowX: "auto",
@@ -697,7 +690,6 @@ export const ApplyStudyVisa: React.FC = () => {
               display: "flex",
               flexDirection: "row",
               gap: 2,
-              // minHeight: 180,
             }}
           >
             {loadingApplications ? (

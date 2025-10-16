@@ -1,7 +1,9 @@
 
 import api from './api';
 
-
+/**
+ * Fetch all institutions.
+ */
 export async function getAllInstitutions() {
   try {
     const response = await api.get(`/app/institutions`);
@@ -11,10 +13,11 @@ export async function getAllInstitutions() {
   }
 }
 
-
+/**
+ * Fetch the most recent study visa applications (limit 5).
+ */
 export async function getMyRecentSudyVisaApplicaton() {
   try {
-    // Add ?limit=3 to only fetch the three most recent applications (if backend supports it)
     const response = await api.get(`/app/study-visa-application/?limit=5`);
     return response.data;
   } catch (error) {
@@ -22,9 +25,11 @@ export async function getMyRecentSudyVisaApplicaton() {
   }
 }
 
+/**
+ * Fetch all student visa applications with optional filters/pagination.
+ */
 export async function getAllStudyVisaApplication(params?: Record<string, any>) {
   try {
-    // Pass params for pagination/filtering if provided
     const response = await api.get(`/app/study-visa-application/`, { params });
     return response.data;
   } catch (error) {
@@ -32,9 +37,11 @@ export async function getAllStudyVisaApplication(params?: Record<string, any>) {
   }
 }
 
+/**
+ * Fetch the most recent study visa offers (limit 2).
+ */
 export async function getMyRecentSudyVisaOffer() {
   try {
-    // Add ?limit=3 to only fetch the three most recent applications (if backend supports it)
     const response = await api.get(`/app/study-visa-offers/?limit=2`);
     return response.data;
   } catch (error) {
@@ -42,9 +49,11 @@ export async function getMyRecentSudyVisaOffer() {
   }
 }
 
+/**
+ * Fetch all study visa offers with optional filters/pagination.
+ */
 export async function getAllSudyVisaOffer(params?: Record<string, any>) {
   try {
-    // Pass params for pagination/filtering if provided
     const response = await api.get(`/app/study-visa-offers/`, { params });
     return response.data;
   } catch (error) {
@@ -52,23 +61,50 @@ export async function getAllSudyVisaOffer(params?: Record<string, any>) {
   }
 }
 
-
+/**
+ * Fetch study visa offer details by id.
+ */
 export async function getStudyVisaOfferById(id: string | number) {
-  // Replace with actual API call
   try {
     const response = await api.get(`/app/study-visa-offers/${id}/`);
     if (!response.data) throw new Error("Failed to fetch offer details");
-    return await response.data;
+    return response.data;
   } catch (error) {
     throw error;
   }
 }
 
+/**
+ * Fetch ad banners (limit 3).
+ */
 export async function getAddBanners() {
   try {
-    // Add ?limit=3 to only fetch the three most recent applications (if backend supports it)
     const response = await api.get(`/app/ad-banner/?limit=3`);
     return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Fetch courses based on selected institution and program type.
+ * @param institutionId (string | number) The institution ID.
+ * @param programTypeId (string | number) The program type ID.
+ * @returns {Promise<any[]>} Array of courses for given institution and program type.
+ */
+export async function getCoursesForInstitutionAndProgramType(
+  institutionId: string | number,
+  programTypeId: string | number
+) {
+  try {
+    // Using endpoint: /app/courses-of-study/?institution=...&program_type=...
+    const response = await api.get('/app/courses-of-study/', {
+      params: {
+        institution: institutionId,
+        program_type: programTypeId
+      }
+    });
+    return response.data; // expected to be array of courses
   } catch (error) {
     throw error;
   }
