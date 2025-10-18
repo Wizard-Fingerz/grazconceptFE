@@ -11,6 +11,7 @@ import {
   Tabs,
   Tab,
   Stack,
+  Autocomplete,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 // Removed ImageCard import, as we won't use it anymore for banners.
@@ -432,38 +433,46 @@ export const ApplyPilgrimageVisa: React.FC = () => {
             <Typography variant="subtitle1" className="font-semibold mb-2">
               Select Destination Country & City
             </Typography>
-            <TextField
-              select
+            {/* Replace TextField with Autocomplete */}
+            <Autocomplete
               fullWidth
-              label="Country & City"
+              options={countryCityOptions}
+              getOptionLabel={({ destination, city }) =>
+                `${countryDisplay(destination)}${city ? `, ${city}` : ""}`
+              }
+              isOptionEqualToValue={(option, value) =>
+                option.destination === value.destination && option.city === value.city
+              }
+              noOptionsText="No destinations available"
               value={
                 selectedCountry && selectedCity
-                  ? `${selectedCountry}|${selectedCity}`
-                  : ""
+                  ? countryCityOptions.find(
+                      (opt) =>
+                        opt.destination === selectedCountry &&
+                        opt.city === selectedCity
+                    ) || null
+                  : null
               }
-              onChange={(e) => handleCountryCityChange(e.target.value)}
-              variant="outlined"
-              InputProps={{ sx: { fontWeight: 500 } }}
-              InputLabelProps={{ sx: { fontWeight: 500 } }}
-              SelectProps={{
-                MenuProps: {
-                  PaperProps: { sx: { borderRadius: 1 } },
-                },
+              onChange={(_, newValue) => {
+                if (newValue) {
+                  handleCountryCityChange(`${newValue.destination}|${newValue.city}`);
+                } else {
+                  handleCountryCityChange("");
+                }
               }}
-            >
-              {countryCityOptions.length === 0 ? (
-                <MenuItem value="" disabled>
-                  No destinations available
-                </MenuItem>
-              ) : (
-                countryCityOptions.map(({ destination, city }) => (
-                  <MenuItem key={`${destination}|${city}`} value={`${destination}|${city}`}>
-                    {countryDisplay(destination)}
-                    {city ? `, ${city}` : ""}
-                  </MenuItem>
-                ))
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Country & City"
+                  variant="outlined"
+                  InputProps={{
+                    ...params.InputProps,
+                    sx: { fontWeight: 500 }
+                  }}
+                  InputLabelProps={{ sx: { fontWeight: 500 } }}
+                />
               )}
-            </TextField>
+            />
           </CardContent>
         </Card>
 
@@ -473,38 +482,56 @@ export const ApplyPilgrimageVisa: React.FC = () => {
             <Typography variant="subtitle1" className="font-semibold mb-2">
               Select Pilgrimage Type & Sponsor
             </Typography>
-            <TextField
-              select
+            {/* Replace TextField with Autocomplete */}
+            <Autocomplete
               fullWidth
-              label="Type & Sponsor"
+              options={typeSponsorOptions}
+              getOptionLabel={(opt) => opt.display || ""}
+              isOptionEqualToValue={(option, value) =>
+                option.type === value.type && option.sponsor === value.sponsor
+              }
+              noOptionsText="No type & sponsor options available"
               value={
                 selectedType && selectedSponsor
-                  ? `${selectedType}|${selectedSponsor}`
-                  : ""
+                  ? typeSponsorOptions.find(
+                      (opt) =>
+                        opt.type === selectedType &&
+                        opt.sponsor === selectedSponsor
+                    ) || null
+                  : null
               }
-              onChange={handleTypeSponsorChange}
-              variant="outlined"
-              disabled={!selectedCountry || !selectedCity || typeSponsorOptions.length === 0}
-              InputProps={{ sx: { fontWeight: 500 } }}
-              InputLabelProps={{ sx: { fontWeight: 500 } }}
-              SelectProps={{
-                MenuProps: {
-                  PaperProps: { sx: { borderRadius: 1 } },
-                },
+              onChange={(_, newValue) => {
+                if (newValue) {
+                  // Simulate same logic as previous handleTypeSponsorChange for select field
+                  handleTypeSponsorChange({
+                    target: {
+                      value: `${newValue.type}|${newValue.sponsor}`
+                    }
+                  });
+                } else {
+                  handleTypeSponsorChange({
+                    target: { value: "" }
+                  });
+                }
               }}
-            >
-              {typeSponsorOptions.length === 0 ? (
-                <MenuItem value="" disabled>
-                  No type & sponsor options available
-                </MenuItem>
-              ) : (
-                typeSponsorOptions.map((opt) => (
-                  <MenuItem key={`${opt.type}|${opt.sponsor}`} value={`${opt.type}|${opt.sponsor}`}>
-                    {opt.display}
-                  </MenuItem>
-                ))
+              disabled={
+                !selectedCountry ||
+                !selectedCity ||
+                typeSponsorOptions.length === 0
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Type & Sponsor"
+                  variant="outlined"
+                  InputProps={{
+                    ...params.InputProps,
+                    sx: { fontWeight: 500 }
+                  }}
+                  InputLabelProps={{ sx: { fontWeight: 500 } }}
+                />
               )}
-            </TextField>
+            />
           </CardContent>
         </Card>
 
@@ -520,40 +547,46 @@ export const ApplyPilgrimageVisa: React.FC = () => {
             {loading ? (
               <CircularProgress size={28} />
             ) : (
-              <TextField
-                select
+              <Autocomplete
                 fullWidth
-                label="Pilgrimage Program"
-                value={selectedPilgrimageId}
-                onChange={handlePilgrimageChange}
-                variant="outlined"
-                disabled={!selectedType || !selectedSponsor}
-                InputProps={{ sx: { fontWeight: 500 } }}
-                InputLabelProps={{ sx: { fontWeight: 500 } }}
-                SelectProps={{
-                  MenuProps: {
-                    PaperProps: { sx: { borderRadius: 1 } },
-                  },
+                options={filteredOffers}
+                getOptionLabel={(pilgrimage) =>
+                  pilgrimage
+                    ? `${pilgrimage.title} - ${countryDisplay(
+                        pilgrimage.destination
+                      )}${pilgrimage.city ? `, ${pilgrimage.city}` : ""}${
+                        pilgrimage.price
+                          ? ` - ${pilgrimage.price} ${pilgrimage.currency || ""}`
+                          : ""
+                      }`
+                    : ""
+                }
+                isOptionEqualToValue={(option, value) =>
+                  option.id === value.id
+                }
+                noOptionsText="No pilgrimage offers available"
+                value={
+                  filteredOffers.find((p) => p.id === selectedPilgrimageId) || null
+                }
+                onChange={(_, newValue) => {
+                  handlePilgrimageChange({
+                    target: { value: newValue ? newValue.id : "" }
+                  });
                 }}
-              >
-                {filteredOffers.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No pilgrimage offers available
-                  </MenuItem>
-                ) : (
-                  filteredOffers.map((pilgrimage) => (
-                    <MenuItem key={pilgrimage.id} value={pilgrimage.id}>
-                      {pilgrimage.title}
-                      {" - "}
-                      {countryDisplay(pilgrimage.destination)}
-                      {pilgrimage.city ? ", " + pilgrimage.city : ""}
-                      {pilgrimage.price
-                        ? ` - ${pilgrimage.price} ${pilgrimage.currency || ""}`
-                        : ""}
-                    </MenuItem>
-                  ))
+                disabled={!selectedType || !selectedSponsor}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Pilgrimage Program"
+                    variant="outlined"
+                    InputProps={{
+                      ...params.InputProps,
+                      sx: { fontWeight: 500 }
+                    }}
+                    InputLabelProps={{ sx: { fontWeight: 500 } }}
+                  />
                 )}
-              </TextField>
+              />
             )}
           </CardContent>
         </Card>
