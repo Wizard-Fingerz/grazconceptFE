@@ -6,12 +6,11 @@ import {
     Typography,
     Box,
     CircularProgress,
+    Stack,
     Tabs,
     Tab,
-    Stack,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-// import { getAllStudyAbroadLoans } from "../../../../services/edufinanceServices";
 import { getAddBanners } from '../../../../services/studyVisa';
 import { toast } from "react-toastify";
 import { ImageCard } from "../../../../components/ImageCard";
@@ -62,10 +61,11 @@ export const ApplicationCard: React.FC<{
     title: string;
     country: string;
     institution: string;
-    status: string;
+    status?: string;
     amount: string | number;
     currency: string;
     type?: string;
+    onApply?: () => void;
 }> = ({
     title,
     country,
@@ -74,31 +74,39 @@ export const ApplicationCard: React.FC<{
     amount,
     currency,
     type,
+    onApply,
 }) => (
-        <Card
-            className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
-            sx={{
-                borderLeft: `6px solid ${status === "Disbursed"
+    <Card
+        className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
+        sx={{
+            borderLeft: `6px solid ${
+                status
+                    ? status === "Disbursed"
                         ? "#4caf50"
                         : status === "Under Review"
-                            ? "#ff9800"
-                            : status === "Rejected"
-                                ? "#f44336"
-                                : "#bdbdbd"
-                    }`,
-                margin: "auto",
-                background: "#fffdfa",
-            }}
-        >
-            <CardContent className="flex flex-col gap-2">
-                <Box className="flex items-center justify-between gap-4 mb-1">
-                    <Typography
-                        variant="subtitle1"
-                        className="font-bold"
-                        sx={{ fontSize: "1.1rem" }}
-                    >
-                        {title}
-                    </Typography>
+                        ? "#ff9800"
+                        : status === "Rejected"
+                        ? "#f44336"
+                        : "#bdbdbd"
+                    : "#1976d2"
+            }`,
+            margin: "auto",
+            background: "#fffdfa",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+        }}
+    >
+        <CardContent className="flex flex-col gap-2" sx={{ flex: 1 }}>
+            <Box className="flex items-center justify-between gap-4 mb-1">
+                <Typography
+                    variant="subtitle1"
+                    className="font-bold"
+                    sx={{ fontSize: "1.1rem" }}
+                >
+                    {title}
+                </Typography>
+                {status ? (
                     <Button
                         size="small"
                         className="bg-[#f5ebe1] rounded-xl normal-case w-fit"
@@ -109,18 +117,18 @@ export const ApplicationCard: React.FC<{
                                 status === "Disbursed"
                                     ? "#388e3c"
                                     : status === "Under Review"
-                                        ? "#ff9800"
-                                        : status === "Rejected"
-                                            ? "#d32f2f"
-                                            : "#616161",
+                                    ? "#ff9800"
+                                    : status === "Rejected"
+                                    ? "#d32f2f"
+                                    : "#616161",
                             background:
                                 status === "Disbursed"
                                     ? "#e8f5e9"
                                     : status === "Under Review"
-                                        ? "#fff3e0"
-                                        : status === "Rejected"
-                                            ? "#ffebee"
-                                            : "#f5ebe1",
+                                    ? "#fff3e0"
+                                    : status === "Rejected"
+                                    ? "#ffebee"
+                                    : "#f5ebe1",
                             px: 2,
                             py: 0.5,
                             boxShadow: "none",
@@ -130,62 +138,80 @@ export const ApplicationCard: React.FC<{
                     >
                         {status}
                     </Button>
-                </Box>
-                <Box className="flex flex-col gap-1">
-                    <Box className="flex items-center gap-2">
-                        <Typography
-                            variant="body2"
-                            className="text-gray-600"
-                            sx={{ fontWeight: 500, minWidth: 88 }}
+                ) : (
+                    onApply && (
+                        <Button
+                            size="small"
+                            className="bg-[#f5ebe1] rounded-xl normal-case w-fit font-semibold hover:bg-[#f3e1d5]"
+                            sx={{
+                                fontWeight: 600,
+                                fontSize: "0.90rem",
+                                px: 2,
+                                py: 0.5,
+                                boxShadow: "none",
+                            }}
+                            onClick={onApply}
                         >
-                            Country:
-                        </Typography>
-                        <Typography variant="body2" className="text-gray-800">
-                            {country}
-                        </Typography>
-                    </Box>
+                            Apply
+                        </Button>
+                    )
+                )}
+            </Box>
+            <Box className="flex flex-col gap-1">
+                <Box className="flex items-center gap-2">
+                    <Typography
+                        variant="body2"
+                        className="text-gray-600"
+                        sx={{ fontWeight: 500, minWidth: 88 }}
+                    >
+                        Country:
+                    </Typography>
+                    <Typography variant="body2" className="text-gray-800">
+                        {country}
+                    </Typography>
+                </Box>
+                <Box className="flex items-center gap-2">
+                    <Typography
+                        variant="body2"
+                        className="text-gray-600"
+                        sx={{ fontWeight: 500, minWidth: 70 }}
+                    >
+                        Institution:
+                    </Typography>
+                    <Typography variant="body2" className="text-gray-800">
+                        {institution}
+                    </Typography>
+                </Box>
+                <Box className="flex items-center gap-2">
+                    <Typography
+                        variant="body2"
+                        className="text-gray-600"
+                        sx={{ fontWeight: 500, minWidth: 70 }}
+                    >
+                        Amount:
+                    </Typography>
+                    <Typography variant="body2" className="text-gray-800">
+                        {amount} {currency}
+                    </Typography>
+                </Box>
+                {type && (
                     <Box className="flex items-center gap-2">
                         <Typography
                             variant="body2"
                             className="text-gray-600"
                             sx={{ fontWeight: 500, minWidth: 70 }}
                         >
-                            Institution:
+                            Loan Type:
                         </Typography>
                         <Typography variant="body2" className="text-gray-800">
-                            {institution}
+                            {type}
                         </Typography>
                     </Box>
-                    <Box className="flex items-center gap-2">
-                        <Typography
-                            variant="body2"
-                            className="text-gray-600"
-                            sx={{ fontWeight: 500, minWidth: 70 }}
-                        >
-                            Amount:
-                        </Typography>
-                        <Typography variant="body2" className="text-gray-800">
-                            {amount} {currency}
-                        </Typography>
-                    </Box>
-                    {type && (
-                        <Box className="flex items-center gap-2">
-                            <Typography
-                                variant="body2"
-                                className="text-gray-600"
-                                sx={{ fontWeight: 500, minWidth: 70 }}
-                            >
-                                Loan Type:
-                            </Typography>
-                            <Typography variant="body2" className="text-gray-800">
-                                {type}
-                            </Typography>
-                        </Box>
-                    )}
-                </Box>
-            </CardContent>
-        </Card>
-    );
+                )}
+            </Box>
+        </CardContent>
+    </Card>
+);
 
 export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
     <Button className="bg-[#f5ebe1] rounded-xl px-6 py-3 font-semibold normal-case shadow-sm hover:bg-[#f3e1d5]">
@@ -198,10 +224,11 @@ export const StudyAbroadLoanPage: React.FC = () => {
     const [recentApplications, setRecentApplications] = useState<any[]>([]);
     const [loadingApplications, setLoadingApplications] = useState(true);
 
-    const [tabValue, setTabValue] = useState(0);
-
     const [banners, setBanners] = useState<any[]>([]);
     const [loadingBanners, setLoadingBanners] = useState(true);
+
+    // Offers Tab state
+    const [tabIndex, setTabIndex] = useState(0);
 
     // Mock wallet state
     const [walletLoading] = useState(false);
@@ -266,8 +293,9 @@ export const StudyAbroadLoanPage: React.FC = () => {
         }
         fetchApplications();
     }, []);
-    
-    const handleTabChange = (_: any, newVal: number) => setTabValue(newVal);
+
+    // Check offer loan ID in recent app to hide from the offers list (optional)
+    const appliedLoanIds = recentApplications.map(app => app.loan_id);
 
     return (
         <Box
@@ -377,95 +405,160 @@ export const StudyAbroadLoanPage: React.FC = () => {
                 </>
             )}
 
-            {/* Application Tabs */}
-            <Box sx={{ mt: 4, mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            {/* Tabs for Applications and Offers */}
+            <Box sx={{ mt: 4, mb: 2 }}>
                 <Tabs
-                    value={tabValue}
-                    onChange={handleTabChange}
-                    aria-label="Applications and Offers"
-                    variant="scrollable"
-                    scrollButtons="auto"
+                    value={tabIndex}
+                    onChange={(_, newValue) => setTabIndex(newValue)}
+                    sx={{
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        mb: 0,
+                        pt: 0,
+                    }}
+                    aria-label="Applications and Offers Tabs"
                 >
                     <Tab label="Recent Applications" />
-                    <Tab label="Recent Offers" />
+                    <Tab label="Available Offers" />
                 </Tabs>
-                {/* View all button, changes based on tab */}
-                {tabValue === 0 ? (
-                    <Button
-                        size="small"
-                        variant="text"
-                        sx={{ ml: 2, textTransform: "none", fontWeight: 600 }}
-                        onClick={() => {
-                            navigate("/edufinance/study-abroad-loan/applications");
-                        }}
-                    >
-                        View all
-                    </Button>
-                ) : (
-                    <Button
-                        size="small"
-                        variant="text"
-                        sx={{ ml: 2, textTransform: "none", fontWeight: 600 }}
-                        onClick={() => {
-                            navigate("/edufinance/study-abroad-loan/offers");
-                        }}
-                    >
-                        View all
-                    </Button>
-                )}
             </Box>
-            <Box
-                sx={{
-                    overflowX: "auto",
-                    width: "100%",
-                    pb: 1,
-                }}
-            >
-                {tabValue === 0 && (
+            {/* Tab Panels */}
+            {tabIndex === 0 && (
+                <>
+                    <Box sx={{
+                        mb: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                    }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                            Recent Applications
+                        </Typography>
+                        <Button
+                            size="small"
+                            variant="text"
+                            sx={{ ml: 2, textTransform: "none", fontWeight: 600 }}
+                            onClick={() => {
+                                navigate("/edufinance/study-abroad-loan/applications");
+                            }}
+                        >
+                            View all
+                        </Button>
+                    </Box>
                     <Box
                         sx={{
-                            display: "flex",
-                            flexDirection: "row",
-                            gap: 2,
+                            overflowX: "auto",
+                            width: "100%",
+                            pb: 1,
                         }}
                     >
-                        {loadingApplications ? (
-                            <Box className="flex items-center justify-center w-full py-8">
-                                <CircularProgress size={32} />
-                            </Box>
-                        ) : recentApplications.length === 0 ? (
-                            <Typography
-                                variant="body2"
-                                className="text-gray-500 flex items-center"
-                            >
-                                No recent applications found.
-                            </Typography>
-                        ) : (
-                            recentApplications.map((app: any) => {
-                                // Bug: getLoanById was not defined, now fixed above with helper and mock data
-                                const loan = getLoanById(app.loan_id);
-                                if (!loan) return null;
-                                return (
+                        <Box
+                            sx={{
+                                display: "flex",
+                                flexDirection: "row",
+                                gap: 2,
+                            }}
+                        >
+                            {loadingApplications ? (
+                                <Box className="flex items-center justify-center w-full py-8">
+                                    <CircularProgress size={32} />
+                                </Box>
+                            ) : recentApplications.length === 0 ? (
+                                <Typography
+                                    variant="body2"
+                                    className="text-gray-500 flex items-center"
+                                >
+                                    No recent applications found.
+                                </Typography>
+                            ) : (
+                                recentApplications.map((app: any) => {
+                                    const loan = getLoanById(app.loan_id);
+                                    if (!loan) return null;
+                                    return (
+                                        <Box
+                                            key={app.id}
+                                            sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
+                                        >
+                                            <ApplicationCard
+                                                title={loan.loan_title || "Study Abroad Loan"}
+                                                country={loan.country}
+                                                institution={loan.institution}
+                                                status={app.status}
+                                                amount={app.amount || loan.amount || "-"}
+                                                currency={app.currency || loan.currency || ""}
+                                                type={loan.type}
+                                            />
+                                        </Box>
+                                    );
+                                })
+                            )}
+                        </Box>
+                    </Box>
+                </>
+            )}
+            {tabIndex === 1 && (
+                <>
+                    <Box sx={{
+                        mb: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                    }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                            Available Offers
+                        </Typography>
+                    </Box>
+                    <Box
+                        sx={{
+                            overflowX: "auto",
+                            width: "100%",
+                            pb: 1,
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                display: "flex",
+                                flexDirection: "row",
+                                gap: 2,
+                            }}
+                        >
+                            {MOCK_LOANS
+                                // Optionally: Don't show already-applied loans
+                                .filter(loan => !appliedLoanIds.includes(loan.id))
+                                .map((loan) => (
                                     <Box
-                                        key={app.id}
+                                        key={loan.id}
                                         sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
                                     >
                                         <ApplicationCard
-                                            title={loan.loan_title || "Study Abroad Loan"}
+                                            title={loan.loan_title}
                                             country={loan.country}
                                             institution={loan.institution}
-                                            status={app.status}
-                                            amount={app.amount || loan.amount || "-"}
-                                            currency={app.currency || loan.currency || ""}
+                                            amount={loan.amount}
+                                            currency={loan.currency}
                                             type={loan.type}
+                                            onApply={() => {
+                                                toast.info(
+                                                    "Begin your application for this loan offer."
+                                                );
+                                                // Place navigation or application logic here
+                                            }}
                                         />
                                     </Box>
-                                );
-                            })
-                        )}
+                                ))}
+                            {/* Empty message if all offers taken */}
+                            {MOCK_LOANS.filter(loan => !appliedLoanIds.includes(loan.id)).length === 0 && (
+                                <Typography
+                                    variant="body2"
+                                    className="text-gray-500 flex items-center"
+                                >
+                                    No available offers at this time.
+                                </Typography>
+                            )}
+                        </Box>
                     </Box>
-                )}
-            </Box>
+                </>
+            )}
 
             {/* Guides & Resources */}
             <Typography
