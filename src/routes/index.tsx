@@ -69,6 +69,7 @@ import AllPilgrimageOffers from '../pages/customer/travel/Pilgrimage/AllPilgrima
 import PilgrimageDetails from '../pages/customer/travel/Pilgrimage/PilgrimageDetails';
 import VacationDetails from '../pages/customer/travel/Vacation/VacationDetails';
 import StudyAbroadLoanPage from '../pages/customer/edufinance/Study';
+import CivilServantLoanPage from '../pages/customer/edufinance/CivilServant';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -294,6 +295,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'edufinance/study-abroad-loan',
         element: <StudyAbroadLoanPage />,
+      },
+      {
+        path: 'edufinance/civil-servant-loan',
+        element: <CivilServantLoanPage />,
       },
       {
         path: 'edufinance/parent-loan',
