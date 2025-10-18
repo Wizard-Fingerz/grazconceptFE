@@ -6,9 +6,10 @@ import {
     Typography,
     Box,
     CircularProgress,
-    Stack,
     Tabs,
     Tab,
+    useMediaQuery,
+    useTheme,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { getAddBanners } from '../../../../services/studyVisa';
@@ -233,6 +234,9 @@ export const StudyAbroadLoanPage: React.FC = () => {
     // Mock wallet state
     const [walletLoading] = useState(false);
 
+    const theme = useTheme();
+    const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+
     useEffect(() => {
         let mounted = true;
         setLoadingBanners(true);
@@ -297,6 +301,16 @@ export const StudyAbroadLoanPage: React.FC = () => {
     // Check offer loan ID in recent app to hide from the offers list (optional)
     const appliedLoanIds = recentApplications.map(app => app.loan_id);
 
+    // Responsive columns helper replacement
+    const getColumnWidth = (breakpoints: any) => ({
+        flex: `0 0 auto`,
+        minWidth: breakpoints.xs || "100%",
+        maxWidth: breakpoints.max || 380,
+        width: breakpoints.xs || "100%",
+        ...(breakpoints.sm && { [`@media (min-width:600px)`]: { minWidth: breakpoints.sm, width: breakpoints.sm } }),
+        ...(breakpoints.md && { [`@media (min-width:900px)`]: { minWidth: breakpoints.md, width: breakpoints.md } }),
+    });
+
     return (
         <Box
             sx={{
@@ -314,17 +328,35 @@ export const StudyAbroadLoanPage: React.FC = () => {
             </CustomerPageHeader>
 
             {/* Sub Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-                <Typography variant="body1" className="text-gray-700 max-w-md">
+            <Box
+                display="flex"
+                flexDirection={{ xs: "column", md: "row" }}
+                justifyContent="space-between"
+                alignItems={{ xs: "flex-start", md: "center" }}
+                mb={8}
+                gap={2}
+            >
+                <Typography
+                    variant="body1"
+                    className="text-gray-700"
+                    sx={{
+                        maxWidth: { xs: "100%", md: 380 },
+                        mb: { xs: 2, md: 0 }
+                    }}
+                >
                     Get low-rate loans and tailored support for your international study ambitions.
                 </Typography>
                 <Button
                     variant="contained"
-                    className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
+                    className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case"
+                    sx={{
+                        mt: { xs: 2, md: 0 }
+                    }}
+                    fullWidth={isXs}
                 >
                     Chat with Agent
                 </Button>
-            </div>
+            </Box>
 
             {/* Wallet Card Area */}
             <Box sx={{ mb: 2 }}>
@@ -348,26 +380,55 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         </CardContent>
                     </Card>
                 ) : (
-                    <Stack direction="row" spacing={3}>
-                        <FinanceCard
-                            title="Travel Wallet"
-                            amount="#125,000,000"
-                            buttonText="Fund wallet"
-                            transactions={transactions}
-                        />
-                        <FinanceCard
-                            title="Loan Amount"
-                            amount="#1,425,000,000"
-                            buttonText="Make Payment"
-                            transactions={transactions}
-                        />
-                        <FinanceCard
-                            title="Amount Paid"
-                            amount="#425,000,000"
-                            buttonText="Make Payment"
-                            transactions={transactions}
-                        />
-                    </Stack>
+                    <Box
+                        sx={{
+                            width: "100%",
+                            display: "flex",
+                            flexDirection: { xs: "column", md: "row" },
+                            gap: { xs: 2, md: 8 }, // significantly increase horizontal gap on desktop
+                            flexWrap: { xs: "wrap", md: "nowrap" },
+                            alignItems: "stretch",
+                        }}
+                    >
+                        {[
+                            {
+                                title: "Travel Wallet",
+                                amount: "#125,000,000",
+                                buttonText: "Fund wallet"
+                            },
+                            {
+                                title: "Loan Amount",
+                                amount: "#1,425,000,000",
+                                buttonText: "Make Payment"
+                            },
+                            {
+                                title: "Amount Paid",
+                                amount: "#425,000,000",
+                                buttonText: "Make Payment"
+                            }
+                        ].map((item, _idx) => (
+                            <Box
+                                key={item.title}
+                                sx={{
+                                    ...getColumnWidth({
+                                        xs: "100%",
+                                        sm: 260,
+                                        md: 260,
+                                        max: 420
+                                    }),
+                                    mb: { xs: 2, md: 0 },
+                                    flex: { xs: "unset", md: 1 }, // ensure items grow equally
+                                }}
+                            >
+                                <FinanceCard
+                                    title={item.title}
+                                    amount={item.amount}
+                                    buttonText={item.buttonText}
+                                    transactions={transactions}
+                                />
+                            </Box>
+                        ))}
+                    </Box>
                 )}
             </Box>
 
@@ -377,13 +438,23 @@ export const StudyAbroadLoanPage: React.FC = () => {
                     <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>
                         Start a New Loan Application
                     </Typography>
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={3}
-                        sx={{ mb: 2 }}
+                    {/* Responsive banners using Flexbox */}
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: { xs: "column", md: "row" },
+                            gap: 2,
+                            mb: 2,
+                        }}
                     >
                         {banners.slice(0, 3).map((banner, idx) => (
-                            <Box sx={{ flex: 1 }} key={banner.id || idx}>
+                            <Box
+                                key={banner.id || idx}
+                                sx={{
+                                    flex: 1,
+                                    minWidth: { xs: "100%", md: 0 }
+                                }}
+                            >
                                 <ImageCard
                                     title={banner.title || banner.name || `Banner ${idx + 1}`}
                                     onClick={() => {
@@ -401,7 +472,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                 />
                             </Box>
                         ))}
-                    </Stack>
+                    </Box>
                 </>
             )}
 
@@ -417,6 +488,8 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         pt: 0,
                     }}
                     aria-label="Applications and Offers Tabs"
+                    variant={isXs ? "scrollable" : "standard"}
+                    scrollButtons={isXs ? "auto" : undefined}
                 >
                     <Tab label="Recent Applications" />
                     <Tab label="Available Offers" />
@@ -429,15 +502,22 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         mb: 2,
                         display: "flex",
                         alignItems: "center",
+                        flexDirection: { xs: "column", sm: "row" },
                         justifyContent: "space-between"
                     }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: { xs: 1, sm: 0 } }}>
                             Recent Applications
                         </Typography>
                         <Button
                             size="small"
                             variant="text"
-                            sx={{ ml: 2, textTransform: "none", fontWeight: 600 }}
+                            sx={{
+                                ml: { xs: 0, sm: 2 },
+                                mt: { xs: 1, sm: 0 },
+                                width: { xs: '100%', sm: 'auto' },
+                                textTransform: "none",
+                                fontWeight: 600
+                            }}
                             onClick={() => {
                                 navigate("/edufinance/study-abroad-loan/applications");
                             }}
@@ -455,21 +535,26 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         <Box
                             sx={{
                                 display: "flex",
-                                flexDirection: "row",
+                                flexDirection: { xs: "column", sm: "row" },
                                 gap: 2,
+                                flexWrap: "nowrap",
                             }}
                         >
                             {loadingApplications ? (
-                                <Box className="flex items-center justify-center w-full py-8">
-                                    <CircularProgress size={32} />
+                                <Box sx={{ width: "100%" }}>
+                                    <Box className="flex items-center justify-center w-full py-8">
+                                        <CircularProgress size={32} />
+                                    </Box>
                                 </Box>
                             ) : recentApplications.length === 0 ? (
-                                <Typography
-                                    variant="body2"
-                                    className="text-gray-500 flex items-center"
-                                >
-                                    No recent applications found.
-                                </Typography>
+                                <Box sx={{ width: "100%" }}>
+                                    <Typography
+                                        variant="body2"
+                                        className="text-gray-500 flex items-center"
+                                    >
+                                        No recent applications found.
+                                    </Typography>
+                                </Box>
                             ) : (
                                 recentApplications.map((app: any) => {
                                     const loan = getLoanById(app.loan_id);
@@ -477,7 +562,12 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                     return (
                                         <Box
                                             key={app.id}
-                                            sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
+                                            sx={getColumnWidth({
+                                                xs: "100%",
+                                                sm: 280,
+                                                md: 320,
+                                                max: 380
+                                            })}
                                         >
                                             <ApplicationCard
                                                 title={loan.loan_title || "Study Abroad Loan"}
@@ -502,9 +592,10 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         mb: 2,
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "space-between"
+                        justifyContent: "space-between",
+                        flexDirection: { xs: "column", sm: "row" }
                     }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: { xs: 1, sm: 0 } }}>
                             Available Offers
                         </Typography>
                     </Box>
@@ -518,17 +609,22 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         <Box
                             sx={{
                                 display: "flex",
-                                flexDirection: "row",
+                                flexDirection: { xs: "column", sm: "row" },
                                 gap: 2,
+                                flexWrap: "nowrap",
                             }}
                         >
                             {MOCK_LOANS
-                                // Optionally: Don't show already-applied loans
                                 .filter(loan => !appliedLoanIds.includes(loan.id))
                                 .map((loan) => (
                                     <Box
                                         key={loan.id}
-                                        sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
+                                        sx={getColumnWidth({
+                                            xs: "100%",
+                                            sm: 280,
+                                            md: 320,
+                                            max: 380
+                                        })}
                                     >
                                         <ApplicationCard
                                             title={loan.loan_title}
@@ -548,12 +644,14 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                 ))}
                             {/* Empty message if all offers taken */}
                             {MOCK_LOANS.filter(loan => !appliedLoanIds.includes(loan.id)).length === 0 && (
-                                <Typography
-                                    variant="body2"
-                                    className="text-gray-500 flex items-center"
-                                >
-                                    No available offers at this time.
-                                </Typography>
+                                <Box sx={{ width: "100%" }}>
+                                    <Typography
+                                        variant="body2"
+                                        className="text-gray-500 flex items-center"
+                                    >
+                                        No available offers at this time.
+                                    </Typography>
+                                </Box>
                             )}
                         </Box>
                     </Box>
@@ -568,10 +666,21 @@ export const StudyAbroadLoanPage: React.FC = () => {
             >
                 Guide and Resources
             </Typography>
-            <div className="flex flex-col md:flex-row gap-4">
-                <GuideCard title="Study Abroad Loan Requirements" />
-                <GuideCard title="Ultimate Guide to Financing Overseas Education" />
-            </div>
+            <Box
+                sx={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: { xs: "column", sm: "row" },
+                    gap: 2,
+                }}
+            >
+                <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 0 } }}>
+                    <GuideCard title="Study Abroad Loan Requirements" />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 0 } }}>
+                    <GuideCard title="Ultimate Guide to Financing Overseas Education" />
+                </Box>
+            </Box>
         </Box>
     );
 };
