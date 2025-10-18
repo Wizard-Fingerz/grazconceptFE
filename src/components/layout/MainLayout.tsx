@@ -106,11 +106,13 @@ export const MainLayout: React.FC = () => {
         icon: <HomeIcon />,
         items: [
           { icon: <HomeIcon />, label: 'Dashboard', to: '/dashboard' },
+          // Added: Track Progress menu right after Dashboard for visibility
+          { icon: <NotificationsIcon />, label: 'Track Progress', to: '/track-progress' },
         ]
       },
       {
         section: 'Travel Solution',
-        icon: <FlightTakeoff />, // Fixed: Use correct imported icon name
+        icon: <FlightTakeoff />,
         items: [
           { icon: <School />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
           { icon: <SchoolOutlined />, label: 'Apply Study Program', to: '/travel/study-visa' },

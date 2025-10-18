@@ -263,6 +263,10 @@ export const protectedRoutes: RouteObject[] = [
         element: <TrackProgress/>,
       },
       {
+        path: 'track-progress',
+        element: <TrackProgress/>,
+      },
+      {
         path: 'travel/pilgrimage',
         element: <ApplyPilgrimageVisa />,
       },
