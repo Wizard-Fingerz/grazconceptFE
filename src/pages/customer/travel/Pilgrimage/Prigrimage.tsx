@@ -14,7 +14,6 @@ import {
   Autocomplete,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-import api from "../../../../services/api";
 import { getAllPilgrimages } from "../../../../services/pilgrimageServices";
 import { getAddBanners } from '../../../../services/studyVisa';
 import { toast } from "react-toastify";
@@ -166,7 +165,7 @@ export const ApplyPilgrimageVisa: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState<string>("");
   // New state: Only type, no sponsor
   const [selectedType, setSelectedType] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
+  // const [submitting, setSubmitting] = useState(false);
 
   // Recent applications
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
@@ -540,14 +539,10 @@ export const ApplyPilgrimageVisa: React.FC = () => {
         variant="contained"
         fullWidth
         className="bg-purple-700 hover:bg-purple-800 text-white rounded-full py-3 font-semibold normal-case"
-        disabled={!selectedPilgrimageId || submitting}
+        disabled={!selectedPilgrimageId}
         onClick={handleStartApplication}
       >
-        {submitting ? (
-          <CircularProgress size={24} color="inherit" />
-        ) : (
-          "Start Application"
-        )}
+        Start Application
       </Button>
 
       {/* Dashboard Banners area (replaces previous ad images area) */}
