@@ -5,7 +5,7 @@ import {
   CardContent,
   Typography,
   Box,
-  MenuItem,
+  // MenuItem,
   CircularProgress,
   TextField,
   Tabs,
@@ -14,18 +14,16 @@ import {
   Autocomplete,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-// Removed ImageCard import, as we won't use it anymore for banners.
-// import { ImageCard } from "../../../components/ImageCard";
 import api from "../../../../services/api";
 import { getAllPilgrimages } from "../../../../services/pilgrimageServices";
 import { getAddBanners } from '../../../../services/studyVisa';
 import { toast } from "react-toastify";
 import { ImageCard } from "../../../../components/ImageCard";
-import { useNavigate } from "react-router-dom"; // Added import
+import { useNavigate } from "react-router-dom";
 
 /**
  * ApplicationCard - Reusable card for displaying application info.
- * NOTE: Now combines type and sponsor type into one display line.
+ * NOTE: Now displays only the type (not sponsor) under 'Pilgrimage Type'.
  */
 export const ApplicationCard: React.FC<{
   title: string;
@@ -34,7 +32,7 @@ export const ApplicationCard: React.FC<{
   status: string;
   price: string;
   currency: string;
-  typeAndSponsor?: string;
+  type?: string;
 }> = ({
   title,
   destination,
@@ -42,7 +40,7 @@ export const ApplicationCard: React.FC<{
   status,
   price,
   currency,
-  typeAndSponsor,
+  type,
 }) => (
   <Card
     className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
@@ -127,17 +125,17 @@ export const ApplicationCard: React.FC<{
             {price} {currency}
           </Typography>
         </Box>
-        {typeAndSponsor && (
+        {type && (
           <Box className="flex items-center gap-2">
             <Typography
               variant="body2"
               className="text-gray-600"
               sx={{ fontWeight: 500, minWidth: 70 }}
             >
-              Type & Sponsor:
+              Pilgrimage Type:
             </Typography>
             <Typography variant="body2" className="text-gray-800">
-              {typeAndSponsor}
+              {type}
             </Typography>
           </Box>
         )}
@@ -166,13 +164,9 @@ export const ApplyPilgrimageVisa: React.FC = () => {
   const [selectedPilgrimageId, setSelectedPilgrimageId] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedCity, setSelectedCity] = useState<string>("");
-  // new state: combinedTypeSponsor, which is { type, sponsor }
-  const [selectedTypeSponsor, setSelectedTypeSponsor] = useState<{type: string, sponsor: string}>({type: "", sponsor: ""});
+  // New state: Only type, no sponsor
+  const [selectedType, setSelectedType] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-
-  // For convenience in migration:
-  const selectedType = selectedTypeSponsor.type;
-  const selectedSponsor = selectedTypeSponsor.sponsor;
 
   // Recent applications
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
@@ -232,7 +226,6 @@ export const ApplyPilgrimageVisa: React.FC = () => {
       try {
         // Fake delay for UX
         await new Promise((r) => setTimeout(r, 400));
-        // TODO: Replace with actual "getMyRecentPilgrimageApplications" API call when backend is ready
         setRecentApplications([
           {
             id: "app1",
@@ -260,27 +253,28 @@ export const ApplyPilgrimageVisa: React.FC = () => {
     setSelectedPilgrimageId(e.target.value);
   };
 
-  // When you select a new (country, city), reset type+sponsor+offer
+  // When you select a new (country, city), reset type+offer
   const handleCountryCityChange = (value: string) => {
     const [country, city] = value.split("|");
     setSelectedCountry(country);
     setSelectedCity(city);
-    setSelectedTypeSponsor({ type: "", sponsor: "" });
+    setSelectedType("");
     setSelectedPilgrimageId("");
   };
 
-  // When you select a new combined type & sponsor, update state
-  const handleTypeSponsorChange = (e: any) => {
-    const value = e.target.value;
-    if (!value) {
-      setSelectedTypeSponsor({ type: "", sponsor: "" });
-      setSelectedPilgrimageId("");
-      return;
-    }
-    // value is "type|sponsor"
-    const [type, sponsor] = value.split("|");
-    setSelectedTypeSponsor({ type, sponsor });
+  // When you select a new type, update state
+  const handleTypeChange = (e: any) => {
+    const value = e.target.value || "";
+    setSelectedType(value);
     setSelectedPilgrimageId("");
+  };
+
+  const handleTypeChangeAutocomplete = (_: any, newValue: any) => {
+    if (newValue) {
+      handleTypeChange({ target: { value: newValue.type } });
+    } else {
+      handleTypeChange({ target: { value: "" } });
+    }
   };
 
   const handleTabChange = (_: any, newVal: number) => setTabValue(newVal);
@@ -293,9 +287,7 @@ export const ApplyPilgrimageVisa: React.FC = () => {
       const payload = { pilgrimage: selectedPilgrimageId };
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      // This endpoint is a placeholder. Replace with actual URL if different.
       await api.post(`/app/pilgrimage-visa-application/`, payload, { headers });
-      // Simulate refresh
       setRecentApplications((prev) => [
         {
           id: "app" + (prev.length + 1),
@@ -327,31 +319,22 @@ export const ApplyPilgrimageVisa: React.FC = () => {
     return country;
   };
 
-  // Compute all unique [type,sponsor] combinations in this country+city as dropdown options
-  // Each option is { type, sponsor, display }
-  const typeSponsorOptions = React.useMemo(() => {
+  // Compute all unique pilgrimage types (without sponsor) in this country+city as dropdown options
+  // Each option is { type }
+  const pilgrimageTypeOptions = React.useMemo(() => {
     let filtered = pilgrimages.filter(
       (p: any) => p.destination === selectedCountry && p.city === selectedCity
     );
-    // For each filtered pilgrimage, produce array of { type, sponsor }
-    const comboSet = new Set<string>();
+    const typeSet = new Set<string>();
     filtered.forEach((p) => {
       const types = p.pilgrimage_type_display || [];
-      const sponsors = p.sponsorship_display || [];
-      for (let t of types) {
-        for (let s of sponsors) {
-          if (t && s) comboSet.add(`${t}|${s}`);
-        }
+      if (Array.isArray(types)) {
+        types.forEach((t: string) => t && typeSet.add(t));
+      } else if (types) {
+        typeSet.add(types);
       }
     });
-    // Map to array of objects with display label
-    return Array.from(comboSet).map((val) => {
-      const [type, sponsor] = val.split("|");
-      return {
-        type, sponsor,
-        display: sponsor ? `${type} (${sponsor})` : type
-      };
-    });
+    return Array.from(typeSet).map((type) => ({ type, display: type }));
   }, [pilgrimages, selectedCountry, selectedCity]);
 
   // Filter the pilgrimage offers to match all fields.
@@ -366,14 +349,14 @@ export const ApplyPilgrimageVisa: React.FC = () => {
       )
         return false;
       if (
-        selectedSponsor &&
-        Array.isArray(p.sponsorship_display) &&
-        !p.sponsorship_display.includes(selectedSponsor)
+        selectedType &&
+        typeof p.pilgrimage_type_display === "string" &&
+        p.pilgrimage_type_display !== selectedType
       )
         return false;
       return true;
     });
-  }, [pilgrimages, selectedCountry, selectedCity, selectedType, selectedSponsor]);
+  }, [pilgrimages, selectedCountry, selectedCity, selectedType]);
 
   // Combine Country and City into a single selection card
   // All unique combinations of {destination, city}
@@ -476,53 +459,37 @@ export const ApplyPilgrimageVisa: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Combined Type & Sponsor Selection */}
+        {/* Pilgrimage Type Selection */}
         <Card className="rounded-2xl shadow-md flex-1">
           <CardContent className="flex flex-col gap-2">
             <Typography variant="subtitle1" className="font-semibold mb-2">
-              Select Pilgrimage Type & Sponsor
+              Select Pilgrimage Type
             </Typography>
-            {/* Replace TextField with Autocomplete */}
             <Autocomplete
               fullWidth
-              options={typeSponsorOptions}
+              options={pilgrimageTypeOptions}
               getOptionLabel={(opt) => opt.display || ""}
               isOptionEqualToValue={(option, value) =>
-                option.type === value.type && option.sponsor === value.sponsor
+                option.type === value.type
               }
-              noOptionsText="No type & sponsor options available"
+              noOptionsText="No type options available"
               value={
-                selectedType && selectedSponsor
-                  ? typeSponsorOptions.find(
-                      (opt) =>
-                        opt.type === selectedType &&
-                        opt.sponsor === selectedSponsor
+                selectedType
+                  ? pilgrimageTypeOptions.find(
+                      (opt) => opt.type === selectedType
                     ) || null
                   : null
               }
-              onChange={(_, newValue) => {
-                if (newValue) {
-                  // Simulate same logic as previous handleTypeSponsorChange for select field
-                  handleTypeSponsorChange({
-                    target: {
-                      value: `${newValue.type}|${newValue.sponsor}`
-                    }
-                  });
-                } else {
-                  handleTypeSponsorChange({
-                    target: { value: "" }
-                  });
-                }
-              }}
+              onChange={handleTypeChangeAutocomplete}
               disabled={
                 !selectedCountry ||
                 !selectedCity ||
-                typeSponsorOptions.length === 0
+                pilgrimageTypeOptions.length === 0
               }
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Type & Sponsor"
+                  label="Pilgrimage Type"
                   variant="outlined"
                   InputProps={{
                     ...params.InputProps,
@@ -573,7 +540,7 @@ export const ApplyPilgrimageVisa: React.FC = () => {
                     target: { value: newValue ? newValue.id : "" }
                   });
                 }}
-                disabled={!selectedType || !selectedSponsor}
+                disabled={!selectedType}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -605,7 +572,7 @@ export const ApplyPilgrimageVisa: React.FC = () => {
           "Start Application"
         )}
       </Button>
-      
+
       {/* Dashboard Banners area (replaces previous ad images area) */}
      {/* Applications (Start a New Application) */}
      {!loadingBanners && banners && banners.length > 0 && (
@@ -659,7 +626,6 @@ export const ApplyPilgrimageVisa: React.FC = () => {
             variant="text"
             sx={{ ml: 2, textTransform: "none", fontWeight: 600 }}
             onClick={() => {
-              // Use useNavigate for navigation instead of window.location
               navigate("/travel/pilgrimage/applications");
             }}
           >
@@ -671,7 +637,6 @@ export const ApplyPilgrimageVisa: React.FC = () => {
             variant="text"
             sx={{ ml: 2, textTransform: "none", fontWeight: 600 }}
             onClick={() => {
-              // Use useNavigate for navigation instead of window.location
               navigate("/travel/pilgrimage/offers");
             }}
           >
@@ -710,25 +675,15 @@ export const ApplyPilgrimageVisa: React.FC = () => {
                 const pil = getPilgrimageById(app.pilgrimage_id);
                 if (!pil) return null;
 
-                // Find the combined display for type & sponsor for this pilgrimage (if available)
-                let typeAndSponsor = "";
-                const typeArray = pil.pilgrimage_type_display
-                  ? Array.isArray(pil.pilgrimage_type_display)
-                    ? pil.pilgrimage_type_display
-                    : [pil.pilgrimage_type_display]
-                  : [];
-                const sponsorArray = pil.sponsorship_display
-                  ? Array.isArray(pil.sponsorship_display)
-                    ? pil.sponsorship_display
-                    : [pil.sponsorship_display]
-                  : [];
-                // Combine as "Type1 (SponsorA), Type2 (SponsorB)", etc.
-                typeAndSponsor = typeArray
-                  .map((type: any, idx: string | number) => {
-                    const sponsor = sponsorArray[idx] || sponsorArray[0] || "";
-                    return sponsor ? `${type} (${sponsor})` : `${type}`;
-                  })
-                  .join(", ");
+                // Only display pilgrimage_type_display, not sponsor
+                let type = "";
+                if (pil.pilgrimage_type_display) {
+                  if (Array.isArray(pil.pilgrimage_type_display)) {
+                    type = pil.pilgrimage_type_display.join(", ");
+                  } else {
+                    type = pil.pilgrimage_type_display;
+                  }
+                }
 
                 return (
                   <Box
@@ -742,7 +697,7 @@ export const ApplyPilgrimageVisa: React.FC = () => {
                       status={app.status}
                       price={pil.price}
                       currency={pil.currency}
-                      typeAndSponsor={typeAndSponsor}
+                      type={type}
                     />
                   </Box>
                 );
@@ -772,43 +727,37 @@ export const ApplyPilgrimageVisa: React.FC = () => {
               </Typography>
             ) : (
               pilgrimages
-                // Sort by recently added, or filter if needed
                 .slice(0, 7)
-                .map((offer: any) => (
-                  <Box
-                    key={offer.id}
-                    sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
-                  >
-                    <ApplicationCard
-                      title={offer.title}
-                      destination={countryDisplay(offer.destination)}
-                      city={offer.city}
-                      status={offer.status || "Open"}
-                      price={offer.price}
-                      currency={offer.currency}
-                      typeAndSponsor={
-                        (offer.pilgrimage_type_display
-                          ? Array.isArray(offer.pilgrimage_type_display)
-                            ? offer.pilgrimage_type_display.join(", ")
-                            : offer.pilgrimage_type_display
-                          : "") +
-                        (offer.sponsorship_display
-                          ? " (" +
-                            (Array.isArray(offer.sponsorship_display)
-                              ? offer.sponsorship_display.join(", ")
-                              : offer.sponsorship_display) +
-                            ")"
-                          : "")
-                      }
-                    />
-                  </Box>
-                ))
+                .map((offer: any) => {
+                  let type = "";
+                  if (offer.pilgrimage_type_display) {
+                    if (Array.isArray(offer.pilgrimage_type_display)) {
+                      type = offer.pilgrimage_type_display.join(", ");
+                    } else {
+                      type = offer.pilgrimage_type_display;
+                    }
+                  }
+                  return (
+                    <Box
+                      key={offer.id}
+                      sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
+                    >
+                      <ApplicationCard
+                        title={offer.title}
+                        destination={countryDisplay(offer.destination)}
+                        city={offer.city}
+                        status={offer.status || "Open"}
+                        price={offer.price}
+                        currency={offer.currency}
+                        type={type}
+                      />
+                    </Box>
+                  );
+                })
             )}
           </Box>
         )}
       </Box>
-
-
 
       {/* Guides & Resources */}
       <Typography
