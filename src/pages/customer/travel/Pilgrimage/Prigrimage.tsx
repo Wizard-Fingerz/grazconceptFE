@@ -154,7 +154,7 @@ export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
 );
 
 export const ApplyPilgrimageVisa: React.FC = () => {
-  const navigate = useNavigate(); // Add this line
+  const navigate = useNavigate();
 
   // Fetch pilgrimage programs list
   const [pilgrimages, setPilgrimages] = useState<any[]>([]);
@@ -280,32 +280,9 @@ export const ApplyPilgrimageVisa: React.FC = () => {
   const handleTabChange = (_: any, newVal: number) => setTabValue(newVal);
 
   // Start Application handler
-  const handleStartApplication = async () => {
+  const handleStartApplication = () => {
     if (!selectedPilgrimageId) return;
-    setSubmitting(true);
-    try {
-      const payload = { pilgrimage: selectedPilgrimageId };
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await api.post(`/app/pilgrimage-visa-application/`, payload, { headers });
-      setRecentApplications((prev) => [
-        {
-          id: "app" + (prev.length + 1),
-          pilgrimage_id: selectedPilgrimageId,
-          status: "Under Review",
-          created_at: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
-      alert("Application submitted. Follow-up coming soon.");
-    } catch (error: any) {
-      alert(
-        error?.response?.data?.detail ||
-          "Failed to submit application. Please try again."
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    navigate(`/travel/pilgrimage/offers/${selectedPilgrimageId}`);
   };
 
   // Utility to get a pilgrimage object by id from the list
