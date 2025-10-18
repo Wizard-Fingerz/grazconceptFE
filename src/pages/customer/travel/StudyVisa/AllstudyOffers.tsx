@@ -200,7 +200,7 @@ const AllStudyOffers: React.FC = () => {
     >
       <CustomerPageHeader>
         <Typography variant="h4" className="font-bold mb-2">
-          Study Visa Offers
+          Apply your preferred program
         </Typography>
         <Typography variant="body1" className="text-gray-700 mb-4">
           Browse all your study visa offers from institutions around the world.
@@ -222,8 +222,8 @@ const AllStudyOffers: React.FC = () => {
           {loading
             ? "Loading offers..."
             : error
-            ? ""
-            : `${count} offer${count === 1 ? "" : "s"} found`}
+              ? ""
+              : `${count} offer${count === 1 ? "" : "s"} found`}
         </Typography>
         {/* Standalone search field for quick search */}
         <Box
