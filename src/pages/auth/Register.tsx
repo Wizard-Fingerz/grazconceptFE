@@ -12,16 +12,16 @@ import {
   MenuItem,
   useTheme,
   useMediaQuery,
-  Divider
+  // Divider
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
   PersonAdd as RegisterIcon,
-  Facebook,
-  LinkedIn
+  // Facebook,
+  // LinkedIn
 } from '@mui/icons-material';
-import GoogleIcon from '@mui/icons-material/Google';
+// import GoogleIcon from '@mui/icons-material/Google';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import userServices from '../../services/user';
@@ -135,11 +135,11 @@ export const Register: React.FC = () => {
     }
   };
 
-  const socialButtons = [
-    { name: 'Google', icon: <GoogleIcon /> },
-    { name: 'Facebook', icon: <Facebook /> },
-    { name: 'LinkedIn', icon: <LinkedIn /> },
-  ];
+  // const socialButtons = [
+  //   { name: 'Google', icon: <GoogleIcon /> },
+  //   { name: 'Facebook', icon: <Facebook /> },
+  //   { name: 'LinkedIn', icon: <LinkedIn /> },
+  // ];
 
   return (
     <Box
@@ -291,9 +291,9 @@ export const Register: React.FC = () => {
           </Link>
         </Typography>
 
-        <Divider sx={{ my: 2 }}>Or</Divider>
+        {/* <Divider sx={{ my: 2 }}>Or</Divider> */}
 
-        {socialButtons.map(({ name, icon }) => (
+        {/* {socialButtons.map(({ name, icon }) => (
           <Button
             key={name}
             fullWidth
@@ -315,7 +315,7 @@ export const Register: React.FC = () => {
           >
             Continue with {name}
           </Button>
-        ))}
+        ))} */}
       </Box>
     </Box>
   );

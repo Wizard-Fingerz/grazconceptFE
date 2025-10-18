@@ -9,15 +9,14 @@ import {
   IconButton,
   Alert,
   CircularProgress,
-  Divider,
+  // Divider,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import GoogleIcon from '@mui/icons-material/Google';
-import FacebookIcon from '@mui/icons-material/Facebook';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-
+// import GoogleIcon from '@mui/icons-material/Google';
+// import FacebookIcon from '@mui/icons-material/Facebook';
+// import LinkedInIcon from '@mui/icons-material/LinkedIn';
 
 interface LoginFormData {
   email: string;
@@ -64,12 +63,11 @@ export const Login: React.FC = () => {
     }
   };
 
-
-  const socialButtons = [
-  { name: 'Google', icon: <GoogleIcon /> },
-  { name: 'Facebook', icon: <FacebookIcon /> },
-  { name: 'LinkedIn', icon: <LinkedInIcon /> },
-];
+  //   const socialButtons = [
+  //   { name: 'Google', icon: <GoogleIcon /> },
+  //   { name: 'Facebook', icon: <FacebookIcon /> },
+  //   { name: 'LinkedIn', icon: <LinkedInIcon /> },
+  // ];
 
   return (
     <Box
@@ -92,9 +90,17 @@ export const Login: React.FC = () => {
           textAlign: 'center',
         }}
       >
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Sign In
+        {/* Grazconcept Welcome Messaging */}
+        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: 6 }}>
+          Welcome to Grazconcept
         </Typography>
+        <Typography variant="subtitle1" color="text.secondary" mb={6} sx={{ fontSize: '1.15rem', fontWeight: 500 }}>
+          A one-stop multifunctional hub
+        </Typography>
+        
+        {/* <Typography variant="h5" fontWeight="bold" gutterBottom>
+          Sign In
+        </Typography> */}
         <Typography variant="body2" color="text.secondary" mb={3}>
           Welcome back, Please sign in with your credentials
         </Typography>
@@ -185,10 +191,10 @@ export const Login: React.FC = () => {
           </Link>
         </Typography>
 
-        <Divider sx={{ my: 2 }}>Or</Divider>
+        {/* <Divider sx={{ my: 2 }}>Or</Divider> */}
 
       
-{socialButtons.map(({ name, icon }) => (
+{/* {socialButtons.map(({ name, icon }) => (
   <Button
     key={name}
     fullWidth
@@ -210,7 +216,7 @@ export const Login: React.FC = () => {
   >
     Continue with {name}
   </Button>
-))}
+))} */}
       </Box>
     </Box>
   );
