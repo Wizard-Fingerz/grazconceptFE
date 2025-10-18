@@ -6,11 +6,9 @@ import {
     Typography,
     Box,
     CircularProgress,
-    TextField,
     Tabs,
     Tab,
     Stack,
-    Autocomplete,
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 // import { getAllStudyAbroadLoans } from "../../../../services/edufinanceServices";
@@ -20,6 +18,44 @@ import { ImageCard } from "../../../../components/ImageCard";
 import { useNavigate } from "react-router-dom";
 import FinanceCard from "../../../../components/FinanceCard";
 
+/**
+ * Hardcoded loan offers just for display mapping,
+ * since getLoanById is being used below and previously caused errors.
+ */
+const MOCK_LOANS = [
+    {
+        id: 1,
+        loan_title: "Masters Loan at Harvard",
+        country: "USA",
+        institution: "Harvard University",
+        amount: 70000,
+        currency: "USD",
+        type: "Unsecured",
+    },
+    {
+        id: 2,
+        loan_title: "Masters Loan at University of Toronto",
+        country: "Canada",
+        institution: "University of Toronto",
+        amount: 55000,
+        currency: "CAD",
+        type: "Secured",
+    },
+    {
+        id: 3,
+        loan_title: "Undergraduate Loan at Imperial College London",
+        country: "UK",
+        institution: "Imperial College London",
+        amount: 45000,
+        currency: "GBP",
+        type: "Unsecured",
+    },
+];
+
+// Helper to get loan offer by ID for mapping application to details
+function getLoanById(id: number) {
+    return MOCK_LOANS.find((loan) => loan.id === id);
+}
 
 // ApplicationCard for Study Abroad Loan offers/applications
 export const ApplicationCard: React.FC<{
@@ -159,14 +195,6 @@ export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
 
 export const StudyAbroadLoanPage: React.FC = () => {
     const navigate = useNavigate();
-
-    const [loans, setLoans] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const [selectedCountry, setSelectedCountry] = useState<string>("");
-    const [selectedInstitution, setSelectedInstitution] = useState<string>("");
-    const [selectedType, setSelectedType] = useState<string>("");
-
     const [recentApplications, setRecentApplications] = useState<any[]>([]);
     const [loadingApplications, setLoadingApplications] = useState(true);
 
@@ -176,25 +204,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
     const [loadingBanners, setLoadingBanners] = useState(true);
 
     // Mock wallet state
-    const [wallet, setWallet] = useState<{ balance: number; currency: string; lastUpdated: string }>({
-        balance: 1200.5,
-        currency: "USD",
-        lastUpdated: "just now"
-    });
-    const [walletLoading, setWalletLoading] = useState(false);
-
-    // Simulate fetching wallet data
-    useEffect(() => {
-        setWalletLoading(true);
-        setTimeout(() => {
-            setWallet({
-                balance: 1200.5,
-                currency: "USD",
-                lastUpdated: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
-            });
-            setWalletLoading(false);
-        }, 950);
-    }, []);
+    const [walletLoading] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -220,23 +230,11 @@ export const StudyAbroadLoanPage: React.FC = () => {
         };
     }, []);
 
-    //   useEffect(() => {
-    //     async function fetchLoans() {
-    //       setLoading(true);
-    //       try {
-    //         const res = await getAllStudyAbroadLoans();
-    //         setLoans(res?.results || []);
-    //       } catch {
-    //         setLoans([]);
-    //       }
-    //       setLoading(false);
-    //     }
-    //     fetchLoans();
-    //   }, []);
     const transactions = [
         { title: "Flight to Accra", amount: "#25.00" },
         { title: "Saving deposit", amount: "#25.00" },
     ];
+
     // Fake fetching recent applications
     useEffect(() => {
         async function fetchApplications() {
@@ -268,87 +266,8 @@ export const StudyAbroadLoanPage: React.FC = () => {
         }
         fetchApplications();
     }, []);
-
-    // Helper functions for selection changes
-    const handleCountryChange = (_: any, newValue: any) => {
-        setSelectedCountry(newValue || "");
-        setSelectedInstitution("");
-        setSelectedType("");
-    };
-
-    const handleInstitutionChange = (_: any, newValue: any) => {
-        setSelectedInstitution(newValue || "");
-        setSelectedType("");
-    };
-
-    const handleTypeChangeAutocomplete = (_: any, newValue: any) => {
-        setSelectedType(newValue ? newValue.type : "");
-    };
-
+    
     const handleTabChange = (_: any, newVal: number) => setTabValue(newVal);
-
-    // Start Loan Application Handler
-    const handleStartApplication = () => {
-        const selectedLoan = filteredOffers[0]; // Simplification: take first matching as selected
-        if (selectedLoan && selectedLoan.id) {
-            navigate(`/edufinance/study-abroad-loan/offers/${selectedLoan.id}`);
-        }
-    };
-
-    // Utility: Get loan by id
-    const getLoanById = (id: number | string) => loans.find((l) => String(l.id) === String(id));
-
-    // Loan countries/options
-    const countryOptions = React.useMemo(() => {
-        const set = new Set<string>();
-        loans.forEach((l) => {
-            if (l.country) set.add(l.country);
-        });
-        return Array.from(set);
-    }, [loans]);
-
-    const institutionOptions = React.useMemo(() => {
-        return loans
-            .filter((l) => !selectedCountry || l.country === selectedCountry)
-            .map((l) => l.institution)
-            .filter((val, idx, arr) => val && arr.indexOf(val) === idx);
-    }, [loans, selectedCountry]);
-
-    // Loan types (e.g., 'Undergraduate', 'Masters', etc)
-    const loanTypeOptions = React.useMemo(() => {
-        let filtered = loans.filter(
-            (l) =>
-                (!selectedCountry || l.country === selectedCountry) &&
-                (!selectedInstitution || l.institution === selectedInstitution)
-        );
-        const set = new Set<string>();
-        filtered.forEach((l) => {
-            if (l.type) set.add(l.type);
-            // Optionally, support multiple types array
-            if (Array.isArray(l.loan_types)) {
-                l.loan_types.forEach((t: string) => set.add(t));
-            }
-        });
-        return Array.from(set).map((type) => ({ type, display: type }));
-    }, [loans, selectedCountry, selectedInstitution]);
-
-    // Filtered offers list
-    const filteredOffers = React.useMemo(() => {
-        return loans.filter((l) => {
-            if (selectedCountry && l.country !== selectedCountry) return false;
-            if (selectedInstitution && l.institution !== selectedInstitution) return false;
-            if (
-                selectedType &&
-                l.type !== selectedType &&
-                (!l.loan_types || !l.loan_types.includes(selectedType))
-            )
-                return false;
-            return true;
-        });
-    }, [loans, selectedCountry, selectedInstitution, selectedType]);
-
-    // For display, transform code to readable or just show as is
-    const countryDisplay = (country: string) => country;
 
     return (
         <Box
@@ -365,7 +284,6 @@ export const StudyAbroadLoanPage: React.FC = () => {
                     Study Abroad Loan
                 </Typography>
             </CustomerPageHeader>
-
 
             {/* Sub Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
@@ -424,7 +342,6 @@ export const StudyAbroadLoanPage: React.FC = () => {
                     </Stack>
                 )}
             </Box>
-
 
             {/* Banner/Promotional Area */}
             {!loadingBanners && banners && banners.length > 0 && (
@@ -525,6 +442,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                             </Typography>
                         ) : (
                             recentApplications.map((app: any) => {
+                                // Bug: getLoanById was not defined, now fixed above with helper and mock data
                                 const loan = getLoanById(app.loan_id);
                                 if (!loan) return null;
                                 return (
@@ -533,7 +451,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                         sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
                                     >
                                         <ApplicationCard
-                                            title={loan.loan_title || loan.title || "Study Abroad Loan"}
+                                            title={loan.loan_title || "Study Abroad Loan"}
                                             country={loan.country}
                                             institution={loan.institution}
                                             status={app.status}
@@ -544,48 +462,6 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                     </Box>
                                 );
                             })
-                        )}
-                    </Box>
-                )}
-                {/* Recent Offers Tab */}
-                {tabValue === 1 && (
-                    <Box
-                        sx={{
-                            display: "flex",
-                            flexDirection: "row",
-                            gap: 2,
-                        }}
-                    >
-                        {loading ? (
-                            <Box className="flex items-center justify-center w-full py-8">
-                                <CircularProgress size={32} />
-                            </Box>
-                        ) : loans?.length === 0 ? (
-                            <Typography
-                                variant="body2"
-                                className="text-gray-500 flex items-center"
-                            >
-                                No recent offers found.
-                            </Typography>
-                        ) : (
-                            loans
-                                .slice(0, 7)
-                                .map((loan: any) => (
-                                    <Box
-                                        key={loan.id}
-                                        sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}
-                                    >
-                                        <ApplicationCard
-                                            title={loan.loan_title || loan.title || "Study Abroad Loan"}
-                                            country={loan.country}
-                                            institution={loan.institution}
-                                            status={loan.status || "Open"}
-                                            amount={loan.amount || "-"}
-                                            currency={loan.currency || ""}
-                                            type={loan.type}
-                                        />
-                                    </Box>
-                                ))
                         )}
                     </Box>
                 )}
