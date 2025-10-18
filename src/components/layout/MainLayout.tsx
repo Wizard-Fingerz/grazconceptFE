@@ -120,6 +120,8 @@ export const MainLayout: React.FC = () => {
           { icon: <Groups />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
           { icon: <BeachAccess />, label: 'Vacation', to: '/travel/vacation' },
           { icon: <Hotel />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
+          // Inserted Book Flight menu
+          { icon: <FlightTakeoff />, label: 'Book Flight', to: '/travel/book-flight' },
         ]
       },
       {

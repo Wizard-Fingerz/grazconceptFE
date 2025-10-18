@@ -213,7 +213,7 @@ export const protectedRoutes: RouteObject[] = [
         element: <CustomerProfileSetup />,
       },
       {
-        path: 'dashboard/flight-result',
+        path: 'travel/book-flight',
         element: <FlightListPage />,
       },
       // Register customer placeholder routes

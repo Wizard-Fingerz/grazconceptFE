@@ -148,7 +148,7 @@ export const Dashboard: React.FC = () => {
     let route: string | undefined;
     switch (label) {
       case "Book Flight":
-        route = "/dashboard/flight-result";
+        route = "/travel/book-flight";
         break;
       case "Reserve Hotel":
         route = "/travel/hotel-reservation";
