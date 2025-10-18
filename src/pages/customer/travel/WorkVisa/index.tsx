@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 
 import PublicIcon from "@mui/icons-material/Public";
 import EventIcon from "@mui/icons-material/Event";
-import TrackChangesIcon from "@mui/icons-material/TrackChanges";
+// import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 /**
  * ApplicationCard - Reusable card for displaying application info.
@@ -73,9 +73,9 @@ export const ApplyWorkVisa: React.FC = () => {
   const handleScheduleInterview = () => {
     navigate("/travel/work-visa/schedule-interview");
   };
-  const handleTrackProgress = () => {
-    navigate("/travel/work-visa/track-progress");
-  };
+  // const handleTrackProgress = () => {
+  //   navigate("/travel/work-visa/track-progress");
+  // };
   const handleSubmitCV = () => {
     navigate("/travel/work-visa/submit-cv");
   };
@@ -122,12 +122,12 @@ export const ApplyWorkVisa: React.FC = () => {
           description="Book a date for your Job interview"
           onClick={handleScheduleInterview}
         />
-        <ActionCard
+        {/* <ActionCard
           icon={<TrackChangesIcon fontSize="inherit" />}
           title="Track Progress"
           description="Monitor the status of the application"
           onClick={handleTrackProgress}
-        />
+        /> */}
         <ActionCard
           icon={<AssignmentIcon fontSize="inherit" />}
           title="Submit CV And Apply"
