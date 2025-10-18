@@ -84,15 +84,15 @@ export const ApplyWorkVisa: React.FC = () => {
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
 
 
-<CustomerPageHeader>
-  {/* Page Header */}
-  <Typography variant="h4" className="font-bold mb-2">
-    Apply for
-  </Typography>
-  <Typography variant="h4" className="font-bold mb-6">
-    Work visa
-  </Typography>
-</CustomerPageHeader>
+      <CustomerPageHeader>
+        {/* Page Header */}
+        <Typography variant="h4" className="font-bold mb-2">
+          Apply for
+        </Typography>
+        <Typography variant="h4" className="font-bold mb-6">
+          Work visa
+        </Typography>
+      </CustomerPageHeader>
 
       {/* Sub Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
