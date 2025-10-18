@@ -125,13 +125,11 @@ export const MainLayout: React.FC = () => {
         ]
       },
       {
-        section: 'EDUFINANCE Solution',
+        section: 'Edufinance Solution',
         icon: <AccountBalanceIcon />,
         items: [
           { icon: <AttachMoneyIcon />, label: 'Study Abroad Loan', to: '/edufinance/study-abroad-loan' },
-          { icon: <PeopleIcon />, label: 'Parent/Guardian Loan', to: '/edufinance/parent-loan' },
-          { icon: <AttachMoneyIcon />, label: 'Personal Loan', to: '/edufinance/personal-loan' },
-          { icon: <BusinessCenterIcon />, label: 'Business Loan', to: '/edufinance/business-loan' },
+          { icon: <BusinessCenterIcon />, label: 'Civil Servant Loan', to: '/edufinance/civil-servant-loan' },
         ]
       },
       {
