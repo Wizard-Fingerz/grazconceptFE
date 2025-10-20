@@ -11,10 +11,20 @@ export async function getAllWorkVisas() {
   }
 }
 
+export async function   getMyRecentWorkVisaOffers() {
+  try {
+    const response = await api.get(`/app/work-visa-offers/?limit=2`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+
 // Get recent work visa applications for the current user (limit 5)
 export async function getMyRecentWorkVisaApplications() {
   try {
-    const response = await api.get(`/app/work-visa-applications/?limit=5`);
+    const response = await api.get(`/app/work-visa-application/?limit=5`);
     return response.data;
   } catch (error) {
     throw error;
