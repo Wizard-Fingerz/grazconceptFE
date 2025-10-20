@@ -11,8 +11,8 @@ import {
   Avatar,
   Fade,
 } from "@mui/material";
-import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-import api from "../../../../services/api";
+import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
+import api from "../../../../../services/api";
 
 /**
  * Network providers and logos (public assets assumed to exist)

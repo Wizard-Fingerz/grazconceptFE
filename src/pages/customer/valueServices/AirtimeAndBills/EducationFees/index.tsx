@@ -15,8 +15,8 @@ import {
     FormControl,
     InputLabel,
 } from "@mui/material";
-import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-import api from "../../../../services/api";
+import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
+import api from "../../../../../services/api";
 
 type EducationProviderKey = "waec" | "neco" | "nabteb" | "jamb" | "university" | "others";
 const educationProviders: {

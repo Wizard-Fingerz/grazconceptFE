@@ -71,12 +71,14 @@ import VacationDetails from '../pages/customer/travel/Vacation/VacationDetails';
 import StudyAbroadLoanPage from '../pages/customer/edufinance/Study';
 import CivilServantLoanPage from '../pages/customer/edufinance/CivilServant';
 import EuropianCitizenshipListPage from '../pages/customer/citizenship/European';
-import BuyAirtime from '../pages/customer/valueServices/Airtime';
-import PayUtilityBill from '../pages/customer/valueServices/UtilityBill';
-import CableAndInternetRenewal from '../pages/customer/valueServices/CableAndInternet';
-import DataBundleSubscription from '../pages/customer/valueServices/DataBundle';
-import EducationFeePayment from '../pages/customer/valueServices/EducationFees';
+import BuyAirtime from '../pages/customer/valueServices/AirtimeAndBills/Airtime';
+import PayUtilityBill from '../pages/customer/valueServices/AirtimeAndBills/UtilityBill';
+import CableAndInternetRenewal from '../pages/customer/valueServices/AirtimeAndBills/CableAndInternet';
+import DataBundleSubscription from '../pages/customer/valueServices/AirtimeAndBills/DataBundle';
+import EducationFeePayment from '../pages/customer/valueServices/AirtimeAndBills/EducationFees';
 import AirtimeAndBillsHome from '../pages/customer/valueServices/AirtimeAndBills';
+
+
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [

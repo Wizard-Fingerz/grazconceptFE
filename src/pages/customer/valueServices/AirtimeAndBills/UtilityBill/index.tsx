@@ -15,131 +15,70 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-import api from "../../../../services/api";
+import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
+import api from "../../../../../services/api";
 
 /**
- * Cable & Internet Providers
+ * Utility providers
  */
-const cableInternetProviders: {
+const utilities: {
   label: string;
   value: string;
   logo: string;
   accent?: string;
 }[] = [
   {
-    label: "DSTV",
-    value: "dstv",
-    logo: "/assets/cable/dstv.png",
-    accent: "#273467",
+    label: "Ikeja Electric",
+    value: "ikeja_electric",
+    logo: "/assets/utilities/ikeja-electric.png",
+    accent: "#9f791d",
   },
   {
-    label: "GOTV",
-    value: "gotv",
-    logo: "/assets/cable/gotv.png",
-    accent: "#c11119",
+    label: "Eko Electric",
+    value: "eko_electric",
+    logo: "/assets/utilities/eko-electric.png",
+    accent: "#009ee3",
   },
   {
-    label: "Startimes",
-    value: "startimes",
-    logo: "/assets/cable/startimes.png",
-    accent: "#fd8d22",
+    label: "Abuja Electric",
+    value: "abuja_electric",
+    logo: "/assets/utilities/abuja-electric.png",
+    accent: "#7f0081",
   },
   {
-    label: "Showmax",
-    value: "showmax",
-    logo: "/assets/cable/showmax.png",
-    accent: "#1A0841",
+    label: "Ibadan Electric",
+    value: "ibadan_electric",
+    logo: "/assets/utilities/ibadan-electric.png",
+    accent: "#17355b",
   },
   {
-    label: "Spectranet",
-    value: "spectranet",
-    logo: "/assets/cable/spectranet.png",
-    accent: "#2c2e83",
-  },
-  {
-    label: "Smile",
-    value: "smile",
-    logo: "/assets/cable/smile.png",
-    accent: "#7bc900",
-  },
-  {
-    label: "Swift",
-    value: "swift",
-    logo: "/assets/cable/swift.png",
-    accent: "#f3121b",
-  },
-  {
-    label: "Others",
-    value: "others",
-    logo: "/assets/cable/others.png",
-    accent: "#868686",
+    label: "Kano Electric",
+    value: "kano_electric",
+    logo: "/assets/utilities/kano-electric.png",
+    accent: "#49a02c",
   },
 ];
 
 /**
- * Example Bouquets for demonstration.
- * In real use, you'd want to fetch bouquet/plans based on provider, etc.
+ * Available meter types
  */
-const bouquetsByProvider: Record<string, { label: string; value: string }[]> = {
-  dstv: [
-    { label: "DSTV Access", value: "access" },
-    { label: "DSTV Family", value: "family" },
-    { label: "DSTV Compact", value: "compact" },
-    { label: "DSTV Compact Plus", value: "compact_plus" },
-    { label: "DSTV Premium", value: "premium" },
-  ],
-  gotv: [
-    { label: "GOTV Lite", value: "lite" },
-    { label: "GOTV Value", value: "value" },
-    { label: "GOTV Jolli", value: "jolli" },
-    { label: "GOTV Max", value: "max" },
-    { label: "GOTV Supa", value: "supa" },
-  ],
-  startimes: [
-    { label: "Nova", value: "nova" },
-    { label: "Basic", value: "basic" },
-    { label: "Smart", value: "smart" },
-    { label: "Classic", value: "classic" },
-    { label: "Super", value: "super" },
-  ],
-  showmax: [
-    { label: "Showmax Monthly", value: "monthly" },
-    { label: "Showmax Mobile Only", value: "mobile" },
-  ],
-  spectranet: [
-    { label: "Spectranet Weekly", value: "weekly" },
-    { label: "Spectranet Monthly", value: "monthly" },
-    { label: "Spectranet Unlimited", value: "unlimited" },
-  ],
-  smile: [
-    { label: "Smile 7GB", value: "7gb" },
-    { label: "Smile 30GB", value: "30gb" },
-    { label: "Smile Unlimited", value: "unlimited" },
-  ],
-  swift: [
-    { label: "Swift Mini", value: "mini" },
-    { label: "Swift Plus", value: "plus" },
-    { label: "Swift Mega", value: "mega" },
-  ],
-  others: [
-    { label: "Other Plans", value: "other" },
-  ],
-};
+const meterTypes = [
+  { label: "Prepaid", value: "prepaid" },
+  { label: "Postpaid", value: "postpaid" },
+];
 
-export const CableAndInternetRenewal: React.FC = () => {
-  const [provider, setProvider] = useState<string>("");
-  const [bouquet, setBouquet] = useState<string>("");
-  const [accountNumber, setAccountNumber] = useState<string>("");
+export const PayUtilityBill: React.FC = () => {
+  const [utility, setUtility] = useState<string>("");
+  const [meterType, setMeterType] = useState<string>("");
+  const [meterNumber, setMeterNumber] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Find selected provider details
-  const selectedProvider = cableInternetProviders.find((p) => p.value === provider);
+  // Find selected utility details
+  const selectedUtility = utilities.find((ut) => ut.value === utility);
 
-  // Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg(null);
@@ -148,29 +87,30 @@ export const CableAndInternetRenewal: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       await api.post(
-        "/value-services/cable-internet/renew/",
-        { provider, bouquet, accountNumber, amount },
+        "/value-services/bills/pay/",
+        { utility, meterType, meterNumber, amount },
         { headers }
       );
-      setSuccessMsg("Subscription renewal successful!");
-      setProvider("");
-      setBouquet("");
-      setAccountNumber("");
+      setSuccessMsg("Utility bill payment successful!");
+      setUtility("");
+      setMeterType("");
+      setMeterNumber("");
       setAmount("");
     } catch (err: any) {
       setErrorMsg(
         err?.response?.data?.detail ||
-        "Failed to process your cable/internet renewal. Please try again."
+          "Failed to process your bill payment. Please try again."
       );
     }
     setLoading(false);
   };
 
   /**
-   * Provider Selector
+   * Custom Utility Provider Selector
    */
-  const ProviderSelector = () => (
+  const UtilitySelector = () => (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         sx={{
@@ -182,7 +122,7 @@ export const CableAndInternetRenewal: React.FC = () => {
         }}
       >
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Select Service Provider
+          Select Utility Provider
         </Typography>
         <div
           style={{
@@ -193,9 +133,9 @@ export const CableAndInternetRenewal: React.FC = () => {
             marginBottom: 4,
           }}
         >
-          {cableInternetProviders.map((prov) => (
+          {utilities.map((ut) => (
             <div
-              key={prov.value}
+              key={ut.value}
               style={{
                 flex: "1 1 40%",
                 minWidth: 100,
@@ -207,11 +147,8 @@ export const CableAndInternetRenewal: React.FC = () => {
               }}
             >
               <Button
-                onClick={() => {
-                  setProvider(prov.value);
-                  setBouquet('');
-                }}
-                variant={provider === prov.value ? "contained" : "outlined"}
+                onClick={() => setUtility(ut.value)}
+                variant={utility === ut.value ? "contained" : "outlined"}
                 sx={{
                   width: "100%",
                   display: "flex",
@@ -219,14 +156,14 @@ export const CableAndInternetRenewal: React.FC = () => {
                   justifyContent: "center",
                   alignItems: "center",
                   bgcolor:
-                    provider === prov.value ? prov.accent || "primary.main" : "#fff",
-                  color: provider === prov.value ? "#222" : "inherit",
+                    utility === ut.value ? ut.accent || "primary.main" : "#fff",
+                  color: utility === ut.value ? "#222" : "inherit",
                   border:
-                    provider === prov.value
-                      ? `2px solid ${prov.accent || "#aaa"}`
+                    utility === ut.value
+                      ? `2px solid ${ut.accent || "#aaa"}`
                       : "1.5px solid #eee",
                   boxShadow:
-                    provider === prov.value
+                    utility === ut.value
                       ? "0 6px 24px 2px rgba(60,60,0,0.06)"
                       : "none",
                   transition: "all 0.18s",
@@ -236,14 +173,14 @@ export const CableAndInternetRenewal: React.FC = () => {
                   minHeight: 80,
                   gap: 0.5,
                   "&:hover": {
-                    borderColor: prov.accent,
-                    bgcolor: prov.accent + "11",
+                    borderColor: ut.accent,
+                    bgcolor: ut.accent + "11",
                   },
                 }}
               >
                 <Avatar
-                  src={prov.logo}
-                  alt={prov.label}
+                  src={ut.logo}
+                  alt={ut.label}
                   sx={{
                     width: 36,
                     height: 36,
@@ -254,12 +191,12 @@ export const CableAndInternetRenewal: React.FC = () => {
                     style: { objectFit: "contain" },
                   }}
                 />
-                <span style={{ fontSize: 15, fontWeight: 500 }}>{prov.label}</span>
+                <span style={{ fontSize: 15, fontWeight: 500 }}>{ut.label}</span>
               </Button>
             </div>
           ))}
         </div>
-        {!provider && (
+        {!utility && (
           <Typography
             color="error"
             variant="caption"
@@ -273,32 +210,28 @@ export const CableAndInternetRenewal: React.FC = () => {
   );
 
   /**
-   * Bouquet/Plan Selector
+   * Meter Type Selector
    */
-  const BouquetSelector = () => (
+  const MeterTypeSelector = () => (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         className="flex flex-col items-center justify-center"
         sx={{ height: { xs: 120, sm: 140 }, width: "100%" }}
       >
         <FormControl fullWidth>
-          <InputLabel id="bouquet-type-label">
-            {selectedProvider ? "Plan/Bouquet" : "Plan/Bouquet (Select Provider First)"}
-          </InputLabel>
+          <InputLabel id="meter-type-label">Meter Type</InputLabel>
           <Select
-            labelId="bouquet-type-label"
-            label="Plan/Bouquet"
-            value={bouquet}
-            onChange={(e) => setBouquet(e.target.value as string)}
-            disabled={!provider}
+            labelId="meter-type-label"
+            label="Meter Type"
+            value={meterType}
+            onChange={(e) => setMeterType(e.target.value as string)}
             required
           >
-            {provider &&
-              (bouquetsByProvider[provider] || [{ label: 'Other', value: 'other' }]).map((b) => (
-                <MenuItem value={b.value} key={b.value}>
-                  {b.label}
-                </MenuItem>
-              ))}
+            {meterTypes.map((m) => (
+              <MenuItem value={m.value} key={m.value}>
+                {m.label}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
       </CardContent>
@@ -306,9 +239,9 @@ export const CableAndInternetRenewal: React.FC = () => {
   );
 
   /**
-   * Account Number/Smartcard/Username Input
+   * Meter Number Input
    */
-  const AccountInput = () => (
+  const MeterNumberInput = () => (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         className="flex flex-col items-center justify-center"
@@ -316,17 +249,9 @@ export const CableAndInternetRenewal: React.FC = () => {
       >
         <TextField
           fullWidth
-          label={
-            provider === "dstv" || provider === "gotv"
-              ? "Smartcard/IUC Number"
-              : provider === "startimes"
-                ? "Smartcard Number"
-                : provider === "spectranet" || provider === "smile" || provider === "swift"
-                  ? "Username/Account Number"
-                  : "Account/Identification Number"
-          }
-          value={accountNumber}
-          onChange={(e) => setAccountNumber(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
+          label="Meter Number"
+          value={meterNumber}
+          onChange={(e) => setMeterNumber(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
           variant="outlined"
           InputProps={{
             sx: { fontWeight: 500 },
@@ -335,7 +260,7 @@ export const CableAndInternetRenewal: React.FC = () => {
             sx: { fontWeight: 500 },
           }}
           required
-          placeholder="Enter your Unique Number"
+          placeholder="Enter your meter number"
         />
       </CardContent>
     </Card>
@@ -349,8 +274,8 @@ export const CableAndInternetRenewal: React.FC = () => {
       className="rounded-2xl shadow-md"
       sx={{
         border:
-          selectedProvider && selectedProvider.accent
-            ? `2px solid ${selectedProvider.accent}`
+          selectedUtility && selectedUtility.accent
+            ? `2px solid ${selectedUtility.accent}`
             : undefined,
         transition: "border 0.2s",
       }}
@@ -397,13 +322,13 @@ export const CableAndInternetRenewal: React.FC = () => {
             lineHeight: 1.1,
           }}
         >
-          Cable & Internet Renewal
+          Pay Utility & Electricity Bills
         </Typography>
       </CustomerPageHeader>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <Typography variant="body1" className="text-gray-700 max-w-md">
-          Renew your TV cable (DSTV, GOTV, Startimes, etc) or Internet subscriptions instantly, safe and reliable. Your viewing or browsing continues with no delay!
+          Instantly pay for your electricity or utility bills across major Nigerian providers. Safe and seamless, with your meter token delivered right here!
         </Typography>
         <Button
           variant="contained"
@@ -415,18 +340,18 @@ export const CableAndInternetRenewal: React.FC = () => {
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-6 mb-6">
-          <ProviderSelector />
-          <Fade in={!!provider}>
+          <UtilitySelector />
+          <Fade in={!!utility}>
             <div>
-              <BouquetSelector />
+              <MeterTypeSelector />
             </div>
           </Fade>
-          <Fade in={!!provider && !!bouquet}>
+          <Fade in={!!utility && !!meterType}>
             <div>
-              <AccountInput />
+              <MeterNumberInput />
             </div>
           </Fade>
-          <Fade in={!!provider && !!bouquet && !!accountNumber}>
+          <Fade in={!!utility && !!meterType}>
             <div>
               <AmountInput />
             </div>
@@ -438,9 +363,9 @@ export const CableAndInternetRenewal: React.FC = () => {
           fullWidth
           className="bg-purple-700 hover:bg-purple-800 text-white rounded-full py-3 font-semibold normal-case"
           disabled={
-            !provider ||
-            !bouquet ||
-            !accountNumber ||
+            !utility ||
+            !meterType ||
+            !meterNumber ||
             !amount ||
             loading
           }
@@ -458,11 +383,11 @@ export const CableAndInternetRenewal: React.FC = () => {
             <CircularProgress size={24} color="inherit" />
           ) : (
             <>
-              <span>Renew Now</span>
-              {selectedProvider && (
+              <span>Pay Bill</span>
+              {selectedUtility && (
                 <Avatar
-                  src={selectedProvider.logo}
-                  alt={selectedProvider.label}
+                  src={selectedUtility.logo}
+                  alt={selectedUtility.label}
                   sx={{
                     width: 24,
                     height: 24,
@@ -499,23 +424,23 @@ export const CableAndInternetRenewal: React.FC = () => {
       </Typography>
       <div className="flex flex-col gap-2">
         <Typography variant="body2">
-          1. Select your Cable/Internet provider above.
+          1. Select your electricity provider above.
         </Typography>
         <Typography variant="body2">
-          2. Choose your plan or bouquet.
+          2. Pick meter type (Prepaid or Postpaid).
         </Typography>
         <Typography variant="body2">
-          3. Enter your smartcard, IUC, username, or account number as appropriate.
+          3. Enter your meter number as shown on your device/bill.
         </Typography>
         <Typography variant="body2">
-          4. Enter the amount corresponding to your selected plan (&#8358;500 minimum).
+          4. Enter the amount you wish to pay (&#8358;500 minimum).
         </Typography>
         <Typography variant="body2">
-          5. Click "Renew Now" and follow prompts. Your renewal will take effect instantly!
+          5. Click "Pay Bill" and follow prompts. Your token (for prepaid) will be shown after payment.
         </Typography>
       </div>
     </Box>
   );
 };
 
-export default CableAndInternetRenewal;
+export default PayUtilityBill;

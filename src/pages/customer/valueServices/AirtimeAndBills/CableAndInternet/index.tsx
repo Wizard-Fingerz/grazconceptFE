@@ -15,70 +15,131 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-import api from "../../../../services/api";
+import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
+import api from "../../../../../services/api";
 
 /**
- * Utility providers
+ * Cable & Internet Providers
  */
-const utilities: {
+const cableInternetProviders: {
   label: string;
   value: string;
   logo: string;
   accent?: string;
 }[] = [
   {
-    label: "Ikeja Electric",
-    value: "ikeja_electric",
-    logo: "/assets/utilities/ikeja-electric.png",
-    accent: "#9f791d",
+    label: "DSTV",
+    value: "dstv",
+    logo: "/assets/cable/dstv.png",
+    accent: "#273467",
   },
   {
-    label: "Eko Electric",
-    value: "eko_electric",
-    logo: "/assets/utilities/eko-electric.png",
-    accent: "#009ee3",
+    label: "GOTV",
+    value: "gotv",
+    logo: "/assets/cable/gotv.png",
+    accent: "#c11119",
   },
   {
-    label: "Abuja Electric",
-    value: "abuja_electric",
-    logo: "/assets/utilities/abuja-electric.png",
-    accent: "#7f0081",
+    label: "Startimes",
+    value: "startimes",
+    logo: "/assets/cable/startimes.png",
+    accent: "#fd8d22",
   },
   {
-    label: "Ibadan Electric",
-    value: "ibadan_electric",
-    logo: "/assets/utilities/ibadan-electric.png",
-    accent: "#17355b",
+    label: "Showmax",
+    value: "showmax",
+    logo: "/assets/cable/showmax.png",
+    accent: "#1A0841",
   },
   {
-    label: "Kano Electric",
-    value: "kano_electric",
-    logo: "/assets/utilities/kano-electric.png",
-    accent: "#49a02c",
+    label: "Spectranet",
+    value: "spectranet",
+    logo: "/assets/cable/spectranet.png",
+    accent: "#2c2e83",
+  },
+  {
+    label: "Smile",
+    value: "smile",
+    logo: "/assets/cable/smile.png",
+    accent: "#7bc900",
+  },
+  {
+    label: "Swift",
+    value: "swift",
+    logo: "/assets/cable/swift.png",
+    accent: "#f3121b",
+  },
+  {
+    label: "Others",
+    value: "others",
+    logo: "/assets/cable/others.png",
+    accent: "#868686",
   },
 ];
 
 /**
- * Available meter types
+ * Example Bouquets for demonstration.
+ * In real use, you'd want to fetch bouquet/plans based on provider, etc.
  */
-const meterTypes = [
-  { label: "Prepaid", value: "prepaid" },
-  { label: "Postpaid", value: "postpaid" },
-];
+const bouquetsByProvider: Record<string, { label: string; value: string }[]> = {
+  dstv: [
+    { label: "DSTV Access", value: "access" },
+    { label: "DSTV Family", value: "family" },
+    { label: "DSTV Compact", value: "compact" },
+    { label: "DSTV Compact Plus", value: "compact_plus" },
+    { label: "DSTV Premium", value: "premium" },
+  ],
+  gotv: [
+    { label: "GOTV Lite", value: "lite" },
+    { label: "GOTV Value", value: "value" },
+    { label: "GOTV Jolli", value: "jolli" },
+    { label: "GOTV Max", value: "max" },
+    { label: "GOTV Supa", value: "supa" },
+  ],
+  startimes: [
+    { label: "Nova", value: "nova" },
+    { label: "Basic", value: "basic" },
+    { label: "Smart", value: "smart" },
+    { label: "Classic", value: "classic" },
+    { label: "Super", value: "super" },
+  ],
+  showmax: [
+    { label: "Showmax Monthly", value: "monthly" },
+    { label: "Showmax Mobile Only", value: "mobile" },
+  ],
+  spectranet: [
+    { label: "Spectranet Weekly", value: "weekly" },
+    { label: "Spectranet Monthly", value: "monthly" },
+    { label: "Spectranet Unlimited", value: "unlimited" },
+  ],
+  smile: [
+    { label: "Smile 7GB", value: "7gb" },
+    { label: "Smile 30GB", value: "30gb" },
+    { label: "Smile Unlimited", value: "unlimited" },
+  ],
+  swift: [
+    { label: "Swift Mini", value: "mini" },
+    { label: "Swift Plus", value: "plus" },
+    { label: "Swift Mega", value: "mega" },
+  ],
+  others: [
+    { label: "Other Plans", value: "other" },
+  ],
+};
 
-export const PayUtilityBill: React.FC = () => {
-  const [utility, setUtility] = useState<string>("");
-  const [meterType, setMeterType] = useState<string>("");
-  const [meterNumber, setMeterNumber] = useState<string>("");
+export const CableAndInternetRenewal: React.FC = () => {
+  const [provider, setProvider] = useState<string>("");
+  const [bouquet, setBouquet] = useState<string>("");
+  const [accountNumber, setAccountNumber] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Find selected utility details
-  const selectedUtility = utilities.find((ut) => ut.value === utility);
+  // Find selected provider details
+  const selectedProvider = cableInternetProviders.find((p) => p.value === provider);
 
+  // Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg(null);
@@ -87,30 +148,29 @@ export const PayUtilityBill: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
       await api.post(
-        "/value-services/bills/pay/",
-        { utility, meterType, meterNumber, amount },
+        "/value-services/cable-internet/renew/",
+        { provider, bouquet, accountNumber, amount },
         { headers }
       );
-      setSuccessMsg("Utility bill payment successful!");
-      setUtility("");
-      setMeterType("");
-      setMeterNumber("");
+      setSuccessMsg("Subscription renewal successful!");
+      setProvider("");
+      setBouquet("");
+      setAccountNumber("");
       setAmount("");
     } catch (err: any) {
       setErrorMsg(
         err?.response?.data?.detail ||
-          "Failed to process your bill payment. Please try again."
+        "Failed to process your cable/internet renewal. Please try again."
       );
     }
     setLoading(false);
   };
 
   /**
-   * Custom Utility Provider Selector
+   * Provider Selector
    */
-  const UtilitySelector = () => (
+  const ProviderSelector = () => (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         sx={{
@@ -122,7 +182,7 @@ export const PayUtilityBill: React.FC = () => {
         }}
       >
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Select Utility Provider
+          Select Service Provider
         </Typography>
         <div
           style={{
@@ -133,9 +193,9 @@ export const PayUtilityBill: React.FC = () => {
             marginBottom: 4,
           }}
         >
-          {utilities.map((ut) => (
+          {cableInternetProviders.map((prov) => (
             <div
-              key={ut.value}
+              key={prov.value}
               style={{
                 flex: "1 1 40%",
                 minWidth: 100,
@@ -147,8 +207,11 @@ export const PayUtilityBill: React.FC = () => {
               }}
             >
               <Button
-                onClick={() => setUtility(ut.value)}
-                variant={utility === ut.value ? "contained" : "outlined"}
+                onClick={() => {
+                  setProvider(prov.value);
+                  setBouquet('');
+                }}
+                variant={provider === prov.value ? "contained" : "outlined"}
                 sx={{
                   width: "100%",
                   display: "flex",
@@ -156,14 +219,14 @@ export const PayUtilityBill: React.FC = () => {
                   justifyContent: "center",
                   alignItems: "center",
                   bgcolor:
-                    utility === ut.value ? ut.accent || "primary.main" : "#fff",
-                  color: utility === ut.value ? "#222" : "inherit",
+                    provider === prov.value ? prov.accent || "primary.main" : "#fff",
+                  color: provider === prov.value ? "#222" : "inherit",
                   border:
-                    utility === ut.value
-                      ? `2px solid ${ut.accent || "#aaa"}`
+                    provider === prov.value
+                      ? `2px solid ${prov.accent || "#aaa"}`
                       : "1.5px solid #eee",
                   boxShadow:
-                    utility === ut.value
+                    provider === prov.value
                       ? "0 6px 24px 2px rgba(60,60,0,0.06)"
                       : "none",
                   transition: "all 0.18s",
@@ -173,14 +236,14 @@ export const PayUtilityBill: React.FC = () => {
                   minHeight: 80,
                   gap: 0.5,
                   "&:hover": {
-                    borderColor: ut.accent,
-                    bgcolor: ut.accent + "11",
+                    borderColor: prov.accent,
+                    bgcolor: prov.accent + "11",
                   },
                 }}
               >
                 <Avatar
-                  src={ut.logo}
-                  alt={ut.label}
+                  src={prov.logo}
+                  alt={prov.label}
                   sx={{
                     width: 36,
                     height: 36,
@@ -191,12 +254,12 @@ export const PayUtilityBill: React.FC = () => {
                     style: { objectFit: "contain" },
                   }}
                 />
-                <span style={{ fontSize: 15, fontWeight: 500 }}>{ut.label}</span>
+                <span style={{ fontSize: 15, fontWeight: 500 }}>{prov.label}</span>
               </Button>
             </div>
           ))}
         </div>
-        {!utility && (
+        {!provider && (
           <Typography
             color="error"
             variant="caption"
@@ -210,28 +273,32 @@ export const PayUtilityBill: React.FC = () => {
   );
 
   /**
-   * Meter Type Selector
+   * Bouquet/Plan Selector
    */
-  const MeterTypeSelector = () => (
+  const BouquetSelector = () => (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         className="flex flex-col items-center justify-center"
         sx={{ height: { xs: 120, sm: 140 }, width: "100%" }}
       >
         <FormControl fullWidth>
-          <InputLabel id="meter-type-label">Meter Type</InputLabel>
+          <InputLabel id="bouquet-type-label">
+            {selectedProvider ? "Plan/Bouquet" : "Plan/Bouquet (Select Provider First)"}
+          </InputLabel>
           <Select
-            labelId="meter-type-label"
-            label="Meter Type"
-            value={meterType}
-            onChange={(e) => setMeterType(e.target.value as string)}
+            labelId="bouquet-type-label"
+            label="Plan/Bouquet"
+            value={bouquet}
+            onChange={(e) => setBouquet(e.target.value as string)}
+            disabled={!provider}
             required
           >
-            {meterTypes.map((m) => (
-              <MenuItem value={m.value} key={m.value}>
-                {m.label}
-              </MenuItem>
-            ))}
+            {provider &&
+              (bouquetsByProvider[provider] || [{ label: 'Other', value: 'other' }]).map((b) => (
+                <MenuItem value={b.value} key={b.value}>
+                  {b.label}
+                </MenuItem>
+              ))}
           </Select>
         </FormControl>
       </CardContent>
@@ -239,9 +306,9 @@ export const PayUtilityBill: React.FC = () => {
   );
 
   /**
-   * Meter Number Input
+   * Account Number/Smartcard/Username Input
    */
-  const MeterNumberInput = () => (
+  const AccountInput = () => (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         className="flex flex-col items-center justify-center"
@@ -249,9 +316,17 @@ export const PayUtilityBill: React.FC = () => {
       >
         <TextField
           fullWidth
-          label="Meter Number"
-          value={meterNumber}
-          onChange={(e) => setMeterNumber(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
+          label={
+            provider === "dstv" || provider === "gotv"
+              ? "Smartcard/IUC Number"
+              : provider === "startimes"
+                ? "Smartcard Number"
+                : provider === "spectranet" || provider === "smile" || provider === "swift"
+                  ? "Username/Account Number"
+                  : "Account/Identification Number"
+          }
+          value={accountNumber}
+          onChange={(e) => setAccountNumber(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
           variant="outlined"
           InputProps={{
             sx: { fontWeight: 500 },
@@ -260,7 +335,7 @@ export const PayUtilityBill: React.FC = () => {
             sx: { fontWeight: 500 },
           }}
           required
-          placeholder="Enter your meter number"
+          placeholder="Enter your Unique Number"
         />
       </CardContent>
     </Card>
@@ -274,8 +349,8 @@ export const PayUtilityBill: React.FC = () => {
       className="rounded-2xl shadow-md"
       sx={{
         border:
-          selectedUtility && selectedUtility.accent
-            ? `2px solid ${selectedUtility.accent}`
+          selectedProvider && selectedProvider.accent
+            ? `2px solid ${selectedProvider.accent}`
             : undefined,
         transition: "border 0.2s",
       }}
@@ -322,13 +397,13 @@ export const PayUtilityBill: React.FC = () => {
             lineHeight: 1.1,
           }}
         >
-          Pay Utility & Electricity Bills
+          Cable & Internet Renewal
         </Typography>
       </CustomerPageHeader>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <Typography variant="body1" className="text-gray-700 max-w-md">
-          Instantly pay for your electricity or utility bills across major Nigerian providers. Safe and seamless, with your meter token delivered right here!
+          Renew your TV cable (DSTV, GOTV, Startimes, etc) or Internet subscriptions instantly, safe and reliable. Your viewing or browsing continues with no delay!
         </Typography>
         <Button
           variant="contained"
@@ -340,18 +415,18 @@ export const PayUtilityBill: React.FC = () => {
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-6 mb-6">
-          <UtilitySelector />
-          <Fade in={!!utility}>
+          <ProviderSelector />
+          <Fade in={!!provider}>
             <div>
-              <MeterTypeSelector />
+              <BouquetSelector />
             </div>
           </Fade>
-          <Fade in={!!utility && !!meterType}>
+          <Fade in={!!provider && !!bouquet}>
             <div>
-              <MeterNumberInput />
+              <AccountInput />
             </div>
           </Fade>
-          <Fade in={!!utility && !!meterType}>
+          <Fade in={!!provider && !!bouquet && !!accountNumber}>
             <div>
               <AmountInput />
             </div>
@@ -363,9 +438,9 @@ export const PayUtilityBill: React.FC = () => {
           fullWidth
           className="bg-purple-700 hover:bg-purple-800 text-white rounded-full py-3 font-semibold normal-case"
           disabled={
-            !utility ||
-            !meterType ||
-            !meterNumber ||
+            !provider ||
+            !bouquet ||
+            !accountNumber ||
             !amount ||
             loading
           }
@@ -383,11 +458,11 @@ export const PayUtilityBill: React.FC = () => {
             <CircularProgress size={24} color="inherit" />
           ) : (
             <>
-              <span>Pay Bill</span>
-              {selectedUtility && (
+              <span>Renew Now</span>
+              {selectedProvider && (
                 <Avatar
-                  src={selectedUtility.logo}
-                  alt={selectedUtility.label}
+                  src={selectedProvider.logo}
+                  alt={selectedProvider.label}
                   sx={{
                     width: 24,
                     height: 24,
@@ -424,23 +499,23 @@ export const PayUtilityBill: React.FC = () => {
       </Typography>
       <div className="flex flex-col gap-2">
         <Typography variant="body2">
-          1. Select your electricity provider above.
+          1. Select your Cable/Internet provider above.
         </Typography>
         <Typography variant="body2">
-          2. Pick meter type (Prepaid or Postpaid).
+          2. Choose your plan or bouquet.
         </Typography>
         <Typography variant="body2">
-          3. Enter your meter number as shown on your device/bill.
+          3. Enter your smartcard, IUC, username, or account number as appropriate.
         </Typography>
         <Typography variant="body2">
-          4. Enter the amount you wish to pay (&#8358;500 minimum).
+          4. Enter the amount corresponding to your selected plan (&#8358;500 minimum).
         </Typography>
         <Typography variant="body2">
-          5. Click "Pay Bill" and follow prompts. Your token (for prepaid) will be shown after payment.
+          5. Click "Renew Now" and follow prompts. Your renewal will take effect instantly!
         </Typography>
       </div>
     </Box>
   );
 };
 
-export default PayUtilityBill;
+export default CableAndInternetRenewal;

@@ -17,8 +17,8 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
-import api from "../../../../services/api";
+import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
+import api from "../../../../../services/api";
 
 /**
  * Extended data bundles with category
