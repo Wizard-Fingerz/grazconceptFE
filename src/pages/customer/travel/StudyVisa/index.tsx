@@ -170,6 +170,9 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoading(false));
   }, []);
 
+  console.log(institutions)
+  console.log(courses)
+
   // Fetch recent study visa applications on mount
   useEffect(() => {
     setLoadingApplications(true);
