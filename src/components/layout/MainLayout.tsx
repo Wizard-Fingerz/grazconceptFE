@@ -107,7 +107,7 @@ export const MainLayout: React.FC = () => {
         items: [
           { icon: <HomeIcon />, label: 'Dashboard', to: '/dashboard' },
           // Added: Track Progress menu right after Dashboard for visibility
-          { icon: <NotificationsIcon />, label: 'Track Progress', to: '/track-progress' },
+          { icon: <NotificationsIcon />, label: 'Track Application', to: '/track-progress' },
         ]
       },
       {
