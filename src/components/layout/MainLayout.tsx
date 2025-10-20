@@ -37,7 +37,6 @@ import {
   Public as PublicIcon,
   Person as PersonIcon,
   Home as HomeIcon,
-  CardGiftcard as CardGiftcardIcon,
   SupportAgent as SupportAgentIcon,
   FlightTakeoff as FlightTakeoffIcon,
   School as SchoolBaseIcon, // renamed to avoid name collision
@@ -46,10 +45,7 @@ import {
   Groups as GroupsIcon,
   BeachAccess as BeachAccessIcon,
   Hotel as HotelIcon,
-  PhoneIphone as PhoneIphoneIcon,
-  Power as PowerIcon,
-  Tv as TvIcon,
-  DataUsage as DataUsageIcon} from '@mui/icons-material';
+  PhoneIphone as PhoneIphoneIcon} from '@mui/icons-material';
 import { useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import SidebarContent from '../SideBar/SidebarContent';
@@ -141,39 +137,27 @@ export const MainLayout: React.FC = () => {
       // 🟡 Airtime & Bills Payment
       {
         section: 'Other Services',
-        icon: <CardGiftcardIcon  />,
+        icon: <AppsOutlinedIcon />,
         items: [
           {
-            icon: <PhoneIphoneIcon   />,
-            label: 'Buy Airtime Instantly',
-            to: '/services/airtime',
-            description: 'Buy airtime instantly for all networks'
+            icon: <PhoneIphoneIcon />,
+            label: 'Airtime & Bills',
+            to: '/services/airtime-and-bills',
+            description: 'Buy airtime & pay bills for all networks and services',
           },
           {
-            icon: <PowerIcon   />,
-            label: 'Pay Utility & Electricity Bills',
-            to: '/services/bills',
-            description: 'Pay utility and electricity bills with ease'
+            icon: <FlightTakeoffIcon />,
+            label: 'Visa & Travel Services',
+            to: '/travel/study-visa',
+            description: 'Access visa application and travel support',
           },
           {
-            icon: <TvIcon   />,
-            label: 'Cable & Internet Renewal',
-            to: '/services/cable-internet',
-            description: 'Renew your cable and internet subscriptions'
-          },
-          {
-            icon: <DataUsageIcon   />,
-            label: 'Buy Data Bundles',
-            to: '/services/data-bundle',
-            description: 'Purchase data bundles at discounted rates'
-          },
-          {
-            icon: <SchoolIcon   />,
-            label: 'Pay Education & Exam Fees',
+            icon: <SchoolIcon />,
+            label: 'Education Services',
             to: '/services/education-fees',
-            description: 'Pay education and exam fees conveniently'
+            description: 'Pay school and exam fees, or explore study support',
           },
-        ]
+        ],
       },
 
       {

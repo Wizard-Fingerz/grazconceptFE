@@ -76,6 +76,7 @@ import PayUtilityBill from '../pages/customer/valueServices/UtilityBill';
 import CableAndInternetRenewal from '../pages/customer/valueServices/CableAndInternet';
 import DataBundleSubscription from '../pages/customer/valueServices/DataBundle';
 import EducationFeePayment from '../pages/customer/valueServices/EducationFees';
+import AirtimeAndBillsHome from '../pages/customer/valueServices/AirtimeAndBills';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -333,6 +334,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'services/airtime',
         element: <BuyAirtime />,
+      },
+      {
+        path: 'services/airtime-and-bills',
+        element: <AirtimeAndBillsHome />,
       },
       {
         path: 'services/bills',
