@@ -32,7 +32,11 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
       <Box className="sidebar-header" display="flex" alignItems="center" sx={{ padding: 1 }}>
         {isOpen && (
           <Box sx={{ ml: 2, flexGrow: 1 }}>
-            <img src={logo} alt="Logo" style={{ objectFit: 'contain' }} />
+            <img
+              src={logo}
+              alt="Logo"
+              style={{ objectFit: 'contain', height: 50, width: 50 }}
+            />
           </Box>
         )}
         {toggleSidebar && (
