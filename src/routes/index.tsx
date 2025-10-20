@@ -72,6 +72,9 @@ import StudyAbroadLoanPage from '../pages/customer/edufinance/Study';
 import CivilServantLoanPage from '../pages/customer/edufinance/CivilServant';
 import EuropianCitizenshipListPage from '../pages/customer/citizenship/European';
 import BuyAirtime from '../pages/customer/valueServices/Airtime';
+import PayUtilityBill from '../pages/customer/valueServices/UtilityBill';
+import CableAndInternetRenewal from '../pages/customer/valueServices/CableAndInternet';
+import DataBundleSubscription from '../pages/customer/valueServices/DataBundle';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -329,6 +332,18 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'services/airtime',
         element: <BuyAirtime />,
+      },
+      {
+        path: 'services/bills',
+        element: <PayUtilityBill />,
+      },
+      {
+        path: 'services/cable-internet',
+        element: <CableAndInternetRenewal />,
+      },
+      {
+        path: 'services/data-bundle',
+        element: <DataBundleSubscription />,
       },
       {
         path: 'value-added/loyalty',
