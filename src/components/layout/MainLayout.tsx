@@ -148,13 +148,13 @@ export const MainLayout: React.FC = () => {
           {
             icon: <FlightTakeoffIcon />,
             label: 'Visa & Travel Services',
-            to: '/travel/study-visa',
+            to: '/services/visa-and-travel',
             description: 'Access visa application and travel support',
           },
           {
             icon: <SchoolIcon />,
             label: 'Education Services',
-            to: '/services/education-fees',
+            to: '/services/education-services',
             description: 'Pay school and exam fees, or explore study support',
           },
         ],

@@ -77,6 +77,8 @@ import CableAndInternetRenewal from '../pages/customer/valueServices/AirtimeAndB
 import DataBundleSubscription from '../pages/customer/valueServices/AirtimeAndBills/DataBundle';
 import EducationFeePayment from '../pages/customer/valueServices/AirtimeAndBills/EducationFees';
 import AirtimeAndBillsHome from '../pages/customer/valueServices/AirtimeAndBills';
+import VisaAndTravelHome from '../pages/customer/valueServices/VisaAndTravel';
+import EducationServicesHome from '../pages/customer/valueServices/EducationServices';
 
 
 
@@ -340,6 +342,14 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'services/airtime-and-bills',
         element: <AirtimeAndBillsHome />,
+      },
+      {
+        path: 'services/visa-and-travel',
+        element: <VisaAndTravelHome />,
+      },
+      {
+        path: 'services/education-services',
+        element: <EducationServicesHome />,
       },
       {
         path: 'services/bills',
