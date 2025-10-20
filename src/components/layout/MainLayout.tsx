@@ -19,15 +19,15 @@ import {
   Notifications as NotificationsIcon,
   Settings as SettingsIcon,
   Help as HelpIcon,
-  AppsOutlined,
-  Calculate,
-  Functions,
-  Group,
-  Handyman,
-  Language,
-  MenuBook,
-  Transform,
-  Translate,
+  AppsOutlined as AppsOutlinedIcon,
+  Calculate as CalculateIcon,
+  Functions as FunctionsIcon,
+  Group as GroupIcon,
+  Handyman as HandymanIcon,
+  Language as LanguageIcon,
+  MenuBook as MenuBookIcon,
+  Transform as TransformIcon,
+  Translate as TranslateIcon,
   AttachMoney as AttachMoneyIcon,
   BusinessCenter as BusinessCenterIcon,
   EmojiEvents as EmojiEventsIcon,
@@ -35,21 +35,21 @@ import {
   AssignmentInd as AssignmentIndIcon,
   AccountBalance as AccountBalanceIcon,
   Public as PublicIcon,
-  Star as StarIcon,
   Person as PersonIcon,
   Home as HomeIcon,
   CardGiftcard as CardGiftcardIcon,
-  Loyalty as LoyaltyIcon,
   SupportAgent as SupportAgentIcon,
-  EventAvailable,
-  FlightTakeoff,
-  School,
-  SchoolOutlined,
-  WorkOutline,
-  Groups,
-  BeachAccess,
-  Hotel,
-} from '@mui/icons-material';
+  FlightTakeoff as FlightTakeoffIcon,
+  School as SchoolBaseIcon, // renamed to avoid name collision
+  SchoolOutlined as SchoolOutlinedIcon,
+  WorkOutline as WorkOutlineIcon,
+  Groups as GroupsIcon,
+  BeachAccess as BeachAccessIcon,
+  Hotel as HotelIcon,
+  PhoneIphone as PhoneIphoneIcon,
+  Power as PowerIcon,
+  Tv as TvIcon,
+  DataUsage as DataUsageIcon} from '@mui/icons-material';
 import { useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import SidebarContent from '../SideBar/SidebarContent';
@@ -106,22 +106,20 @@ export const MainLayout: React.FC = () => {
         icon: <HomeIcon />,
         items: [
           { icon: <HomeIcon />, label: 'Dashboard', to: '/dashboard' },
-          // Added: Track Progress menu right after Dashboard for visibility
           { icon: <NotificationsIcon />, label: 'Track Application', to: '/track-progress' },
         ]
       },
       {
         section: 'Travel Solution',
-        icon: <FlightTakeoff />,
+        icon: <FlightTakeoffIcon />,
         items: [
-          { icon: <School />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
-          { icon: <SchoolOutlined />, label: 'Apply Study Program', to: '/travel/study-visa' },
-          { icon: <WorkOutline />, label: 'Work Visa', to: '/travel/work-visa' },
-          { icon: <Groups />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
-          { icon: <BeachAccess />, label: 'Vacation', to: '/travel/vacation' },
-          { icon: <Hotel />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
-          // Inserted Book Flight menu
-          { icon: <FlightTakeoff />, label: 'Book Flight', to: '/travel/book-flight' },
+          { icon: <SchoolBaseIcon />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
+          { icon: <SchoolOutlinedIcon />, label: 'Apply Study Program', to: '/travel/study-visa' },
+          { icon: <WorkOutlineIcon />, label: 'Work Visa', to: '/travel/work-visa' },
+          { icon: <GroupsIcon />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
+          { icon: <BeachAccessIcon />, label: 'Vacation', to: '/travel/vacation' },
+          { icon: <HotelIcon />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
+          { icon: <FlightTakeoffIcon />, label: 'Book Flight', to: '/travel/book-flight' },
         ]
       },
       {
@@ -140,64 +138,44 @@ export const MainLayout: React.FC = () => {
           { icon: <AssignmentIndIcon />, label: 'Investment Plan', to: '/citizenship/investment-plan' },
         ]
       },
+      // 🟡 Airtime & Bills Payment
       {
         section: 'Other Services',
-        icon: <StarIcon />,
+        icon: <CardGiftcardIcon  />,
         items: [
-          { 
-            icon: <CardGiftcardIcon />, 
-            label: 'Gift Cards', 
-            to: '/value-added/gift-cards'
+          {
+            icon: <PhoneIphoneIcon   />,
+            label: 'Buy Airtime Instantly',
+            to: '/services/airtime',
+            description: 'Buy airtime instantly for all networks'
           },
-          { 
-            icon: <LoyaltyIcon />, 
-            label: 'Loyalty Program', 
-            to: '/value-added/loyalty' 
+          {
+            icon: <PowerIcon   />,
+            label: 'Pay Utility & Electricity Bills',
+            to: '/services/bills',
+            description: 'Pay utility and electricity bills with ease'
           },
-          { 
-            icon: <AssignmentIndIcon />, 
-            label: 'Visa & Document Review',
-            to: '/value-added/visa-document-review',
-            description: 'Upload your visa or admission documents for expert verification before submission. Avoid rejection with our professional checks.'
+          {
+            icon: <TvIcon   />,
+            label: 'Cable & Internet Renewal',
+            to: '/services/cable-internet',
+            description: 'Renew your cable and internet subscriptions'
           },
-           { 
-            icon: <EventAvailable />, 
-            label: 'Embassy Appointment Booking',
-            to: '/value-added/embassy-appointment',
-            description: 'Secure your embassy or biometric appointment quickly and stress-free through our support system.'
+          {
+            icon: <DataUsageIcon   />,
+            label: 'Buy Data Bundles',
+            to: '/services/data-bundle',
+            description: 'Purchase data bundles at discounted rates'
           },
-          { 
-            icon: <NotificationsIcon />, 
-            label: 'Visa Tracking & Update Notification',
-            to: '/value-added/visa-tracking',
-            description: 'Follow your visa or admission progress in real time and get automatic status updates on your dashboard.'
-          },
-          { 
-            icon: <AssignmentIndIcon />, 
-            label: 'SOP & CV Assistance',
-            to: '/value-added/sop-cv',
-            description: 'Get a custom SOP or CV written to strengthen your study or work visa application.'
-          },
-          { 
-            icon: <SchoolIcon />, 
-            label: 'English Proficiency Exam Registration',
-            to: '/value-added/english-exam',
-            description: 'Register for IELTS, TOEFL, PTE, or Duolingo with guidance and preparation support.'
-          },
-          { 
-            icon: <AccountBalanceIcon />, 
-            label: 'Sponsorship & Financial Proof Assistance',
-            to: '/value-added/financial-proof',
-            description: 'We help prepare valid bank statements, sponsor letters, and affidavits that meet embassy requirements.'
-          },
-          { 
-            icon: <PublicIcon />, 
-            label: 'Pre-Departure Orientation & Country Guide',
-            to: '/value-added/pre-departure-guide',
-            description: 'Learn practical travel tips, settlement guidance, and what to expect in your new country before departure.'
+          {
+            icon: <SchoolIcon   />,
+            label: 'Pay Education & Exam Fees',
+            to: '/services/education-fees',
+            description: 'Pay education and exam fees conveniently'
           },
         ]
       },
+
       {
         section: 'Referrals',
         icon: <PeopleIcon />,
@@ -211,7 +189,7 @@ export const MainLayout: React.FC = () => {
         items: [
           { icon: <SupportAgentIcon />, label: 'Support Tickets', to: '/support/tickets' },
           { icon: <SupportAgentIcon />, label: 'Live Chat & Email', to: '/support/chat' },
-          { icon: <MenuBook />, label: 'Knowledge Base', to: '/support/kb' },
+          { icon: <MenuBookIcon />, label: 'Knowledge Base', to: '/support/kb' },
         ]
       },
       {
@@ -229,24 +207,24 @@ export const MainLayout: React.FC = () => {
     agent: [
       {
         section: 'Dashboard',
-        icon: <AppsOutlined />,
+        icon: <AppsOutlinedIcon />,
         items: [
-          { icon: <AppsOutlined />, label: 'Overview', to: '/staff/dashboard' },
-          { icon: <Functions />, label: 'Performance Analytics', to: '/staff/analytics' },
-          { icon: <MenuBook />, label: 'Service Usage Summary', to: '/staff/usage-summary' },
+          { icon: <AppsOutlinedIcon />, label: 'Overview', to: '/staff/dashboard' },
+          { icon: <FunctionsIcon />, label: 'Performance Analytics', to: '/staff/analytics' },
+          { icon: <MenuBookIcon />, label: 'Service Usage Summary', to: '/staff/usage-summary' },
         ]
       },
       {
         section: 'Clients / Leads Manager',
-        icon: <Group />,
+        icon: <GroupIcon />,
         items: [
-          { icon: <Group />, label: 'All Clients', to: '/staff/clients' },
-          { icon: <Group />, label: 'Leads', to: '/staff/leads' },
-          { icon: <Group />, label: 'Add New Client', to: '/staff/clients/new' },
-          { icon: <MenuBook />, label: 'Documents', to: '/staff/clients/documents' },
+          { icon: <GroupIcon />, label: 'All Clients', to: '/staff/clients' },
+          { icon: <GroupIcon />, label: 'Leads', to: '/staff/leads' },
+          { icon: <GroupIcon />, label: 'Add New Client', to: '/staff/clients/new' },
+          { icon: <MenuBookIcon />, label: 'Documents', to: '/staff/clients/documents' },
           { icon: <SettingsIcon />, label: 'Assign to Teams', to: '/staff/clients/assign' },
-          { icon: <MenuBook />, label: 'Notes & Reminders', to: '/staff/clients/notes' },
-          { icon: <Language />, label: 'Contact (Email/WhatsApp)', to: '/staff/clients/contact' },
+          { icon: <MenuBookIcon />, label: 'Notes & Reminders', to: '/staff/clients/notes' },
+          { icon: <LanguageIcon />, label: 'Contact (Email/WhatsApp)', to: '/staff/clients/contact' },
         ]
       },
       {
@@ -254,46 +232,46 @@ export const MainLayout: React.FC = () => {
         icon: <BookIcon />,
         items: [
           { icon: <SchoolIcon />, label: 'Study Abroad', to: '/staff/applications/study' },
-          { icon: <Translate />, label: 'Visa Applications', to: '/staff/applications/visa' },
-          { icon: <MenuBook />, label: 'Exam Registrations', to: '/staff/applications/exams' },
-          { icon: <MenuBook />, label: 'Car/Gadget/TV Orders', to: '/staff/applications/orders' },
-          { icon: <MenuBook />, label: 'Property Interests', to: '/staff/applications/property' },
-          { icon: <MenuBook />, label: 'Documents & Legal', to: '/staff/applications/documents' },
+          { icon: <TranslateIcon />, label: 'Visa Applications', to: '/staff/applications/visa' },
+          { icon: <MenuBookIcon />, label: 'Exam Registrations', to: '/staff/applications/exams' },
+          { icon: <MenuBookIcon />, label: 'Car/Gadget/TV Orders', to: '/staff/applications/orders' },
+          { icon: <MenuBookIcon />, label: 'Property Interests', to: '/staff/applications/property' },
+          { icon: <MenuBookIcon />, label: 'Documents & Legal', to: '/staff/applications/documents' },
         ]
       },
       {
         section: 'Services Control Panel',
-        icon: <Handyman />,
+        icon: <HandymanIcon />,
         items: [
           { icon: <SchoolIcon />, label: 'Study Abroad', to: '/staff/services/study' },
-          { icon: <Translate />, label: 'Visa Services', to: '/staff/services/visa' },
-          { icon: <MenuBook />, label: 'Exam Registration', to: '/staff/services/exams' },
-          { icon: <MenuBook />, label: 'Asset Sales', to: '/staff/services/assets' },
-          { icon: <MenuBook />, label: 'Property & Real Estate', to: '/staff/services/property' },
-          { icon: <Language />, label: 'Business & Branding', to: '/staff/services/business' },
-          { icon: <MenuBook />, label: 'Legal Documents', to: '/staff/services/legal' },
-          { icon: <Calculate />, label: 'Loan & Investment', to: '/staff/services/loans' },
+          { icon: <TranslateIcon />, label: 'Visa Services', to: '/staff/services/visa' },
+          { icon: <MenuBookIcon />, label: 'Exam Registration', to: '/staff/services/exams' },
+          { icon: <MenuBookIcon />, label: 'Asset Sales', to: '/staff/services/assets' },
+          { icon: <MenuBookIcon />, label: 'Property & Real Estate', to: '/staff/services/property' },
+          { icon: <LanguageIcon />, label: 'Business & Branding', to: '/staff/services/business' },
+          { icon: <MenuBookIcon />, label: 'Legal Documents', to: '/staff/services/legal' },
+          { icon: <CalculateIcon />, label: 'Loan & Investment', to: '/staff/services/loans' },
         ]
       },
       {
         section: 'Transactions & Commission',
-        icon: <Calculate />,
+        icon: <CalculateIcon />,
         items: [
-          { icon: <Calculate />, label: 'Payments', to: '/staff/transactions/payments' },
-          { icon: <Calculate />, label: 'Commissions', to: '/staff/transactions/commissions' },
-          { icon: <Calculate />, label: 'Withdrawals', to: '/staff/transactions/withdrawals' },
-          { icon: <MenuBook />, label: 'Invoices & Receipts', to: '/staff/transactions/invoices' },
-          { icon: <Functions />, label: 'Rewards & Tiers', to: '/staff/transactions/rewards' },
+          { icon: <CalculateIcon />, label: 'Payments', to: '/staff/transactions/payments' },
+          { icon: <CalculateIcon />, label: 'Commissions', to: '/staff/transactions/commissions' },
+          { icon: <CalculateIcon />, label: 'Withdrawals', to: '/staff/transactions/withdrawals' },
+          { icon: <MenuBookIcon />, label: 'Invoices & Receipts', to: '/staff/transactions/invoices' },
+          { icon: <FunctionsIcon />, label: 'Rewards & Tiers', to: '/staff/transactions/rewards' },
         ]
       },
       {
         section: 'Graz Marketplace',
-        icon: <MenuBook />,
+        icon: <MenuBookIcon />,
         items: [
-          { icon: <MenuBook />, label: 'Listings', to: '/staff/marketplace/listings' },
-          { icon: <MenuBook />, label: 'Add New Listing', to: '/staff/marketplace/new' },
-          { icon: <MenuBook />, label: 'Stock & Availability', to: '/staff/marketplace/stock' },
-          { icon: <Language />, label: 'Client-Product Chat', to: '/staff/marketplace/chat' },
+          { icon: <MenuBookIcon />, label: 'Listings', to: '/staff/marketplace/listings' },
+          { icon: <MenuBookIcon />, label: 'Add New Listing', to: '/staff/marketplace/new' },
+          { icon: <MenuBookIcon />, label: 'Stock & Availability', to: '/staff/marketplace/stock' },
+          { icon: <LanguageIcon />, label: 'Client-Product Chat', to: '/staff/marketplace/chat' },
         ]
       },
       {
@@ -301,10 +279,10 @@ export const MainLayout: React.FC = () => {
         icon: <SchoolIcon />,
         items: [
           { icon: <SchoolIcon />, label: 'Video Tutorials', to: '/staff/training/videos' },
-          { icon: <MenuBook />, label: 'Templates', to: '/staff/training/templates' },
-          { icon: <MenuBook />, label: 'Digital Catalogs', to: '/staff/training/catalogs' },
-          { icon: <MenuBook />, label: 'Sales Scripts', to: '/staff/training/scripts' },
-          { icon: <MenuBook />, label: 'Agent Playbook', to: '/staff/training/playbook' },
+          { icon: <MenuBookIcon />, label: 'Templates', to: '/staff/training/templates' },
+          { icon: <MenuBookIcon />, label: 'Digital Catalogs', to: '/staff/training/catalogs' },
+          { icon: <MenuBookIcon />, label: 'Sales Scripts', to: '/staff/training/scripts' },
+          { icon: <MenuBookIcon />, label: 'Agent Playbook', to: '/staff/training/playbook' },
         ]
       },
       {
@@ -323,7 +301,7 @@ export const MainLayout: React.FC = () => {
         items: [
           { icon: <HelpIcon />, label: 'Support Tickets', to: '/staff/support/tickets' },
           { icon: <HelpIcon />, label: 'Live Chat & Email', to: '/staff/support/chat' },
-          { icon: <MenuBook />, label: 'Knowledge Base', to: '/staff/support/kb' },
+          { icon: <MenuBookIcon />, label: 'Knowledge Base', to: '/staff/support/kb' },
         ]
       },
       {
@@ -332,29 +310,29 @@ export const MainLayout: React.FC = () => {
         items: [
           { icon: <SettingsIcon />, label: 'Profile & Company', to: '/staff/settings/profile' },
           { icon: <SettingsIcon />, label: 'KYC', to: '/staff/settings/kyc' },
-          { icon: <Group />, label: 'Staff', to: '/staff/settings/staff' },
+          { icon: <GroupIcon />, label: 'Staff', to: '/staff/settings/staff' },
           { icon: <NotificationsIcon />, label: 'Notification Preferences', to: '/staff/settings/notifications' },
-          { icon: <Calculate />, label: 'Bank Details', to: '/staff/settings/bank' },
-          { icon: <Functions />, label: 'Upgrade Tier', to: '/staff/settings/upgrade' },
+          { icon: <CalculateIcon />, label: 'Bank Details', to: '/staff/settings/bank' },
+          { icon: <FunctionsIcon />, label: 'Upgrade Tier', to: '/staff/settings/upgrade' },
         ]
       },
       {
         section: 'Advanced Features',
-        icon: <Functions />,
+        icon: <FunctionsIcon />,
         items: [
-          { icon: <Functions />, label: 'AI Assistant', to: '/staff/advanced/ai' },
-          { icon: <Transform />, label: 'Smart Matching', to: '/staff/advanced/matching' },
-          { icon: <Language />, label: 'White-Label', to: '/staff/advanced/white-label' },
-          { icon: <MenuBook />, label: 'Bulk Data Export', to: '/staff/advanced/export' },
+          { icon: <FunctionsIcon />, label: 'AI Assistant', to: '/staff/advanced/ai' },
+          { icon: <TransformIcon />, label: 'Smart Matching', to: '/staff/advanced/matching' },
+          { icon: <LanguageIcon />, label: 'White-Label', to: '/staff/advanced/white-label' },
+          { icon: <MenuBookIcon />, label: 'Bulk Data Export', to: '/staff/advanced/export' },
           { icon: <SchoolIcon />, label: 'Training Tracker', to: '/staff/advanced/training-tracker' },
-          { icon: <Functions />, label: 'Sales Leaderboard', to: '/staff/advanced/leaderboard' },
+          { icon: <FunctionsIcon />, label: 'Sales Leaderboard', to: '/staff/advanced/leaderboard' },
         ]
       },
     ],
     admin: [
       {
         section: 'Menu',
-        icon: <AppsOutlined />,
+        icon: <AppsOutlinedIcon />,
         items: [
           { icon: <SettingsIcon />, label: 'Settings', to: '/admin/settings' },
         ]
@@ -367,7 +345,6 @@ export const MainLayout: React.FC = () => {
   const role: RoleKey = getRoleFromUser(user);
 
   // Find the current title based on the current path
-  // FIX: Only match the current path if it exactly matches an item, or fallback to the first item in the sidebar for the role
   const currentTitle = useMemo(() => {
     const sections = sidebarStructureByRole[role] || [];
     for (const section of sections) {

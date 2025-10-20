@@ -70,7 +70,8 @@ import PilgrimageDetails from '../pages/customer/travel/Pilgrimage/PilgrimageDet
 import VacationDetails from '../pages/customer/travel/Vacation/VacationDetails';
 import StudyAbroadLoanPage from '../pages/customer/edufinance/Study';
 import CivilServantLoanPage from '../pages/customer/edufinance/CivilServant';
-import EuropianCitizenshipListPage from '../pages/customer/citizenship/Europian';
+import EuropianCitizenshipListPage from '../pages/customer/citizenship/European';
+import BuyAirtime from '../pages/customer/valueServices/Airtime';
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -324,6 +325,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: 'value-added/gift-cards',
         element: <CustomerPlaceholderPage title="Gift Cards" />,
+      },
+      {
+        path: 'services/airtime',
+        element: <BuyAirtime />,
       },
       {
         path: 'value-added/loyalty',
