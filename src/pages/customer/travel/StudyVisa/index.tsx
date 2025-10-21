@@ -138,11 +138,13 @@ export const ApplyStudyVisa: React.FC = () => {
   const navigate = useNavigate();
   // State for paginated institutions & their page info
   const [institutions, setInstitutions] = useState<any[]>([]);
+  // Track the full paginated data object of institutions
   const [institutionsRaw, setInstitutionsRaw] = useState<any>(null); // full paged data object
   const [loading, setLoading] = useState(true);
   const [fetchingNext, setFetchingNext] = useState(false);
 
   const [institutionsNext, setInstitutionsNext] = useState<string | null>(null);
+  // Track the total count of institutions (from paginated data)
   const [institutionsCount, setInstitutionsCount] = useState<number | null>(null);
 
   const [selectedCountry, setSelectedCountry] = useState<string>("");
@@ -173,9 +175,9 @@ export const ApplyStudyVisa: React.FC = () => {
       .then((data) => {
         let _results = data && data.results ? data.results : Array.isArray(data) ? data : [];
         setInstitutions(_results || []);
-        setInstitutionsRaw(data || {});
+        setInstitutionsRaw(data || {}); // Capture the full raw paginated object
         setInstitutionsNext(data && data.next ? data.next : null);
-        setInstitutionsCount(data && typeof data.count === "number" ? data.count : null);
+        setInstitutionsCount(data && typeof data.count === "number" ? data.count : null); // Set count if provided
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -200,8 +202,13 @@ export const ApplyStudyVisa: React.FC = () => {
       // Expect .results
       if (resp && Array.isArray(resp.results)) {
         setInstitutions((prev) => [...prev, ...resp.results]);
-        setInstitutionsRaw(resp);
+        setInstitutionsRaw(resp); // Always keep institutionsRaw up to date with the most recent response
         setInstitutionsNext(resp.next || null);
+        setInstitutionsCount(
+          typeof resp.count === "number"
+            ? resp.count
+            : institutionsCount // fallback to previous
+        ); // Update count if included
       }
     } finally {
       setFetchingNext(false);
@@ -254,8 +261,6 @@ export const ApplyStudyVisa: React.FC = () => {
     : institutions || [];
 
   // Indicates whether there might be *more* institutions for this country to show
-  const filteredInstitutionsComplete =
-    institutionsNext == null || (selectedCountry === "" && !institutionsNext);
 
   // Derive program types from filtered institutions (like before)
   const programTypeObjects: { id: string; name: string }[] = Array.from(
@@ -572,6 +577,13 @@ export const ApplyStudyVisa: React.FC = () => {
                 {renderDestinationMenuItems()}
               </TextField>
             )}
+            {institutionsCount !== null && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {`Loaded: ${institutions.length} of ${institutionsCount} institutions`}
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         </Card>
 
@@ -626,6 +638,13 @@ export const ApplyStudyVisa: React.FC = () => {
                   )}
                 </TextField>
                 {/* See more button REMOVED from here */}
+                {institutionsRaw && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" color="textSecondary">
+                      {`Current page: ${institutionsRaw.results && Array.isArray(institutionsRaw.results) ? institutionsRaw.results.length : 0}${institutionsRaw.count ? ` / ${institutionsRaw.count}` : ""}`}
+                    </Typography>
+                  </Box>
+                )}
               </>
             )}
           </CardContent>
