@@ -10,6 +10,7 @@ import {
   TextField,
   Tabs,
   Tab,
+  ListSubheader,
 } from "@mui/material";
 import {
   getAllInstitutions,
@@ -135,9 +136,15 @@ export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
 
 export const ApplyStudyVisa: React.FC = () => {
   const navigate = useNavigate();
-  // State for institutions and form selections
+  // State for paginated institutions & their page info
   const [institutions, setInstitutions] = useState<any[]>([]);
+  const [institutionsRaw, setInstitutionsRaw] = useState<any>(null); // full paged data object
   const [loading, setLoading] = useState(true);
+  const [fetchingNext, setFetchingNext] = useState(false);
+
+  const [institutionsNext, setInstitutionsNext] = useState<string | null>(null);
+  const [institutionsCount, setInstitutionsCount] = useState<number | null>(null);
+
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // institution id
   const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // program type id
@@ -159,19 +166,47 @@ export const ApplyStudyVisa: React.FC = () => {
   const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
 
-  // Fetch institutions on mount
+  // Fetch institutions on mount (assume paginated response!)
   useEffect(() => {
     setLoading(true);
     getAllInstitutions()
       .then((data) => {
-        setInstitutions(data || []);
+        let _results = data && data.results ? data.results : Array.isArray(data) ? data : [];
+        setInstitutions(_results || []);
+        setInstitutionsRaw(data || {});
+        setInstitutionsNext(data && data.next ? data.next : null);
+        setInstitutionsCount(data && typeof data.count === "number" ? data.count : null);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  console.log(institutions)
-  console.log(courses)
+  // Fetch more institutions (paging)
+  const fetchMoreInstitutions = async () => {
+    if (!institutionsNext) return;
+    setFetchingNext(true);
+    try {
+      // If institutionsNext is a relative path, use API instance. Else, fetch.
+      let resp;
+      if (institutionsNext.startsWith("/")) {
+        resp = await api.get(institutionsNext);
+        resp = resp.data;
+      } else {
+        const fetchResp = await fetch(institutionsNext, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
+        resp = await fetchResp.json();
+      }
+      // Expect .results
+      if (resp && Array.isArray(resp.results)) {
+        setInstitutions((prev) => [...prev, ...resp.results]);
+        setInstitutionsRaw(resp);
+        setInstitutionsNext(resp.next || null);
+      }
+    } finally {
+      setFetchingNext(false);
+    }
+  };
 
   // Fetch recent study visa applications on mount
   useEffect(() => {
@@ -208,19 +243,23 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoadingRecentStudyVisaOffers(false));
   }, []);
 
-  // Derive unique countries from institutions
+  // Derive unique countries from institutions list
   const countries = Array.from(
-    new Set(institutions.map((inst) => inst.country))
+    new Set(Array.isArray(institutions) ? institutions.map((inst) => inst.country) : [])
   ).filter(Boolean);
 
-  // Filter institutions by selected country
+  // When a country is selected, filter the available institutions from loaded (paged) results only.
   const filteredInstitutions = selectedCountry
-    ? institutions.filter((inst) => inst.country === selectedCountry)
-    : institutions;
+    ? (institutions || []).filter((inst) => inst.country === selectedCountry)
+    : institutions || [];
 
-  // Derive program types from filtered institutions
+  // Indicates whether there might be *more* institutions for this country to show
+  const filteredInstitutionsComplete =
+    institutionsNext == null || (selectedCountry === "" && !institutionsNext);
+
+  // Derive program types from filtered institutions (like before)
   const programTypeObjects: { id: string; name: string }[] = Array.from(
-    filteredInstitutions.flatMap((inst) =>
+    (filteredInstitutions || []).flatMap((inst) =>
       Array.isArray(inst.program_types)
         ? inst.program_types
             .filter((pt: any) => pt && pt.id && pt.name)
@@ -233,14 +272,13 @@ export const ApplyStudyVisa: React.FC = () => {
       arr.findIndex((x) => x.id === pt.id) === idx // unique by id
   );
 
-  // NEW: Fetch courses from API whenever institution and program type are selected and change
+  // Fetch courses for selected institution and program type, ignoring paging
   useEffect(() => {
     if (selectedInstitution && selectedProgramType) {
       setLoadingCourses(true);
       setCourses([]);
       getCoursesForInstitutionAndProgramType(selectedInstitution, selectedProgramType)
         .then((data) => {
-          // data is assumed to be array of courses { id, name }
           setCourses(
             Array.isArray(data)
               ? data.map((course) => ({ id: String(course.id), name: course.name }))
@@ -283,6 +321,11 @@ export const ApplyStudyVisa: React.FC = () => {
     setSelectedCourse(e.target.value);
   };
 
+  // Handle See more institutions
+  const handleSeeMoreInstitutions = () => {
+    fetchMoreInstitutions();
+  };
+
   // Handle Start Application
   const handleStartApplication = async () => {
     setSubmitting(true);
@@ -322,19 +365,19 @@ export const ApplyStudyVisa: React.FC = () => {
 
   // Helper: get institution name by id
   const getInstitutionName = (id: number | string) => {
-    const inst = institutions.find((i) => String(i.id) === String(id));
+    const inst = (institutions || []).find((i) => String(i.id) === String(id));
     return inst?.name || "Unknown Institution";
   };
 
   // Helper: get institution country by id
   const getInstitutionCountry = (id: number | string) => {
-    const inst = institutions.find((i) => String(i.id) === String(id));
+    const inst = (institutions || []).find((i) => String(i.id) === String(id));
     return inst?.country || "Unknown Country";
   };
 
   // Helper: get program type name by id
   const getProgramTypeName = (id: number | string) => {
-    for (const inst of institutions) {
+    for (const inst of institutions || []) {
       if (Array.isArray(inst.program_types)) {
         const pt = inst.program_types.find((pt: any) => String(pt.id) === String(id));
         if (pt) return pt.name;
@@ -346,11 +389,11 @@ export const ApplyStudyVisa: React.FC = () => {
   // Helper: get course name by id
   const getCourseName = (id: number | string | null | undefined) => {
     if (!id) return "";
-    // Try to find from loaded courses
+    // Try to find from loaded courses (from API)
     const course = courses.find((c) => String(c.id) === String(id));
     if (course) return course.name;
-    // Optionally, fallback to any institution
-    for (const inst of institutions) {
+    // Optionally, fallback to any institution in loaded pages
+    for (const inst of institutions || []) {
       if (Array.isArray(inst.courses)) {
         const cObj = inst.courses.find((c: any) => String(c.id) === String(id));
         if (cObj) return cObj.name;
@@ -402,6 +445,63 @@ export const ApplyStudyVisa: React.FC = () => {
     }
   };
 
+  // -- Only changed the Destination part below (see comment) --
+
+  // Helper to render destination MenuItems as a flat array (fixes the MUI: The Menu/Select component doesn't accept a Fragment as a child)
+  const renderDestinationMenuItems = () => {
+    if (countries.length === 0) {
+      return [
+        <MenuItem value="" disabled key="no-countries">
+          No countries available
+        </MenuItem>
+      ];
+    }
+    const menuItems = [
+      ...countries.map((country) => (
+        <MenuItem key={country} value={country}>
+          {country}
+        </MenuItem>
+      )),
+    ];
+    if (institutionsNext) {
+      menuItems.push(
+        <ListSubheader
+          disableSticky
+          key="see-more-countries"
+          style={{
+            marginTop: 6,
+            paddingTop: 4,
+            paddingBottom: 4,
+            background: "transparent",
+            color: "#7855FF"
+          }}
+        >
+          <Button
+            size="small"
+            style={{
+              color: "#7855FF",
+              fontWeight: 600,
+              fontSize: "0.93rem",
+              margin: 0,
+              padding: "6px 2px",
+              width: "100%",
+              justifyContent: "flex-start",
+              textAlign: "left",
+              background: "none",
+              border: "none",
+              minHeight: 0,
+            }}
+            onClick={handleSeeMoreInstitutions}
+            disabled={fetchingNext}
+          >
+            {fetchingNext ? <CircularProgress size={16} /> : "See more destinations"}
+          </Button>
+        </ListSubheader>
+      );
+    }
+    return menuItems;
+  };
+
   return (
     <Box
       sx={{
@@ -432,6 +532,7 @@ export const ApplyStudyVisa: React.FC = () => {
 
       {/* Application Form */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+
         {/* Destination */}
         <Card className="rounded-2xl shadow-md">
           <CardContent
@@ -468,17 +569,7 @@ export const ApplyStudyVisa: React.FC = () => {
                   },
                 }}
               >
-                {countries.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No countries available
-                  </MenuItem>
-                ) : (
-                  countries.map((country) => (
-                    <MenuItem key={country} value={country}>
-                      {country}
-                    </MenuItem>
-                  ))
-                )}
+                {renderDestinationMenuItems()}
               </TextField>
             )}
           </CardContent>
@@ -493,46 +584,49 @@ export const ApplyStudyVisa: React.FC = () => {
             {loading ? (
               <CircularProgress size={28} />
             ) : (
-              <TextField
-                select
-                fullWidth
-                label="Select Institution"
-                value={selectedInstitution}
-                onChange={handleInstitutionChange}
-                variant="outlined"
-                disabled={!selectedCountry}
-                InputProps={{
-                  sx: {
-                    fontWeight: 500,
-                  },
-                }}
-                InputLabelProps={{
-                  sx: {
-                    fontWeight: 500,
-                  },
-                }}
-                SelectProps={{
-                  MenuProps: {
-                    PaperProps: {
-                      sx: {
-                        borderRadius: 1,
+              <>
+                <TextField
+                  select
+                  fullWidth
+                  label="Select Institution"
+                  value={selectedInstitution}
+                  onChange={handleInstitutionChange}
+                  variant="outlined"
+                  disabled={!selectedCountry}
+                  InputProps={{
+                    sx: {
+                      fontWeight: 500,
+                    },
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      fontWeight: 500,
+                    },
+                  }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        sx: {
+                          borderRadius: 1,
+                        },
                       },
                     },
-                  },
-                }}
-              >
-                {filteredInstitutions.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No institutions available
-                  </MenuItem>
-                ) : (
-                  filteredInstitutions.map((inst) => (
-                    <MenuItem key={inst.id || inst.name} value={inst.id}>
-                      {inst.name}
+                  }}
+                >
+                  {filteredInstitutions.length === 0 ? (
+                    <MenuItem value="" disabled>
+                      No institutions available
                     </MenuItem>
-                  ))
-                )}
-              </TextField>
+                  ) : (
+                    filteredInstitutions.map((inst) => (
+                      <MenuItem key={inst.id || inst.name} value={inst.id}>
+                        {inst.name}
+                      </MenuItem>
+                    ))
+                  )}
+                </TextField>
+                {/* See more button REMOVED from here */}
+              </>
             )}
           </CardContent>
         </Card>
