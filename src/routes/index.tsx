@@ -79,6 +79,7 @@ import EducationFeePayment from '../pages/customer/valueServices/AirtimeAndBills
 import AirtimeAndBillsHome from '../pages/customer/valueServices/AirtimeAndBills';
 import VisaAndTravelHome from '../pages/customer/valueServices/VisaAndTravel';
 import EducationServicesHome from '../pages/customer/valueServices/EducationServices';
+import ReferralPage from '../pages/customer/referral';
 
 
 
@@ -373,7 +374,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: 'referrals',
-        element: <CustomerPlaceholderPage title="My Referrals" />,
+        element: <ReferralPage/>,
       },
       {
         path: 'support/tickets',
