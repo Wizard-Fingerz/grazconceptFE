@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   AppBar,
   Box,
@@ -11,7 +11,7 @@ import {
   useTheme,
   useMediaQuery,
   Badge,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Menu as MenuIcon,
   School as SchoolIcon,
@@ -45,33 +45,54 @@ import {
   Groups as GroupsIcon,
   BeachAccess as BeachAccessIcon,
   Hotel as HotelIcon,
-  PhoneIphone as PhoneIphoneIcon} from '@mui/icons-material';
-import { useLocation, Outlet } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import SidebarContent from '../SideBar/SidebarContent';
+  PhoneIphone as PhoneIphoneIcon,
+  TravelExplore,
+  AttachMoney,
+  MoneyRounded,
+  Work,
+  CastForEducation,
+  ModeOfTravel,
+  PaymentSharp,
+  LinkOffSharp,
+  LinkOff,
+  LinkRounded,
+  SellSharp,
+  BookSharp,
+  ProductionQuantityLimitsSharp,
+  LiveTv,
+  Label,
+} from "@mui/icons-material";
+import { useLocation, Outlet } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import SidebarContent from "../SideBar/SidebarContent";
 
 const drawerWidth = 280;
 const collapsedDrawerWidth = 72;
 
-type RoleKey = 'customer' | 'agent' | 'admin';
+type RoleKey = "customer" | "agent" | "admin";
 type SidebarItem = { icon: React.ReactNode; label: string; to: string };
-type SidebarSection = { section: string; icon: React.ReactNode; items: SidebarItem[] };
+type SidebarSection = {
+  section: string;
+  icon: React.ReactNode;
+  items: SidebarItem[];
+};
 
 // Helper to normalize user_type_name to a valid role key
 function getRoleFromUser(user: any): RoleKey {
-  const role = typeof user?.user_type_name === 'string'
-    ? user.user_type_name.trim().toLowerCase()
-    : '';
-  if (role === 'agent') return 'agent';
-  if (role === 'admin') return 'admin';
-  return 'customer';
+  const role =
+    typeof user?.user_type_name === "string"
+      ? user.user_type_name.trim().toLowerCase()
+      : "";
+  if (role === "agent") return "agent";
+  if (role === "admin") return "admin";
+  return "customer";
 }
 
 export const MainLayout: React.FC = () => {
   const [open, setOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
   const { user } = useAuth();
 
@@ -95,235 +116,720 @@ export const MainLayout: React.FC = () => {
   };
 
   // Updated customer sidebar: fixed paths and icons
-  const sidebarStructureByRole: Record<RoleKey, SidebarSection[]> = useMemo(() => ({
-    customer: [
-      {
-        section: 'Home',
-        icon: <HomeIcon />,
-        items: [
-          { icon: <HomeIcon />, label: 'Dashboard', to: '/dashboard' },
-          { icon: <NotificationsIcon />, label: 'Track Application', to: '/track-progress' },
-        ]
-      },
-      {
-        section: 'Travel Solution',
-        icon: <FlightTakeoffIcon />,
-        items: [
-          { icon: <SchoolBaseIcon />, label: 'Search Study Program', to: '/travel/study-visa/offers' },
-          { icon: <SchoolOutlinedIcon />, label: 'Apply Study Program', to: '/travel/study-visa' },
-          { icon: <WorkOutlineIcon />, label: 'Work Visa', to: '/travel/work-visa' },
-          { icon: <GroupsIcon />, label: 'Pilgrimage', to: '/travel/pilgrimage' },
-          { icon: <BeachAccessIcon />, label: 'Vacation', to: '/travel/vacation' },
-          { icon: <HotelIcon />, label: 'Hotel Reservation', to: '/travel/hotel-reservation' },
-          { icon: <FlightTakeoffIcon />, label: 'Book Flight', to: '/travel/book-flight' },
-        ]
-      },
-      {
-        section: 'Edufinance Solution',
-        icon: <AccountBalanceIcon />,
-        items: [
-          { icon: <AttachMoneyIcon />, label: 'Study Abroad Loan', to: '/edufinance/study-abroad-loan' },
-          { icon: <BusinessCenterIcon />, label: 'Civil Servant Loan', to: '/edufinance/civil-servant-loan' },
-        ]
-      },
-      {
-        section: 'Citizenship by Investment',
-        icon: <EmojiEventsIcon />,
-        items: [
-          { icon: <PublicIcon />, label: 'Europe Second Citizenship', to: '/citizenship/europe' },
-          { icon: <AssignmentIndIcon />, label: 'Investment Plan', to: '/citizenship/investment-plan' },
-        ]
-      },
-      // 🟡 Airtime & Bills Payment
-      {
-        section: 'Other Services',
-        icon: <AppsOutlinedIcon />,
-        items: [
-          {
-            icon: <PhoneIphoneIcon />,
-            label: 'Airtime & Bills',
-            to: '/services/airtime-and-bills',
-            description: 'Buy airtime & pay bills for all networks and services',
-          },
-          {
-            icon: <FlightTakeoffIcon />,
-            label: 'Visa & Travel Services',
-            to: '/services/visa-and-travel',
-            description: 'Access visa application and travel support',
-          },
-          {
-            icon: <SchoolIcon />,
-            label: 'Education Services',
-            to: '/services/education-services',
-            description: 'Pay school and exam fees, or explore study support',
-          },
-        ],
-      },
+  const sidebarStructureByRole: Record<RoleKey, SidebarSection[]> = useMemo(
+    () => ({
+      customer: [
+        {
+          section: "Home",
+          icon: <HomeIcon />,
+          items: [
+            { icon: <HomeIcon />, label: "Dashboard", to: "/dashboard" },
+            {
+              icon: <NotificationsIcon />,
+              label: "Track Application",
+              to: "/track-progress",
+            },
+          ],
+        },
+        {
+          section: "Travel Solution",
+          icon: <FlightTakeoffIcon />,
+          items: [
+            {
+              icon: <SchoolBaseIcon />,
+              label: "Search Study Program",
+              to: "/travel/study-visa/offers",
+            },
+            {
+              icon: <SchoolOutlinedIcon />,
+              label: "Apply Study Program",
+              to: "/travel/study-visa",
+            },
+            {
+              icon: <WorkOutlineIcon />,
+              label: "Work Visa",
+              to: "/travel/work-visa",
+            },
+            {
+              icon: <GroupsIcon />,
+              label: "Pilgrimage",
+              to: "/travel/pilgrimage",
+            },
+            {
+              icon: <BeachAccessIcon />,
+              label: "Vacation",
+              to: "/travel/vacation",
+            },
+            {
+              icon: <HotelIcon />,
+              label: "Hotel Reservation",
+              to: "/travel/hotel-reservation",
+            },
+            {
+              icon: <FlightTakeoffIcon />,
+              label: "Book Flight",
+              to: "/travel/book-flight",
+            },
+          ],
+        },
+        {
+          section: "Edufinance Solution",
+          icon: <AccountBalanceIcon />,
+          items: [
+            {
+              icon: <AttachMoneyIcon />,
+              label: "Study Abroad Loan",
+              to: "/edufinance/study-abroad-loan",
+            },
+            {
+              icon: <BusinessCenterIcon />,
+              label: "Civil Servant Loan",
+              to: "/edufinance/civil-servant-loan",
+            },
+          ],
+        },
+        {
+          section: "Citizenship by Investment",
+          icon: <EmojiEventsIcon />,
+          items: [
+            {
+              icon: <PublicIcon />,
+              label: "Europe Second Citizenship",
+              to: "/citizenship/europe",
+            },
+            {
+              icon: <AssignmentIndIcon />,
+              label: "Investment Plan",
+              to: "/citizenship/investment-plan",
+            },
+          ],
+        },
+        // 🟡 Airtime & Bills Payment
+        {
+          section: "Other Services",
+          icon: <AppsOutlinedIcon />,
+          items: [
+            {
+              icon: <PhoneIphoneIcon />,
+              label: "Airtime & Bills",
+              to: "/services/airtime-and-bills",
+              description:
+                "Buy airtime & pay bills for all networks and services",
+            },
+            {
+              icon: <FlightTakeoffIcon />,
+              label: "Visa & Travel Services",
+              to: "/services/visa-and-travel",
+              description: "Access visa application and travel support",
+            },
+            {
+              icon: <SchoolIcon />,
+              label: "Education Services",
+              to: "/services/education-services",
+              description: "Pay school and exam fees, or explore study support",
+            },
+          ],
+        },
 
-      {
-        section: 'Referrals',
-        icon: <PeopleIcon />,
-        items: [
-          { icon: <PeopleIcon />, label: 'My Referrals', to: '/referrals' },
-        ]
-      },
-      {
-        section: 'Help Center',
-        icon: <SupportAgentIcon />,
-        items: [
-          { icon: <SupportAgentIcon />, label: 'Support Tickets', to: '/support/tickets' },
-          { icon: <SupportAgentIcon />, label: 'Live Chat & Email', to: '/support/chat' },
-          { icon: <MenuBookIcon />, label: 'Knowledge Base', to: '/support/kb' },
-        ]
-      },
-      {
-        section: 'Account Settings',
-        icon: <SettingsIcon />,
-        items: [
-          { icon: <NotificationsIcon />, label: 'Notifications', to: '/settings/notifications' },
-          { icon: <HelpIcon />, label: 'Help & Support', to: '/settings/support' },
-          { icon: <SettingsIcon />, label: 'Advanced Settings', to: '/settings/advanced' },
-          { icon: <PersonIcon />, label: 'Profile', to: '/settings/profile' },
-        ]
-      },
-    ],
+        {
+          section: "Referrals",
+          icon: <PeopleIcon />,
+          items: [
+            { icon: <PeopleIcon />, label: "My Referrals", to: "/referrals" },
+          ],
+        },
+        {
+          section: "Help Center",
+          icon: <SupportAgentIcon />,
+          items: [
+            {
+              icon: <SupportAgentIcon />,
+              label: "Support Tickets",
+              to: "/support/tickets",
+            },
+            {
+              icon: <SupportAgentIcon />,
+              label: "Live Chat & Email",
+              to: "/support/chat",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Knowledge Base",
+              to: "/support/kb",
+            },
+          ],
+        },
+        {
+          section: "Account Settings",
+          icon: <SettingsIcon />,
+          items: [
+            {
+              icon: <NotificationsIcon />,
+              label: "Notifications",
+              to: "/settings/notifications",
+            },
+            {
+              icon: <HelpIcon />,
+              label: "Help & Support",
+              to: "/settings/support",
+            },
+            {
+              icon: <SettingsIcon />,
+              label: "Advanced Settings",
+              to: "/settings/advanced",
+            },
+            { icon: <PersonIcon />, label: "Profile", to: "/settings/profile" },
+          ],
+        },
+      ],
 
-    agent: [
-      {
-        section: 'Dashboard',
-        icon: <AppsOutlinedIcon />,
-        items: [
-          { icon: <AppsOutlinedIcon />, label: 'Overview', to: '/staff/dashboard' },
-          { icon: <FunctionsIcon />, label: 'Performance Analytics', to: '/staff/analytics' },
-          { icon: <MenuBookIcon />, label: 'Service Usage Summary', to: '/staff/usage-summary' },
-        ]
-      },
-      {
-        section: 'Clients / Leads Manager',
-        icon: <GroupIcon />,
-        items: [
-          { icon: <GroupIcon />, label: 'All Clients', to: '/staff/clients' },
-          { icon: <GroupIcon />, label: 'Leads', to: '/staff/leads' },
-          { icon: <GroupIcon />, label: 'Add New Client', to: '/staff/clients/new' },
-          { icon: <MenuBookIcon />, label: 'Documents', to: '/staff/clients/documents' },
-          { icon: <SettingsIcon />, label: 'Assign to Teams', to: '/staff/clients/assign' },
-          { icon: <MenuBookIcon />, label: 'Notes & Reminders', to: '/staff/clients/notes' },
-          { icon: <LanguageIcon />, label: 'Contact (Email/WhatsApp)', to: '/staff/clients/contact' },
-        ]
-      },
-      {
-        section: 'Application Hub',
-        icon: <BookIcon />,
-        items: [
-          { icon: <SchoolIcon />, label: 'Study Abroad', to: '/staff/applications/study' },
-          { icon: <TranslateIcon />, label: 'Visa Applications', to: '/staff/applications/visa' },
-          { icon: <MenuBookIcon />, label: 'Exam Registrations', to: '/staff/applications/exams' },
-          { icon: <MenuBookIcon />, label: 'Car/Gadget/TV Orders', to: '/staff/applications/orders' },
-          { icon: <MenuBookIcon />, label: 'Property Interests', to: '/staff/applications/property' },
-          { icon: <MenuBookIcon />, label: 'Documents & Legal', to: '/staff/applications/documents' },
-        ]
-      },
-      {
-        section: 'Services Control Panel',
-        icon: <HandymanIcon />,
-        items: [
-          { icon: <SchoolIcon />, label: 'Study Abroad', to: '/staff/services/study' },
-          { icon: <TranslateIcon />, label: 'Visa Services', to: '/staff/services/visa' },
-          { icon: <MenuBookIcon />, label: 'Exam Registration', to: '/staff/services/exams' },
-          { icon: <MenuBookIcon />, label: 'Asset Sales', to: '/staff/services/assets' },
-          { icon: <MenuBookIcon />, label: 'Property & Real Estate', to: '/staff/services/property' },
-          { icon: <LanguageIcon />, label: 'Business & Branding', to: '/staff/services/business' },
-          { icon: <MenuBookIcon />, label: 'Legal Documents', to: '/staff/services/legal' },
-          { icon: <CalculateIcon />, label: 'Loan & Investment', to: '/staff/services/loans' },
-        ]
-      },
-      {
-        section: 'Transactions & Commission',
-        icon: <CalculateIcon />,
-        items: [
-          { icon: <CalculateIcon />, label: 'Payments', to: '/staff/transactions/payments' },
-          { icon: <CalculateIcon />, label: 'Commissions', to: '/staff/transactions/commissions' },
-          { icon: <CalculateIcon />, label: 'Withdrawals', to: '/staff/transactions/withdrawals' },
-          { icon: <MenuBookIcon />, label: 'Invoices & Receipts', to: '/staff/transactions/invoices' },
-          { icon: <FunctionsIcon />, label: 'Rewards & Tiers', to: '/staff/transactions/rewards' },
-        ]
-      },
-      {
-        section: 'Graz Marketplace',
-        icon: <MenuBookIcon />,
-        items: [
-          { icon: <MenuBookIcon />, label: 'Listings', to: '/staff/marketplace/listings' },
-          { icon: <MenuBookIcon />, label: 'Add New Listing', to: '/staff/marketplace/new' },
-          { icon: <MenuBookIcon />, label: 'Stock & Availability', to: '/staff/marketplace/stock' },
-          { icon: <LanguageIcon />, label: 'Client-Product Chat', to: '/staff/marketplace/chat' },
-        ]
-      },
-      {
-        section: 'Training & Resource Center',
-        icon: <SchoolIcon />,
-        items: [
-          { icon: <SchoolIcon />, label: 'Video Tutorials', to: '/staff/training/videos' },
-          { icon: <MenuBookIcon />, label: 'Templates', to: '/staff/training/templates' },
-          { icon: <MenuBookIcon />, label: 'Digital Catalogs', to: '/staff/training/catalogs' },
-          { icon: <MenuBookIcon />, label: 'Sales Scripts', to: '/staff/training/scripts' },
-          { icon: <MenuBookIcon />, label: 'Agent Playbook', to: '/staff/training/playbook' },
-        ]
-      },
-      {
-        section: 'Notifications & Broadcasts',
-        icon: <NotificationsIcon />,
-        items: [
-          { icon: <NotificationsIcon />, label: 'Visa Alerts & Deadlines', to: '/staff/notifications/alerts' },
-          { icon: <NotificationsIcon />, label: 'Broadcasts', to: '/staff/notifications/broadcasts' },
-          { icon: <NotificationsIcon />, label: 'Campaigns', to: '/staff/notifications/campaigns' },
-          { icon: <NotificationsIcon />, label: 'Badges', to: '/staff/notifications/badges' },
-        ]
-      },
-      {
-        section: 'Support / Helpdesk',
-        icon: <HelpIcon />,
-        items: [
-          { icon: <HelpIcon />, label: 'Support Tickets', to: '/staff/support/tickets' },
-          { icon: <HelpIcon />, label: 'Live Chat & Email', to: '/staff/support/chat' },
-          { icon: <MenuBookIcon />, label: 'Knowledge Base', to: '/staff/support/kb' },
-        ]
-      },
-      {
-        section: 'Profile & Settings',
-        icon: <SettingsIcon />,
-        items: [
-          { icon: <SettingsIcon />, label: 'Profile & Company', to: '/staff/settings/profile' },
-          { icon: <SettingsIcon />, label: 'KYC', to: '/staff/settings/kyc' },
-          { icon: <GroupIcon />, label: 'Staff', to: '/staff/settings/staff' },
-          { icon: <NotificationsIcon />, label: 'Notification Preferences', to: '/staff/settings/notifications' },
-          { icon: <CalculateIcon />, label: 'Bank Details', to: '/staff/settings/bank' },
-          { icon: <FunctionsIcon />, label: 'Upgrade Tier', to: '/staff/settings/upgrade' },
-        ]
-      },
-      {
-        section: 'Advanced Features',
-        icon: <FunctionsIcon />,
-        items: [
-          { icon: <FunctionsIcon />, label: 'AI Assistant', to: '/staff/advanced/ai' },
-          { icon: <TransformIcon />, label: 'Smart Matching', to: '/staff/advanced/matching' },
-          { icon: <LanguageIcon />, label: 'White-Label', to: '/staff/advanced/white-label' },
-          { icon: <MenuBookIcon />, label: 'Bulk Data Export', to: '/staff/advanced/export' },
-          { icon: <SchoolIcon />, label: 'Training Tracker', to: '/staff/advanced/training-tracker' },
-          { icon: <FunctionsIcon />, label: 'Sales Leaderboard', to: '/staff/advanced/leaderboard' },
-        ]
-      },
-    ],
-    admin: [
-      {
-        section: 'Menu',
-        icon: <AppsOutlinedIcon />,
-        items: [
-          { icon: <SettingsIcon />, label: 'Settings', to: '/admin/settings' },
-        ]
-      }
-    ],
-   
-  }), []);
+      agent: [
+        {
+          section: "Dashboard",
+          icon: <AppsOutlinedIcon />,
+          items: [
+            {
+              icon: <AppsOutlinedIcon />,
+              label: "Overview",
+              to: "/staff/dashboard",
+            },
+            {
+              icon: <FunctionsIcon />,
+              label: "Performance Analytics",
+              to: "/staff/analytics",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Service Usage Summary",
+              to: "/staff/usage-summary",
+            },
+          ],
+        },
+        {
+          section: "Clients / Leads Manager",
+          icon: <GroupIcon />,
+          items: [
+            { icon: <GroupIcon />, label: "All Clients", to: "/staff/clients" },
+            { icon: <GroupIcon />, label: "Leads", to: "/staff/leads" },
+            {
+              icon: <GroupIcon />,
+              label: "Add New Client",
+              to: "/staff/clients/new",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Documents",
+              to: "/staff/clients/documents",
+            },
+            {
+              icon: <SettingsIcon />,
+              label: "Assign to Teams",
+              to: "/staff/clients/assign",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Notes & Reminders",
+              to: "/staff/clients/notes",
+            },
+            {
+              icon: <LanguageIcon />,
+              label: "Contact (Email/WhatsApp)",
+              to: "/staff/clients/contact",
+            },
+          ],
+        },
+        {
+          section: "Application Hub",
+          icon: <BookIcon />,
+          items: [
+            {
+              icon: <SchoolIcon />,
+              label: "Study Abroad",
+              to: "/staff/applications/study",
+            },
+            {
+              icon: <TranslateIcon />,
+              label: "Visa Applications",
+              to: "/staff/applications/visa",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Exam Registrations",
+              to: "/staff/applications/exams",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Car/Gadget/TV Orders",
+              to: "/staff/applications/orders",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Property Interests",
+              to: "/staff/applications/property",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Documents & Legal",
+              to: "/staff/applications/documents",
+            },
+          ],
+        },
+        {
+          section: "Services Control Panel",
+          icon: <HandymanIcon />,
+          items: [
+            {
+              icon: <SchoolIcon />,
+              label: "Study Abroad",
+              to: "/staff/services/study",
+            },
+            {
+              icon: <TranslateIcon />,
+              label: "Visa Services",
+              to: "/staff/services/visa",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Exam Registration",
+              to: "/staff/services/exams",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Asset Sales",
+              to: "/staff/services/assets",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Property & Real Estate",
+              to: "/staff/services/property",
+            },
+            {
+              icon: <LanguageIcon />,
+              label: "Business & Branding",
+              to: "/staff/services/business",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Legal Documents",
+              to: "/staff/services/legal",
+            },
+            {
+              icon: <CalculateIcon />,
+              label: "Loan & Investment",
+              to: "/staff/services/loans",
+            },
+          ],
+        },
+
+        {
+          section: "Transactions & Commission",
+          icon: <CalculateIcon />,
+          items: [
+            {
+              icon: <CalculateIcon />,
+              label: "Payments",
+              to: "/staff/transactions/payments",
+            },
+            {
+              icon: <CalculateIcon />,
+              label: "Commissions",
+              to: "/staff/transactions/commissions",
+            },
+            {
+              icon: <CalculateIcon />,
+              label: "Withdrawals",
+              to: "/staff/transactions/withdrawals",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Invoices & Receipts",
+              to: "/staff/transactions/invoices",
+            },
+            {
+              icon: <FunctionsIcon />,
+              label: "Rewards & Tiers",
+              to: "/staff/transactions/rewards",
+            },
+          ],
+        },
+        {
+          section: "Graz Marketplace",
+          icon: <MenuBookIcon />,
+          items: [
+            {
+              icon: <MenuBookIcon />,
+              label: "Listings",
+              to: "/staff/marketplace/listings",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Add New Listing",
+              to: "/staff/marketplace/new",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Stock & Availability",
+              to: "/staff/marketplace/stock",
+            },
+            {
+              icon: <LanguageIcon />,
+              label: "Client-Product Chat",
+              to: "/staff/marketplace/chat",
+            },
+            {
+              icon: <TravelExplore />,
+              label: "Travel & Tour Solutions",
+              to: "/staff/transactions/rewards",
+            },
+            {
+              icon: <AttachMoney />,
+              label: " Citizenship by Investment (CBI)",
+              to: "/staff/marketplace/cbi",
+            },
+            {
+              icon: <MoneyRounded />,
+              label: " EduFinance / Civil Servant Loan",
+              to: "/staff/marketplace/edufinaceandloan",
+            },
+            {
+              icon: <Work />,
+              label: " Work Abroad Program",
+              to: "/staff/transactions/rewards",
+            },
+            {
+              icon: <CastForEducation />,
+              label: " Study Abroad Application",
+              to: "/staff/transactions/rewards",
+            },
+            {
+              icon: <ModeOfTravel />,
+              label: " Excursion & Vacation Packages",
+              to: "/staff/transactions/rewards",
+            },
+            {
+              icon: <PaymentSharp />,
+              label: " Airtime & Bill Payment",
+              to: "/staff/transactions/rewards",
+            },
+            {
+              icon: <LinkRounded />,
+              label: " Connect Services (Artisan / Business Linkage)",
+              to: "/staff/transactions/rewards",
+            },
+          ],
+        },
+
+        // 🔹 Onboarding & Orientation Videos
+        // 🔹 Product Training Materials
+        // 🔹 Marketing Resources & Flyers
+        // 🔹 Webinar / Live Session Access
+        // 🔹 Certificate of Completion
+
+        {
+          section: "Training & Resource Center",
+          icon: <SchoolIcon />,
+          items: [
+            {
+              icon: <SchoolIcon />,
+              label: "Video Tutorials",
+              to: "/staff/training/videos",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Templates",
+              to: "/staff/training/templates",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Digital Catalogs",
+              to: "/staff/training/catalogs",
+            },
+            {
+              icon: <SellSharp />,
+              label: "Sales Scripts",
+              to: "/staff/training/scripts",
+            },
+            {
+              icon: <BookSharp />,
+              label: "Agent Playbook",
+              to: "/staff/training/playbook",
+            },
+            {
+              icon: <ProductionQuantityLimitsSharp />,
+              label: "Product Training Materials",
+              to: "/staff/training/playbook",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Marketing Resources & Flyers",
+              to: "/staff/training/playbook",
+            },
+            {
+              icon: <LiveTv />,
+              label: "Webinar / Live Session Access",
+              to: "/staff/training/playbook",
+            },
+            {
+              icon: <Label />,
+              label: "Certificate of Completion",
+              to: "/staff/training/playbook",
+            },
+          ],
+        },
+
+        //         🔹 General Announcements
+        // 🔹 New Service Alerts
+        // 🔹 Promo & Bonus Notifications
+        // 🔹 System Maintenance Notices
+        // 🔹 Past Broadcast Archive
+        {
+          section: "Notifications & Broadcasts",
+          icon: <NotificationsIcon />,
+          items: [
+            {
+              icon: <NotificationsIcon />,
+              label: "General Announcements",
+              to: "/staff/notifications/alerts",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "New Service Alerts",
+              to: "/staff/notifications/alerts",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "Visa Alerts & Deadlines",
+              to: "/staff/notifications/alerts",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "Broadcasts",
+              to: "/staff/notifications/broadcasts",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "Promo & Bonus Notifications",
+              to: "/staff/notifications/broadcasts",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "System Maintenance Notices",
+              to: "/staff/notifications/broadcasts",
+            },
+
+            {
+              icon: <NotificationsIcon />,
+              label: "Campaigns",
+              to: "/staff/notifications/campaigns",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "Badges",
+              to: "/staff/notifications/badges",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "Past Broadcast Archive",
+              to: "/staff/notifications/broadcasts",
+            },
+          ],
+        },
+
+        //         🔹 Submit Support Ticket
+        // 🔹 Live Chat / WhatsApp Support
+        // 🔹 Frequently Asked Questions (FAQs)
+        // 🔹 Feedback & Complaint Form
+        // 🔹 Help Articles & Guides
+        {
+          section: "Support / Helpdesk",
+          icon: <HelpIcon />,
+          items: [
+            {
+              icon: <HelpIcon />,
+              label: "Support Tickets",
+              to: "/staff/support/tickets",
+            },
+            {
+              icon: <HelpIcon />,
+              label: "Live Chat & WhatsApp Support",
+              to: "/staff/support/chat",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Knowledge Base",
+              to: "/staff/support/kb",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Feedback & Complaint Form",
+              to: "/staff/support/kb",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Help Articles & Guides",
+              to: "/staff/support/kb",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Frequently Asked Questions (FAQs)",
+              to: "/staff/support/FAQ",
+            },
+          ],
+        },
+        //         🔹 Edit Personal Information
+        // 🔹 Upload CAC / ID Documents
+        // 🔹 Bank Details Setup
+        // 🔹 Change Password / PIN
+        // 🔹 2FA & OTP Security
+        {
+          section: "Profile & Settings",
+          icon: <SettingsIcon />,
+          items: [
+            {
+              icon: <SettingsIcon />,
+              label: "Profile & Company",
+              to: "/staff/settings/profile",
+            },
+            {
+              icon: <SettingsIcon />,
+              label: "Edit Personal Information",
+              to: "/staff/settings/kyc",
+            },
+            { icon: <SettingsIcon />, label: "KYC", to: "/staff/settings/kyc" },
+            {
+              icon: <GroupIcon />,
+              label: "Upload CAC / ID Documents",
+              to: "/staff/settings/staff",
+            },
+            {
+              icon: <GroupIcon />,
+              label: "Bank Details Setup",
+              to: "/staff/settings/staff",
+            },
+            {
+              icon: <GroupIcon />,
+              label: "Change Password / PIN",
+              to: "/staff/settings/staff",
+            },
+            {
+              icon: <GroupIcon />,
+              label: "Staff",
+              to: "/staff/settings/staff",
+            },
+
+            {
+              icon: <NotificationsIcon />,
+              label: "Notification Preferences",
+              to: "/staff/settings/notifications",
+            },
+            {
+              icon: <CalculateIcon />,
+              label: "Bank Details",
+              to: "/staff/settings/bank",
+            },
+            {
+              icon: <FunctionsIcon />,
+              label: "Upgrade Tier",
+              to: "/staff/settings/upgrade",
+            },
+            {
+              icon: <GroupIcon />,
+              label: "2FA & OTP Security",
+              to: "/staff/settings/staff",
+            },
+          ],
+        },
+        //  Monthly Sales Graph
+        //  Top-Selling Services Chart
+        //  Partner Ranking Board
+        //  Goal Setting & Progress Tracker
+        //  Performance Badge Display
+
+        {
+          section: "Performance & Analytics",
+          icon: <SettingsIcon />,
+          items: [
+            {
+              icon: <SettingsIcon />,
+              label: "Monthly Sales Graph",
+              to: "/staff/settings/profile",
+            },
+            {
+              icon: <SettingsIcon />,
+              label: "Top-Selling Services Chart",
+              to: "/staff/settings/kyc",
+            },
+            {
+              icon: <SettingsIcon />,
+              label: "Partner Ranking Board",
+              to: "/staff/settings/kyc",
+            },
+            {
+              icon: <GroupIcon />,
+              label: "Goal Setting & Progress Tracker",
+              to: "/staff/settings/staff",
+            },
+            {
+              icon: <GroupIcon />,
+              label: "Performance Badge Display",
+              to: "/staff/settings/staff",
+            },
+          ],
+        },
+        {
+          section: "Advanced Features",
+          icon: <FunctionsIcon />,
+          items: [
+            {
+              icon: <FunctionsIcon />,
+              label: "AI Assistant",
+              to: "/staff/advanced/ai",
+            },
+            {
+              icon: <TransformIcon />,
+              label: "Smart Matching",
+              to: "/staff/advanced/matching",
+            },
+            {
+              icon: <LanguageIcon />,
+              label: "White-Label",
+              to: "/staff/advanced/white-label",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Bulk Data Export",
+              to: "/staff/advanced/export",
+            },
+            {
+              icon: <SchoolIcon />,
+              label: "Training Tracker",
+              to: "/staff/advanced/training-tracker",
+            },
+            {
+              icon: <FunctionsIcon />,
+              label: "Sales Leaderboard",
+              to: "/staff/advanced/leaderboard",
+            },
+          ],
+        },
+      ],
+
+      admin: [
+        {
+          section: "Menu",
+          icon: <AppsOutlinedIcon />,
+          items: [
+            {
+              icon: <SettingsIcon />,
+              label: "Settings",
+              to: "/admin/settings",
+            },
+          ],
+        },
+      ],
+    }),
+    []
+  );
 
   // Use helper to get normalized role
   const role: RoleKey = getRoleFromUser(user);
@@ -350,7 +856,7 @@ export const MainLayout: React.FC = () => {
     if (sections.length > 0 && sections[0].items.length > 0) {
       return sections[0].items[0].label;
     }
-    return 'Dashboard';
+    return "Dashboard";
   }, [location.pathname, role, sidebarStructureByRole]);
 
   // Always pass a fresh array to SidebarContent to avoid stale props
@@ -363,14 +869,16 @@ export const MainLayout: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <CssBaseline />
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${open ? drawerWidth : collapsedDrawerWidth}px)` },
+          width: {
+            sm: `calc(100% - ${open ? drawerWidth : collapsedDrawerWidth}px)`,
+          },
           ml: { sm: `${open ? drawerWidth : collapsedDrawerWidth}px` },
-          boxShadow: 'none',
+          boxShadow: "none",
           borderBottom: `1px solid ${theme.palette.divider}`,
           bgcolor: theme.palette.background.default,
         }}
@@ -381,11 +889,16 @@ export const MainLayout: React.FC = () => {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ mr: 2, display: { sm: "none" } }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: theme.palette.text.primary }}>
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ flexGrow: 1, color: theme.palette.text.primary }}
+          >
             {currentTitle}
           </Typography>
 
@@ -403,24 +916,27 @@ export const MainLayout: React.FC = () => {
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: open ? drawerWidth : collapsedDrawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{
+          width: { sm: open ? drawerWidth : collapsedDrawerWidth },
+          flexShrink: { sm: 0 },
+        }}
       >
         <Drawer
-          variant={isMobile ? 'temporary' : 'permanent'}
+          variant={isMobile ? "temporary" : "permanent"}
           open={isMobile ? mobileOpen : open}
           onClose={handleDrawerToggle}
           ModalProps={{
             keepMounted: true,
           }}
           sx={{
-            '& .MuiDrawer-paper': {
+            "& .MuiDrawer-paper": {
               width: open ? drawerWidth : collapsedDrawerWidth,
-              transition: theme.transitions.create('width', {
+              transition: theme.transitions.create("width", {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
-              boxSizing: 'border-box',
-              border: 'none',
+              boxSizing: "border-box",
+              border: "none",
               boxShadow: theme.shadows[3],
             },
           }}
@@ -434,17 +950,22 @@ export const MainLayout: React.FC = () => {
           p: 0,
           m: 0,
           mt: 10,
-          transition: theme.transitions.create(['margin', 'width'], {
+          transition: theme.transitions.create(["margin", "width"], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
           width: {
-            xs: '100vw',
-            sm: open ? `calc(97vw - ${drawerWidth}px)` : `calc(97vw - ${collapsedDrawerWidth}px)`
+            xs: "100vw",
+            sm: open
+              ? `calc(97vw - ${drawerWidth}px)`
+              : `calc(97vw - ${collapsedDrawerWidth}px)`,
           },
-          ml: { sm: open ? `${drawerWidth}px` : `${collapsedDrawerWidth}px`, xs: 0 },
-          boxSizing: 'border-box',
-          overflowX: 'hidden',
+          ml: {
+            sm: open ? `${drawerWidth}px` : `${collapsedDrawerWidth}px`,
+            xs: 0,
+          },
+          boxSizing: "border-box",
+          overflowX: "hidden",
         }}
       >
         <Outlet />
