@@ -16,7 +16,7 @@ import {
   getAllInstitutions,
   getMyRecentSudyVisaApplicaton,
   getMyRecentSudyVisaOffer,
-  getCoursesForInstitutionAndProgramType, // <-- You must implement this in your /services/studyVisa
+  getCoursesForInstitutionAndProgramType,
 } from "../../../../services/studyVisa";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
@@ -130,7 +130,6 @@ export const ApplyStudyVisa: React.FC = () => {
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [institutionsRaw, setInstitutionsRaw] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [fetchingNext, setFetchingNext] = useState(false);
 
   const [institutionsNext, setInstitutionsNext] = useState<string | null>(null);
   const [institutionsCount, setInstitutionsCount] = useState<number | null>(null);
@@ -149,11 +148,18 @@ export const ApplyStudyVisa: React.FC = () => {
   const [recentStudyVisaOffers, setRecentStudyVisaOffers] = useState<any[]>([]);
   const [loadingRecentStudyVisaOffers, setLoadingRecentStudyVisaOffers] = useState(true);
 
-  // Revised: Track full API response for courses to handle both array and paginated object
+  // Tracking of more paginated results for program types and courses
+  const [fetchingNextInstitutions, setFetchingNextInstitutions] = useState(false);
+  const [fetchingNextCourses, setFetchingNextCourses] = useState(false);
+
+  // For Courses
   const [coursesRaw, setCoursesRaw] = useState<any>(null);
   const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
+  const [coursesNext, setCoursesNext] = useState<string | null>(null);
+  const [coursesCount, setCoursesCount] = useState<number | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
 
+  // On mount: fetch institutions
   useEffect(() => {
     setLoading(true);
     getAllInstitutions()
@@ -168,9 +174,10 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoading(false));
   }, []);
 
+  // Enhanced fetchMoreInstitutions: Refetches all next pages for selected country and updates counts accordingly
   const fetchMoreInstitutions = async () => {
     if (!institutionsNext) return;
-    setFetchingNext(true);
+    setFetchingNextInstitutions(true);
     try {
       let resp;
       if (institutionsNext.startsWith("/")) {
@@ -183,15 +190,29 @@ export const ApplyStudyVisa: React.FC = () => {
         resp = await fetchResp.json();
       }
       if (resp && Array.isArray(resp.results)) {
-        setInstitutions((prev) => [...prev, ...resp.results]);
+        // Merge paginated results
+        const mergedInstitutions = [...institutions, ...resp.results];
+        setInstitutions(mergedInstitutions);
         setInstitutionsRaw(resp);
         setInstitutionsNext(resp.next || null);
-        setInstitutionsCount(
-          typeof resp.count === "number" ? resp.count : institutionsCount
-        );
+        // If the user has selected a country, we want to present only those institutions AFTER loading
+        if (selectedCountry) {
+          // Filter after merging
+          const filtered = mergedInstitutions.filter((i: any) => i.country === selectedCountry);
+          if (filtered.length > 0) {
+            // If the previously selected institution is NOT in the new filtered, reset it
+            if (!filtered.some((i: any) => String(i.id) === String(selectedInstitution))) {
+              setSelectedInstitution("");
+              setSelectedProgramType("");
+              setSelectedCourse("");
+            }
+          }
+        }
+        // Update count accurately if present in new response, fallback to old
+        setInstitutionsCount(typeof resp.count === "number" ? resp.count : institutionsCount);
       }
     } finally {
-      setFetchingNext(false);
+      setFetchingNextInstitutions(false);
     }
   };
 
@@ -231,6 +252,7 @@ export const ApplyStudyVisa: React.FC = () => {
     new Set(Array.isArray(institutions) ? institutions.map((inst) => inst.country) : [])
   ).filter(Boolean);
 
+  // filteredInstitutions always up to date with selectedCountry and institutions (after paging)
   const filteredInstitutions = selectedCountry
     ? (institutions || []).filter((inst) => inst.country === selectedCountry)
     : institutions || [];
@@ -249,12 +271,15 @@ export const ApplyStudyVisa: React.FC = () => {
       arr.findIndex((x) => x.id === pt.id) === idx
   );
 
-  // --- KEY CHANGE: Robustly handle both paginated and array for courses API response
+  // Courses: useEffect for when institution and programtype change
   useEffect(() => {
     if (selectedInstitution && selectedProgramType) {
       setLoadingCourses(true);
+      setFetchingNextCourses(false);
       setCourses([]);
       setCoursesRaw(null);
+      setCoursesNext(null);
+      setCoursesCount(null);
       getCoursesForInstitutionAndProgramType(selectedInstitution, selectedProgramType)
         .then((data) => {
           setCoursesRaw(data);
@@ -265,6 +290,8 @@ export const ApplyStudyVisa: React.FC = () => {
               id: String(course.id),
               name: course.name
             })));
+            setCoursesNext(data.next || null);
+            setCoursesCount(typeof data.count === "number" ? data.count : null);
           }
           // Or if response itself is an array of course objects
           else if (Array.isArray(data)) {
@@ -272,22 +299,65 @@ export const ApplyStudyVisa: React.FC = () => {
               id: String(course.id),
               name: course.name
             })));
+            setCoursesNext(null);
+            setCoursesCount(data.length);
           } else {
             setCourses([]);
+            setCoursesNext(null);
+            setCoursesCount(null);
           }
           setLoadingCourses(false);
         })
         .catch(() => {
           setCourses([]);
           setCoursesRaw(null);
+          setCoursesNext(null);
+          setCoursesCount(null);
           setLoadingCourses(false);
         });
     } else {
       setCourses([]);
       setCoursesRaw(null);
+      setCoursesNext(null);
+      setCoursesCount(null);
     }
   }, [selectedInstitution, selectedProgramType]);
 
+  // Handler to fetch more courses if paginated
+  const fetchMoreCourses = async () => {
+    if (!coursesNext) return;
+    setFetchingNextCourses(true);
+    try {
+      let resp;
+      if (coursesNext.startsWith("/")) {
+        resp = await api.get(coursesNext);
+        resp = resp.data;
+      } else {
+        const fetchResp = await fetch(coursesNext, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
+        resp = await fetchResp.json();
+      }
+      if (resp && Array.isArray(resp.results)) {
+        setCourses((prev) => [
+          ...prev,
+          ...resp.results.map((course: any) => ({
+            id: String(course.id),
+            name: course.name
+          }))
+        ]);
+        setCoursesRaw(resp);
+        setCoursesNext(resp.next || null);
+        setCoursesCount(
+          typeof resp.count === "number" ? resp.count : coursesCount
+        );
+      }
+    } finally {
+      setFetchingNextCourses(false);
+    }
+  };
+
+  // If country changes, reset the institution
   const handleCountryChange = (e: any) => {
     setSelectedCountry(e.target.value);
     setSelectedInstitution("");
@@ -295,28 +365,37 @@ export const ApplyStudyVisa: React.FC = () => {
     setSelectedCourse("");
     setCourses([]);
     setCoursesRaw(null);
+    setCoursesNext(null);
+    setCoursesCount(null);
   };
 
+  // If institution changes, reset below pieces
   const handleInstitutionChange = (e: any) => {
     setSelectedInstitution(e.target.value);
     setSelectedProgramType("");
     setSelectedCourse("");
     setCourses([]);
     setCoursesRaw(null);
+    setCoursesNext(null);
+    setCoursesCount(null);
   };
 
   const handleProgramTypeChange = (e: any) => {
     setSelectedProgramType(e.target.value);
     setSelectedCourse("");
-    // Do not reset courses here - effect will handle
   };
 
   const handleCourseChange = (e: any) => {
     setSelectedCourse(e.target.value);
   };
 
+  // Rewritten for instruction: Make sure load more (see more) fetches and updates count, and filtered institutions update for currently selected destination
   const handleSeeMoreInstitutions = () => {
     fetchMoreInstitutions();
+  };
+
+  const handleSeeMoreCourses = () => {
+    fetchMoreCourses();
   };
 
   const handleStartApplication = async () => {
@@ -432,6 +511,43 @@ export const ApplyStudyVisa: React.FC = () => {
     }
   };
 
+  // Helper to show see more as last option in menus, reused for destination, institution, program, course
+  const renderSeeMoreListSubheader = (key: string, label: string, onClick: () => void, disabled: boolean) => (
+    <ListSubheader
+      disableSticky
+      key={key}
+      style={{
+        marginTop: 6,
+        paddingTop: 4,
+        paddingBottom: 4,
+        background: "transparent",
+        color: "#7855FF"
+      }}
+    >
+      <Button
+        size="small"
+        style={{
+          color: "#7855FF",
+          fontWeight: 600,
+          fontSize: "0.93rem",
+          margin: 0,
+          padding: "6px 2px",
+          width: "100%",
+          justifyContent: "flex-start",
+          textAlign: "left",
+          background: "none",
+          border: "none",
+          minHeight: 0,
+        }}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {disabled ? <CircularProgress size={16} /> : label}
+      </Button>
+    </ListSubheader>
+  );
+
+  // For destination/countries
   const renderDestinationMenuItems = () => {
     if (countries.length === 0) {
       return [
@@ -449,41 +565,96 @@ export const ApplyStudyVisa: React.FC = () => {
     ];
     if (institutionsNext) {
       menuItems.push(
-        <ListSubheader
-          disableSticky
-          key="see-more-countries"
-          style={{
-            marginTop: 6,
-            paddingTop: 4,
-            paddingBottom: 4,
-            background: "transparent",
-            color: "#7855FF"
-          }}
-        >
-          <Button
-            size="small"
-            style={{
-              color: "#7855FF",
-              fontWeight: 600,
-              fontSize: "0.93rem",
-              margin: 0,
-              padding: "6px 2px",
-              width: "100%",
-              justifyContent: "flex-start",
-              textAlign: "left",
-              background: "none",
-              border: "none",
-              minHeight: 0,
-            }}
-            onClick={handleSeeMoreInstitutions}
-            disabled={fetchingNext}
-          >
-            {fetchingNext ? <CircularProgress size={16} /> : "See more destinations"}
-          </Button>
-        </ListSubheader>
+        renderSeeMoreListSubheader("see-more-countries", "See more destinations", handleSeeMoreInstitutions, fetchingNextInstitutions)
       );
     }
     return menuItems;
+  };
+
+  // For institutions in country, show See more if there's more paginated
+  const renderInstitutionsMenuItems = () => {
+    let items: any[] = [];
+    if (filteredInstitutions.length === 0) {
+      items.push(
+        <MenuItem value="" disabled key="no-institutions">
+          No institutions available
+        </MenuItem>
+      );
+    } else {
+      items = [
+        ...filteredInstitutions.map((inst) => (
+          <MenuItem key={inst.id || inst.name} value={inst.id}>
+            {inst.name}
+          </MenuItem>
+        ))
+      ];
+    }
+    // Show See more if there's a next page (paginated institutions)
+    if (institutionsNext) {
+      items.push(
+        renderSeeMoreListSubheader(
+          "see-more-institutions",
+          "See more institutions",
+          handleSeeMoreInstitutions,
+          fetchingNextInstitutions
+        )
+      );
+    }
+    return items;
+  };
+
+  // For program types. If needed, could implement pagination here.
+  const renderProgramTypesMenuItems = () => {
+    if (programTypeObjects.length === 0) {
+      return [
+        <MenuItem value="" disabled key="no-program-types">
+          No program types available
+        </MenuItem>
+      ];
+    }
+    return [
+      ...programTypeObjects.map((pt) => (
+        <MenuItem key={pt.id} value={pt.id}>
+          {pt.name}
+        </MenuItem>
+      )),
+    ];
+  };
+
+  // For Courses, show see more if next exists
+  const renderCoursesMenuItems = () => {
+    if (!selectedInstitution || !selectedProgramType) {
+      return [
+        <MenuItem value="" disabled key="no-courses-pre">
+          Select institution and program type first
+        </MenuItem>
+      ];
+    }
+    if (courses.length === 0) {
+      return [
+        <MenuItem value="" disabled key="no-courses">
+          No courses available
+        </MenuItem>
+      ];
+    }
+    let items: any[] = [
+      ...courses.map((course) => (
+        <MenuItem key={course.id} value={course.id}>
+          {course.name}
+        </MenuItem>
+      ))
+    ];
+    if (coursesNext) {
+      items.push(
+        renderSeeMoreListSubheader(
+          "see-more-courses",
+          "See more courses",
+          handleSeeMoreCourses,
+          fetchingNextCourses,
+        )
+      );
+    }
+    return items;
   };
 
   return (
@@ -575,55 +746,43 @@ export const ApplyStudyVisa: React.FC = () => {
             {loading ? (
               <CircularProgress size={28} />
             ) : (
-              <>
-                <TextField
-                  select
-                  fullWidth
-                  label="Select Institution"
-                  value={selectedInstitution}
-                  onChange={handleInstitutionChange}
-                  variant="outlined"
-                  disabled={!selectedCountry}
-                  InputProps={{
-                    sx: {
-                      fontWeight: 500,
-                    },
-                  }}
-                  InputLabelProps={{
-                    sx: {
-                      fontWeight: 500,
-                    },
-                  }}
-                  SelectProps={{
-                    MenuProps: {
-                      PaperProps: {
-                        sx: {
-                          borderRadius: 1,
-                        },
+              <TextField
+                select
+                fullWidth
+                label="Select Institution"
+                value={selectedInstitution}
+                onChange={handleInstitutionChange}
+                variant="outlined"
+                disabled={!selectedCountry}
+                InputProps={{
+                  sx: {
+                    fontWeight: 500,
+                  },
+                }}
+                InputLabelProps={{
+                  sx: {
+                    fontWeight: 500,
+                  },
+                }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        borderRadius: 1,
                       },
                     },
-                  }}
-                >
-                  {filteredInstitutions.length === 0 ? (
-                    <MenuItem value="" disabled>
-                      No institutions available
-                    </MenuItem>
-                  ) : (
-                    filteredInstitutions.map((inst) => (
-                      <MenuItem key={inst.id || inst.name} value={inst.id}>
-                        {inst.name}
-                      </MenuItem>
-                    ))
-                  )}
-                </TextField>
-                {institutionsRaw && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="caption" color="textSecondary">
-                      {`Current page: ${institutionsRaw.results && Array.isArray(institutionsRaw.results) ? institutionsRaw.results.length : 0}${institutionsRaw.count ? ` / ${institutionsRaw.count}` : ""}`}
-                    </Typography>
-                  </Box>
-                )}
-              </>
+                  },
+                }}
+              >
+                {renderInstitutionsMenuItems()}
+              </TextField>
+            )}
+            {institutionsRaw && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {`Current page: ${institutionsRaw.results && Array.isArray(institutionsRaw.results) ? institutionsRaw.results.length : 0}${institutionsRaw.count ? ` / ${institutionsRaw.count}` : ""}`}
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
@@ -665,17 +824,7 @@ export const ApplyStudyVisa: React.FC = () => {
                   },
                 }}
               >
-                {programTypeObjects.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No program types available
-                  </MenuItem>
-                ) : (
-                  programTypeObjects.map((pt) => (
-                    <MenuItem key={pt.id} value={pt.id}>
-                      {pt.name}
-                    </MenuItem>
-                  ))
-                )}
+                {renderProgramTypesMenuItems()}
               </TextField>
             )}
           </CardContent>
@@ -718,22 +867,15 @@ export const ApplyStudyVisa: React.FC = () => {
                   },
                 }}
               >
-                {!selectedInstitution || !selectedProgramType ? (
-                  <MenuItem value="" disabled>
-                    Select institution and program type first
-                  </MenuItem>
-                ) : courses.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No courses available
-                  </MenuItem>
-                ) : (
-                  courses.map((course) => (
-                    <MenuItem key={course.id} value={course.id}>
-                      {course.name}
-                    </MenuItem>
-                  ))
-                )}
+                {renderCoursesMenuItems()}
               </TextField>
+            )}
+            {coursesCount !== null && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {`Loaded: ${courses.length} of ${coursesCount} courses`}
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
