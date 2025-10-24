@@ -24,9 +24,8 @@ import api from "../../../../services/api";
 import { capitalizeWords } from "../../../../utils";
 import { OfferCard } from "../../../../components/StudyVisaCard";
 
-/**
- * ApplicationCard - Reusable card for displaying application info.
- */
+// ApplicationCard and GuideCard remain unchanged...
+
 export const ApplicationCard: React.FC<{
   university: string;
   country: string;
@@ -120,75 +119,59 @@ export const ApplicationCard: React.FC<{
   </Card>
 );
 
-/**
- * GuideCard - Reusable card for displaying a guide/resource.
- */
 export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
   <Button className="bg-[#f5ebe1] rounded-xl px-6 py-3 font-semibold normal-case shadow-sm hover:bg-[#f3e1d5]">
     {title}
   </Button>
 );
 
-/**
- * ApplyStudyVisa - Page for applying for a study visa.
- * Uses reusable ApplicationCard, OfferCard, and GuideCard components.
- */
-
 export const ApplyStudyVisa: React.FC = () => {
   const navigate = useNavigate();
-  // State for paginated institutions & their page info
   const [institutions, setInstitutions] = useState<any[]>([]);
-  // Track the full paginated data object of institutions
-  const [institutionsRaw, setInstitutionsRaw] = useState<any>(null); // full paged data object
+  const [institutionsRaw, setInstitutionsRaw] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [fetchingNext, setFetchingNext] = useState(false);
 
   const [institutionsNext, setInstitutionsNext] = useState<string | null>(null);
-  // Track the total count of institutions (from paginated data)
   const [institutionsCount, setInstitutionsCount] = useState<number | null>(null);
 
   const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // institution id
-  const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // program type id
-  const [selectedCourse, setSelectedCourse] = useState<string>(""); // course of study id
+  const [selectedInstitution, setSelectedInstitution] = useState<string>("");
+  const [selectedProgramType, setSelectedProgramType] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
-  // State for recent applications
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(true);
 
-  // State for tab selection: 0 = Recent Applications, 1 = Recent Study Visa Offers
   const [tabValue, setTabValue] = useState(0);
 
-  // State for recent study visa offers (for the new tab)
   const [recentStudyVisaOffers, setRecentStudyVisaOffers] = useState<any[]>([]);
   const [loadingRecentStudyVisaOffers, setLoadingRecentStudyVisaOffers] = useState(true);
 
-  // NEW: State for loading and storing the fetched courses
+  // Revised: Track full API response for courses to handle both array and paginated object
+  const [coursesRaw, setCoursesRaw] = useState<any>(null);
   const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
 
-  // Fetch institutions on mount (assume paginated response!)
   useEffect(() => {
     setLoading(true);
     getAllInstitutions()
       .then((data) => {
         let _results = data && data.results ? data.results : Array.isArray(data) ? data : [];
         setInstitutions(_results || []);
-        setInstitutionsRaw(data || {}); // Capture the full raw paginated object
+        setInstitutionsRaw(data || {});
         setInstitutionsNext(data && data.next ? data.next : null);
-        setInstitutionsCount(data && typeof data.count === "number" ? data.count : null); // Set count if provided
+        setInstitutionsCount(data && typeof data.count === "number" ? data.count : null);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  // Fetch more institutions (paging)
   const fetchMoreInstitutions = async () => {
     if (!institutionsNext) return;
     setFetchingNext(true);
     try {
-      // If institutionsNext is a relative path, use API instance. Else, fetch.
       let resp;
       if (institutionsNext.startsWith("/")) {
         resp = await api.get(institutionsNext);
@@ -199,28 +182,23 @@ export const ApplyStudyVisa: React.FC = () => {
         });
         resp = await fetchResp.json();
       }
-      // Expect .results
       if (resp && Array.isArray(resp.results)) {
         setInstitutions((prev) => [...prev, ...resp.results]);
-        setInstitutionsRaw(resp); // Always keep institutionsRaw up to date with the most recent response
+        setInstitutionsRaw(resp);
         setInstitutionsNext(resp.next || null);
         setInstitutionsCount(
-          typeof resp.count === "number"
-            ? resp.count
-            : institutionsCount // fallback to previous
-        ); // Update count if included
+          typeof resp.count === "number" ? resp.count : institutionsCount
+        );
       }
     } finally {
       setFetchingNext(false);
     }
   };
 
-  // Fetch recent study visa applications on mount
   useEffect(() => {
     setLoadingApplications(true);
     getMyRecentSudyVisaApplicaton()
       .then((data) => {
-        // If paginated, use data.results; else fallback
         if (data && Array.isArray(data.results)) {
           setRecentApplications(data.results);
         } else if (Array.isArray(data)) {
@@ -233,7 +211,6 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoadingApplications(false));
   }, []);
 
-  // Fetch recent study visa offers (for the new tab)
   useEffect(() => {
     setLoadingRecentStudyVisaOffers(true);
     getMyRecentSudyVisaOffer()
@@ -250,19 +227,14 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoadingRecentStudyVisaOffers(false));
   }, []);
 
-  // Derive unique countries from institutions list
   const countries = Array.from(
     new Set(Array.isArray(institutions) ? institutions.map((inst) => inst.country) : [])
   ).filter(Boolean);
 
-  // When a country is selected, filter the available institutions from loaded (paged) results only.
   const filteredInstitutions = selectedCountry
     ? (institutions || []).filter((inst) => inst.country === selectedCountry)
     : institutions || [];
 
-  // Indicates whether there might be *more* institutions for this country to show
-
-  // Derive program types from filtered institutions (like before)
   const programTypeObjects: { id: string; name: string }[] = Array.from(
     (filteredInstitutions || []).flatMap((inst) =>
       Array.isArray(inst.program_types)
@@ -274,50 +246,67 @@ export const ApplyStudyVisa: React.FC = () => {
   ).filter(
     (pt, idx, arr) =>
       pt.id &&
-      arr.findIndex((x) => x.id === pt.id) === idx // unique by id
+      arr.findIndex((x) => x.id === pt.id) === idx
   );
 
-  // Fetch courses for selected institution and program type, ignoring paging
+  // --- KEY CHANGE: Robustly handle both paginated and array for courses API response
   useEffect(() => {
     if (selectedInstitution && selectedProgramType) {
       setLoadingCourses(true);
       setCourses([]);
+      setCoursesRaw(null);
       getCoursesForInstitutionAndProgramType(selectedInstitution, selectedProgramType)
         .then((data) => {
-          setCourses(
-            Array.isArray(data)
-              ? data.map((course) => ({ id: String(course.id), name: course.name }))
-              : []
-          );
+          setCoursesRaw(data);
+
+          // Defensive: Check if response is a paginated object with .results as array
+          if (data && Array.isArray(data.results)) {
+            setCourses(data.results.map((course: any) => ({
+              id: String(course.id),
+              name: course.name
+            })));
+          }
+          // Or if response itself is an array of course objects
+          else if (Array.isArray(data)) {
+            setCourses(data.map((course: any) => ({
+              id: String(course.id),
+              name: course.name
+            })));
+          } else {
+            setCourses([]);
+          }
           setLoadingCourses(false);
         })
         .catch(() => {
           setCourses([]);
+          setCoursesRaw(null);
           setLoadingCourses(false);
         });
     } else {
       setCourses([]);
+      setCoursesRaw(null);
     }
   }, [selectedInstitution, selectedProgramType]);
 
-  // Handle form changes
   const handleCountryChange = (e: any) => {
     setSelectedCountry(e.target.value);
     setSelectedInstitution("");
     setSelectedProgramType("");
     setSelectedCourse("");
     setCourses([]);
+    setCoursesRaw(null);
   };
 
   const handleInstitutionChange = (e: any) => {
-    setSelectedInstitution(e.target.value); // institution id
+    setSelectedInstitution(e.target.value);
     setSelectedProgramType("");
     setSelectedCourse("");
     setCourses([]);
+    setCoursesRaw(null);
   };
 
   const handleProgramTypeChange = (e: any) => {
-    setSelectedProgramType(e.target.value); // program type id
+    setSelectedProgramType(e.target.value);
     setSelectedCourse("");
     // Do not reset courses here - effect will handle
   };
@@ -326,12 +315,10 @@ export const ApplyStudyVisa: React.FC = () => {
     setSelectedCourse(e.target.value);
   };
 
-  // Handle See more institutions
   const handleSeeMoreInstitutions = () => {
     fetchMoreInstitutions();
   };
 
-  // Handle Start Application
   const handleStartApplication = async () => {
     setSubmitting(true);
     try {
@@ -342,11 +329,9 @@ export const ApplyStudyVisa: React.FC = () => {
         course_of_study: selectedCourse,
       };
 
-      // Get the latest token from localStorage
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Send POST request to the application endpoint
       const response = await api.post(
         `/app/study-visa-application/`,
         payload,
@@ -368,19 +353,16 @@ export const ApplyStudyVisa: React.FC = () => {
     }
   };
 
-  // Helper: get institution name by id
   const getInstitutionName = (id: number | string) => {
     const inst = (institutions || []).find((i) => String(i.id) === String(id));
     return inst?.name || "Unknown Institution";
   };
 
-  // Helper: get institution country by id
   const getInstitutionCountry = (id: number | string) => {
     const inst = (institutions || []).find((i) => String(i.id) === String(id));
     return inst?.country || "Unknown Country";
   };
 
-  // Helper: get program type name by id
   const getProgramTypeName = (id: number | string) => {
     for (const inst of institutions || []) {
       if (Array.isArray(inst.program_types)) {
@@ -391,13 +373,18 @@ export const ApplyStudyVisa: React.FC = () => {
     return "Unknown Program";
   };
 
-  // Helper: get course name by id
+  // Patch getCourseName to correctly look in paginated and array courses responses
   const getCourseName = (id: number | string | null | undefined) => {
     if (!id) return "";
-    // Try to find from loaded courses (from API)
+    // Try loaded courses
     const course = courses.find((c) => String(c.id) === String(id));
     if (course) return course.name;
-    // Optionally, fallback to any institution in loaded pages
+    // Try raw data if available and it is paginated
+    if (coursesRaw && Array.isArray(coursesRaw.results)) {
+      const cObj = coursesRaw.results.find((c: any) => String(c.id) === String(id));
+      if (cObj) return cObj.name;
+    }
+    // Fallback: try flattened institution.courses
     for (const inst of institutions || []) {
       if (Array.isArray(inst.courses)) {
         const cObj = inst.courses.find((c: any) => String(c.id) === String(id));
@@ -407,7 +394,6 @@ export const ApplyStudyVisa: React.FC = () => {
     return "Unknown Course";
   };
 
-  // Helper: get status label from status code
   const getStatusLabel = (status: number | string | null | undefined) => {
     const statusMap: Record<string, string> = {
       "33": "Draft",
@@ -420,7 +406,6 @@ export const ApplyStudyVisa: React.FC = () => {
     return statusMap[String(status)] || String(status);
   };
 
-  // Helper: get program string for recent applications
   const getProgramString = (app: any) => {
     const courseId = app.course_of_study ?? app.course;
     const programTypeName = getProgramTypeName(app.program_type);
@@ -431,17 +416,14 @@ export const ApplyStudyVisa: React.FC = () => {
     return programTypeName;
   };
 
-  // Tab change handler
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  // Handler for viewing an offer (could be expanded)
   const handleViewOffer = (offerId: string | number) => {
     navigate(`/travel/study-visa/offer/${offerId}`);
   };
 
-  // Handler for "View More" button click, which depends on the current tab
   const handleViewMore = () => {
     if (tabValue === 0) {
       navigate("/travel/study-visa/applications");
@@ -450,9 +432,6 @@ export const ApplyStudyVisa: React.FC = () => {
     }
   };
 
-  // -- Only changed the Destination part below (see comment) --
-
-  // Helper to render destination MenuItems as a flat array (fixes the MUI: The Menu/Select component doesn't accept a Fragment as a child)
   const renderDestinationMenuItems = () => {
     if (countries.length === 0) {
       return [
@@ -637,7 +616,6 @@ export const ApplyStudyVisa: React.FC = () => {
                     ))
                   )}
                 </TextField>
-                {/* See more button REMOVED from here */}
                 {institutionsRaw && (
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="caption" color="textSecondary">
