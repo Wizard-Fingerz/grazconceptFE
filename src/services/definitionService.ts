@@ -27,6 +27,16 @@ export async function fetchGenders() {
   }
 }
 
+
+export async function fetchJobRoles() {
+  try {
+    const response = await api.get("/definitions/by-table-name/?table_name=job_roles");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function fetchVisaTypes() {
   try {
     const response = await api.get("/definitions/by-table-name/?table_name=visa-types");

@@ -10,12 +10,13 @@ import {
   TextField,
   Tabs,
   Tab,
+  ListSubheader,
 } from "@mui/material";
 import {
   getAllInstitutions,
   getMyRecentSudyVisaApplicaton,
   getMyRecentSudyVisaOffer,
-  getCoursesForInstitutionAndProgramType, // <-- You must implement this in your /services/studyVisa
+  getCoursesForInstitutionAndProgramType,
 } from "../../../../services/studyVisa";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
@@ -23,9 +24,8 @@ import api from "../../../../services/api";
 import { capitalizeWords } from "../../../../utils";
 import { OfferCard } from "../../../../components/StudyVisaCard";
 
-/**
- * ApplicationCard - Reusable card for displaying application info.
- */
+// ApplicationCard and GuideCard remain unchanged...
+
 export const ApplicationCard: React.FC<{
   university: string;
   country: string;
@@ -119,66 +119,107 @@ export const ApplicationCard: React.FC<{
   </Card>
 );
 
-/**
- * GuideCard - Reusable card for displaying a guide/resource.
- */
 export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
   <Button className="bg-[#f5ebe1] rounded-xl px-6 py-3 font-semibold normal-case shadow-sm hover:bg-[#f3e1d5]">
     {title}
   </Button>
 );
 
-/**
- * ApplyStudyVisa - Page for applying for a study visa.
- * Uses reusable ApplicationCard, OfferCard, and GuideCard components.
- */
-
 export const ApplyStudyVisa: React.FC = () => {
   const navigate = useNavigate();
-  // State for institutions and form selections
   const [institutions, setInstitutions] = useState<any[]>([]);
+  const [institutionsRaw, setInstitutionsRaw] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const [institutionsNext, setInstitutionsNext] = useState<string | null>(null);
+  const [institutionsCount, setInstitutionsCount] = useState<number | null>(null);
+
   const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [selectedInstitution, setSelectedInstitution] = useState<string>(""); // institution id
-  const [selectedProgramType, setSelectedProgramType] = useState<string>(""); // program type id
-  const [selectedCourse, setSelectedCourse] = useState<string>(""); // course of study id
+  const [selectedInstitution, setSelectedInstitution] = useState<string>("");
+  const [selectedProgramType, setSelectedProgramType] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
-  // State for recent applications
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(true);
 
-  // State for tab selection: 0 = Recent Applications, 1 = Recent Study Visa Offers
   const [tabValue, setTabValue] = useState(0);
 
-  // State for recent study visa offers (for the new tab)
   const [recentStudyVisaOffers, setRecentStudyVisaOffers] = useState<any[]>([]);
   const [loadingRecentStudyVisaOffers, setLoadingRecentStudyVisaOffers] = useState(true);
 
-  // NEW: State for loading and storing the fetched courses
+  // Tracking of more paginated results for program types and courses
+  const [fetchingNextInstitutions, setFetchingNextInstitutions] = useState(false);
+  const [fetchingNextCourses, setFetchingNextCourses] = useState(false);
+
+  // For Courses
+  const [coursesRaw, setCoursesRaw] = useState<any>(null);
   const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
+  const [coursesNext, setCoursesNext] = useState<string | null>(null);
+  const [coursesCount, setCoursesCount] = useState<number | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
 
-  // Fetch institutions on mount
+  // On mount: fetch institutions
   useEffect(() => {
     setLoading(true);
     getAllInstitutions()
       .then((data) => {
-        setInstitutions(data || []);
+        let _results = data && data.results ? data.results : Array.isArray(data) ? data : [];
+        setInstitutions(_results || []);
+        setInstitutionsRaw(data || {});
+        setInstitutionsNext(data && data.next ? data.next : null);
+        setInstitutionsCount(data && typeof data.count === "number" ? data.count : null);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  console.log(institutions)
-  console.log(courses)
+  // Enhanced fetchMoreInstitutions: Refetches all next pages for selected country and updates counts accordingly
+  const fetchMoreInstitutions = async () => {
+    if (!institutionsNext) return;
+    setFetchingNextInstitutions(true);
+    try {
+      let resp;
+      if (institutionsNext.startsWith("/")) {
+        resp = await api.get(institutionsNext);
+        resp = resp.data;
+      } else {
+        const fetchResp = await fetch(institutionsNext, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
+        resp = await fetchResp.json();
+      }
+      if (resp && Array.isArray(resp.results)) {
+        // Merge paginated results
+        const mergedInstitutions = [...institutions, ...resp.results];
+        setInstitutions(mergedInstitutions);
+        setInstitutionsRaw(resp);
+        setInstitutionsNext(resp.next || null);
+        // If the user has selected a country, we want to present only those institutions AFTER loading
+        if (selectedCountry) {
+          // Filter after merging
+          const filtered = mergedInstitutions.filter((i: any) => i.country === selectedCountry);
+          if (filtered.length > 0) {
+            // If the previously selected institution is NOT in the new filtered, reset it
+            if (!filtered.some((i: any) => String(i.id) === String(selectedInstitution))) {
+              setSelectedInstitution("");
+              setSelectedProgramType("");
+              setSelectedCourse("");
+            }
+          }
+        }
+        // Update count accurately if present in new response, fallback to old
+        setInstitutionsCount(typeof resp.count === "number" ? resp.count : institutionsCount);
+      }
+    } finally {
+      setFetchingNextInstitutions(false);
+    }
+  };
 
-  // Fetch recent study visa applications on mount
   useEffect(() => {
     setLoadingApplications(true);
     getMyRecentSudyVisaApplicaton()
       .then((data) => {
-        // If paginated, use data.results; else fallback
         if (data && Array.isArray(data.results)) {
           setRecentApplications(data.results);
         } else if (Array.isArray(data)) {
@@ -191,7 +232,6 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoadingApplications(false));
   }, []);
 
-  // Fetch recent study visa offers (for the new tab)
   useEffect(() => {
     setLoadingRecentStudyVisaOffers(true);
     getMyRecentSudyVisaOffer()
@@ -208,19 +248,17 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoadingRecentStudyVisaOffers(false));
   }, []);
 
-  // Derive unique countries from institutions
   const countries = Array.from(
-    new Set(institutions.map((inst) => inst.country))
+    new Set(Array.isArray(institutions) ? institutions.map((inst) => inst.country) : [])
   ).filter(Boolean);
 
-  // Filter institutions by selected country
+  // filteredInstitutions always up to date with selectedCountry and institutions (after paging)
   const filteredInstitutions = selectedCountry
-    ? institutions.filter((inst) => inst.country === selectedCountry)
-    : institutions;
+    ? (institutions || []).filter((inst) => inst.country === selectedCountry)
+    : institutions || [];
 
-  // Derive program types from filtered institutions
   const programTypeObjects: { id: string; name: string }[] = Array.from(
-    filteredInstitutions.flatMap((inst) =>
+    (filteredInstitutions || []).flatMap((inst) =>
       Array.isArray(inst.program_types)
         ? inst.program_types
             .filter((pt: any) => pt && pt.id && pt.name)
@@ -230,60 +268,136 @@ export const ApplyStudyVisa: React.FC = () => {
   ).filter(
     (pt, idx, arr) =>
       pt.id &&
-      arr.findIndex((x) => x.id === pt.id) === idx // unique by id
+      arr.findIndex((x) => x.id === pt.id) === idx
   );
 
-  // NEW: Fetch courses from API whenever institution and program type are selected and change
+  // Courses: useEffect for when institution and programtype change
   useEffect(() => {
     if (selectedInstitution && selectedProgramType) {
       setLoadingCourses(true);
+      setFetchingNextCourses(false);
       setCourses([]);
+      setCoursesRaw(null);
+      setCoursesNext(null);
+      setCoursesCount(null);
       getCoursesForInstitutionAndProgramType(selectedInstitution, selectedProgramType)
         .then((data) => {
-          // data is assumed to be array of courses { id, name }
-          setCourses(
-            Array.isArray(data)
-              ? data.map((course) => ({ id: String(course.id), name: course.name }))
-              : []
-          );
+          setCoursesRaw(data);
+
+          // Defensive: Check if response is a paginated object with .results as array
+          if (data && Array.isArray(data.results)) {
+            setCourses(data.results.map((course: any) => ({
+              id: String(course.id),
+              name: course.name
+            })));
+            setCoursesNext(data.next || null);
+            setCoursesCount(typeof data.count === "number" ? data.count : null);
+          }
+          // Or if response itself is an array of course objects
+          else if (Array.isArray(data)) {
+            setCourses(data.map((course: any) => ({
+              id: String(course.id),
+              name: course.name
+            })));
+            setCoursesNext(null);
+            setCoursesCount(data.length);
+          } else {
+            setCourses([]);
+            setCoursesNext(null);
+            setCoursesCount(null);
+          }
           setLoadingCourses(false);
         })
         .catch(() => {
           setCourses([]);
+          setCoursesRaw(null);
+          setCoursesNext(null);
+          setCoursesCount(null);
           setLoadingCourses(false);
         });
     } else {
       setCourses([]);
+      setCoursesRaw(null);
+      setCoursesNext(null);
+      setCoursesCount(null);
     }
   }, [selectedInstitution, selectedProgramType]);
 
-  // Handle form changes
+  // Handler to fetch more courses if paginated
+  const fetchMoreCourses = async () => {
+    if (!coursesNext) return;
+    setFetchingNextCourses(true);
+    try {
+      let resp;
+      if (coursesNext.startsWith("/")) {
+        resp = await api.get(coursesNext);
+        resp = resp.data;
+      } else {
+        const fetchResp = await fetch(coursesNext, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
+        resp = await fetchResp.json();
+      }
+      if (resp && Array.isArray(resp.results)) {
+        setCourses((prev) => [
+          ...prev,
+          ...resp.results.map((course: any) => ({
+            id: String(course.id),
+            name: course.name
+          }))
+        ]);
+        setCoursesRaw(resp);
+        setCoursesNext(resp.next || null);
+        setCoursesCount(
+          typeof resp.count === "number" ? resp.count : coursesCount
+        );
+      }
+    } finally {
+      setFetchingNextCourses(false);
+    }
+  };
+
+  // If country changes, reset the institution
   const handleCountryChange = (e: any) => {
     setSelectedCountry(e.target.value);
     setSelectedInstitution("");
     setSelectedProgramType("");
     setSelectedCourse("");
     setCourses([]);
+    setCoursesRaw(null);
+    setCoursesNext(null);
+    setCoursesCount(null);
   };
 
+  // If institution changes, reset below pieces
   const handleInstitutionChange = (e: any) => {
-    setSelectedInstitution(e.target.value); // institution id
+    setSelectedInstitution(e.target.value);
     setSelectedProgramType("");
     setSelectedCourse("");
     setCourses([]);
+    setCoursesRaw(null);
+    setCoursesNext(null);
+    setCoursesCount(null);
   };
 
   const handleProgramTypeChange = (e: any) => {
-    setSelectedProgramType(e.target.value); // program type id
+    setSelectedProgramType(e.target.value);
     setSelectedCourse("");
-    // Do not reset courses here - effect will handle
   };
 
   const handleCourseChange = (e: any) => {
     setSelectedCourse(e.target.value);
   };
 
-  // Handle Start Application
+  // Rewritten for instruction: Make sure load more (see more) fetches and updates count, and filtered institutions update for currently selected destination
+  const handleSeeMoreInstitutions = () => {
+    fetchMoreInstitutions();
+  };
+
+  const handleSeeMoreCourses = () => {
+    fetchMoreCourses();
+  };
+
   const handleStartApplication = async () => {
     setSubmitting(true);
     try {
@@ -294,11 +408,9 @@ export const ApplyStudyVisa: React.FC = () => {
         course_of_study: selectedCourse,
       };
 
-      // Get the latest token from localStorage
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Send POST request to the application endpoint
       const response = await api.post(
         `/app/study-visa-application/`,
         payload,
@@ -320,21 +432,18 @@ export const ApplyStudyVisa: React.FC = () => {
     }
   };
 
-  // Helper: get institution name by id
   const getInstitutionName = (id: number | string) => {
-    const inst = institutions.find((i) => String(i.id) === String(id));
+    const inst = (institutions || []).find((i) => String(i.id) === String(id));
     return inst?.name || "Unknown Institution";
   };
 
-  // Helper: get institution country by id
   const getInstitutionCountry = (id: number | string) => {
-    const inst = institutions.find((i) => String(i.id) === String(id));
+    const inst = (institutions || []).find((i) => String(i.id) === String(id));
     return inst?.country || "Unknown Country";
   };
 
-  // Helper: get program type name by id
   const getProgramTypeName = (id: number | string) => {
-    for (const inst of institutions) {
+    for (const inst of institutions || []) {
       if (Array.isArray(inst.program_types)) {
         const pt = inst.program_types.find((pt: any) => String(pt.id) === String(id));
         if (pt) return pt.name;
@@ -343,14 +452,19 @@ export const ApplyStudyVisa: React.FC = () => {
     return "Unknown Program";
   };
 
-  // Helper: get course name by id
+  // Patch getCourseName to correctly look in paginated and array courses responses
   const getCourseName = (id: number | string | null | undefined) => {
     if (!id) return "";
-    // Try to find from loaded courses
+    // Try loaded courses
     const course = courses.find((c) => String(c.id) === String(id));
     if (course) return course.name;
-    // Optionally, fallback to any institution
-    for (const inst of institutions) {
+    // Try raw data if available and it is paginated
+    if (coursesRaw && Array.isArray(coursesRaw.results)) {
+      const cObj = coursesRaw.results.find((c: any) => String(c.id) === String(id));
+      if (cObj) return cObj.name;
+    }
+    // Fallback: try flattened institution.courses
+    for (const inst of institutions || []) {
       if (Array.isArray(inst.courses)) {
         const cObj = inst.courses.find((c: any) => String(c.id) === String(id));
         if (cObj) return cObj.name;
@@ -359,7 +473,6 @@ export const ApplyStudyVisa: React.FC = () => {
     return "Unknown Course";
   };
 
-  // Helper: get status label from status code
   const getStatusLabel = (status: number | string | null | undefined) => {
     const statusMap: Record<string, string> = {
       "33": "Draft",
@@ -372,7 +485,6 @@ export const ApplyStudyVisa: React.FC = () => {
     return statusMap[String(status)] || String(status);
   };
 
-  // Helper: get program string for recent applications
   const getProgramString = (app: any) => {
     const courseId = app.course_of_study ?? app.course;
     const programTypeName = getProgramTypeName(app.program_type);
@@ -383,23 +495,166 @@ export const ApplyStudyVisa: React.FC = () => {
     return programTypeName;
   };
 
-  // Tab change handler
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  // Handler for viewing an offer (could be expanded)
   const handleViewOffer = (offerId: string | number) => {
     navigate(`/travel/study-visa/offer/${offerId}`);
   };
 
-  // Handler for "View More" button click, which depends on the current tab
   const handleViewMore = () => {
     if (tabValue === 0) {
       navigate("/travel/study-visa/applications");
     } else if (tabValue === 1) {
       navigate("/travel/study-visa/offers");
     }
+  };
+
+  // Helper to show see more as last option in menus, reused for destination, institution, program, course
+  const renderSeeMoreListSubheader = (key: string, label: string, onClick: () => void, disabled: boolean) => (
+    <ListSubheader
+      disableSticky
+      key={key}
+      style={{
+        marginTop: 6,
+        paddingTop: 4,
+        paddingBottom: 4,
+        background: "transparent",
+        color: "#7855FF"
+      }}
+    >
+      <Button
+        size="small"
+        style={{
+          color: "#7855FF",
+          fontWeight: 600,
+          fontSize: "0.93rem",
+          margin: 0,
+          padding: "6px 2px",
+          width: "100%",
+          justifyContent: "flex-start",
+          textAlign: "left",
+          background: "none",
+          border: "none",
+          minHeight: 0,
+        }}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {disabled ? <CircularProgress size={16} /> : label}
+      </Button>
+    </ListSubheader>
+  );
+
+  // For destination/countries
+  const renderDestinationMenuItems = () => {
+    if (countries.length === 0) {
+      return [
+        <MenuItem value="" disabled key="no-countries">
+          No countries available
+        </MenuItem>
+      ];
+    }
+    const menuItems = [
+      ...countries.map((country) => (
+        <MenuItem key={country} value={country}>
+          {country}
+        </MenuItem>
+      )),
+    ];
+    if (institutionsNext) {
+      menuItems.push(
+        renderSeeMoreListSubheader("see-more-countries", "See more destinations", handleSeeMoreInstitutions, fetchingNextInstitutions)
+      );
+    }
+    return menuItems;
+  };
+
+  // For institutions in country, show See more if there's more paginated
+  const renderInstitutionsMenuItems = () => {
+    let items: any[] = [];
+    if (filteredInstitutions.length === 0) {
+      items.push(
+        <MenuItem value="" disabled key="no-institutions">
+          No institutions available
+        </MenuItem>
+      );
+    } else {
+      items = [
+        ...filteredInstitutions.map((inst) => (
+          <MenuItem key={inst.id || inst.name} value={inst.id}>
+            {inst.name}
+          </MenuItem>
+        ))
+      ];
+    }
+    // Show See more if there's a next page (paginated institutions)
+    if (institutionsNext) {
+      items.push(
+        renderSeeMoreListSubheader(
+          "see-more-institutions",
+          "See more institutions",
+          handleSeeMoreInstitutions,
+          fetchingNextInstitutions
+        )
+      );
+    }
+    return items;
+  };
+
+  // For program types. If needed, could implement pagination here.
+  const renderProgramTypesMenuItems = () => {
+    if (programTypeObjects.length === 0) {
+      return [
+        <MenuItem value="" disabled key="no-program-types">
+          No program types available
+        </MenuItem>
+      ];
+    }
+    return [
+      ...programTypeObjects.map((pt) => (
+        <MenuItem key={pt.id} value={pt.id}>
+          {pt.name}
+        </MenuItem>
+      )),
+    ];
+  };
+
+  // For Courses, show see more if next exists
+  const renderCoursesMenuItems = () => {
+    if (!selectedInstitution || !selectedProgramType) {
+      return [
+        <MenuItem value="" disabled key="no-courses-pre">
+          Select institution and program type first
+        </MenuItem>
+      ];
+    }
+    if (courses.length === 0) {
+      return [
+        <MenuItem value="" disabled key="no-courses">
+          No courses available
+        </MenuItem>
+      ];
+    }
+    let items: any[] = [
+      ...courses.map((course) => (
+        <MenuItem key={course.id} value={course.id}>
+          {course.name}
+        </MenuItem>
+      ))
+    ];
+    if (coursesNext) {
+      items.push(
+        renderSeeMoreListSubheader(
+          "see-more-courses",
+          "See more courses",
+          handleSeeMoreCourses,
+          fetchingNextCourses,
+        )
+      );
+    }
+    return items;
   };
 
   return (
@@ -432,6 +687,7 @@ export const ApplyStudyVisa: React.FC = () => {
 
       {/* Application Form */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+
         {/* Destination */}
         <Card className="rounded-2xl shadow-md">
           <CardContent
@@ -468,18 +724,15 @@ export const ApplyStudyVisa: React.FC = () => {
                   },
                 }}
               >
-                {countries.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No countries available
-                  </MenuItem>
-                ) : (
-                  countries.map((country) => (
-                    <MenuItem key={country} value={country}>
-                      {country}
-                    </MenuItem>
-                  ))
-                )}
+                {renderDestinationMenuItems()}
               </TextField>
+            )}
+            {institutionsCount !== null && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {`Loaded: ${institutions.length} of ${institutionsCount} institutions`}
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
@@ -521,18 +774,15 @@ export const ApplyStudyVisa: React.FC = () => {
                   },
                 }}
               >
-                {filteredInstitutions.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No institutions available
-                  </MenuItem>
-                ) : (
-                  filteredInstitutions.map((inst) => (
-                    <MenuItem key={inst.id || inst.name} value={inst.id}>
-                      {inst.name}
-                    </MenuItem>
-                  ))
-                )}
+                {renderInstitutionsMenuItems()}
               </TextField>
+            )}
+            {institutionsRaw && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {`Current page: ${institutionsRaw.results && Array.isArray(institutionsRaw.results) ? institutionsRaw.results.length : 0}${institutionsRaw.count ? ` / ${institutionsRaw.count}` : ""}`}
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
@@ -574,17 +824,7 @@ export const ApplyStudyVisa: React.FC = () => {
                   },
                 }}
               >
-                {programTypeObjects.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No program types available
-                  </MenuItem>
-                ) : (
-                  programTypeObjects.map((pt) => (
-                    <MenuItem key={pt.id} value={pt.id}>
-                      {pt.name}
-                    </MenuItem>
-                  ))
-                )}
+                {renderProgramTypesMenuItems()}
               </TextField>
             )}
           </CardContent>
@@ -627,22 +867,15 @@ export const ApplyStudyVisa: React.FC = () => {
                   },
                 }}
               >
-                {!selectedInstitution || !selectedProgramType ? (
-                  <MenuItem value="" disabled>
-                    Select institution and program type first
-                  </MenuItem>
-                ) : courses.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No courses available
-                  </MenuItem>
-                ) : (
-                  courses.map((course) => (
-                    <MenuItem key={course.id} value={course.id}>
-                      {course.name}
-                    </MenuItem>
-                  ))
-                )}
+                {renderCoursesMenuItems()}
               </TextField>
+            )}
+            {coursesCount !== null && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {`Loaded: ${courses.length} of ${coursesCount} courses`}
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
