@@ -53,8 +53,6 @@ import {
   CastForEducation,
   ModeOfTravel,
   PaymentSharp,
-  LinkOffSharp,
-  LinkOff,
   LinkRounded,
   SellSharp,
   BookSharp,

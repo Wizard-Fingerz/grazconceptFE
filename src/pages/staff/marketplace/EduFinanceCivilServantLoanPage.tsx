@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Box,
   Typography,
-  Grid,
   Card,
   CardContent,
   Divider,
@@ -81,15 +80,34 @@ export default function EduFinanceDashboard() {
       </Typography>
 
       {/* Loan Program List */}
-      <Grid container spacing={3}>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 3,
+          mb: 2,
+        }}
+      >
         {loanPrograms.map((loan) => (
-          <Grid item xs={12} md={4} key={loan.title}>
+          <Box
+            key={loan.title}
+            sx={{
+              flex: "1 1 300px",
+              minWidth: { xs: "100%", md: "calc(33% - 24px)" },
+              maxWidth: { xs: "100%", md: "calc(33% - 24px)" },
+              boxSizing: "border-box",
+              display: "flex",
+            }}
+          >
             <Card
               variant="outlined"
               sx={{
                 borderRadius: 3,
                 boxShadow: 2,
                 height: "100%",
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               <CardContent>
@@ -112,9 +130,9 @@ export default function EduFinanceDashboard() {
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
       <Divider sx={{ my: 4 }} />
 

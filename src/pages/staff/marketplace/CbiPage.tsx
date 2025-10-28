@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   TextField,
   Button,
   MenuItem,
@@ -82,10 +81,26 @@ export default function CbiDashboard() {
       </Typography>
 
       {/* Programs Section */}
-      <Grid container spacing={3}>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 3,
+          mb: 2,
+        }}
+      >
         {programs.map((program) => (
-          <Grid item xs={12} md={4} key={program.country}>
-            <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 2 }}>
+          <Box
+            key={program.country}
+            sx={{
+              flex: "1 1 300px",
+              minWidth: { xs: "100%", md: "calc(33% - 24px)" },
+              maxWidth: { xs: "100%", md: "calc(33% - 24px)" },
+              boxSizing: "border-box",
+              display: "flex",
+            }}
+          >
+            <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 2, width: "100%" }}>
               <CardContent>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   {program.country}
@@ -110,9 +125,9 @@ export default function CbiDashboard() {
                 </ul>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
       <Divider sx={{ my: 4 }} />
 
