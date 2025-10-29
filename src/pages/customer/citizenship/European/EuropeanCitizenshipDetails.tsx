@@ -297,55 +297,115 @@ const StepRequirements: React.FC<{
   );
 };
 
-// Step 2: Investment Options
-const StepInvestment = ({ values, errors, onChange }: any) => (
-  <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <FormControl fullWidth required error={!!errors.investmentType}>
-      <InputLabel>Investment Option</InputLabel>
-      <Select
-        label="Investment Option"
-        value={values.investmentType || ""}
-        onChange={e => onChange("investmentType", e.target.value)}
-      >
-        <MenuItem value="Real Estate">Real Estate (min €250,000)</MenuItem>
-        <MenuItem value="Government Bonds">Government Bonds (min €350,000)</MenuItem>
-        <MenuItem value="Donation">Donation (min €100,000)</MenuItem>
-        <MenuItem value="Business Investment">Business Investment (min €500,000)</MenuItem>
-      </Select>
-      {errors.investmentType && 
-        <Typography color="error" variant="caption">
-          {errors.investmentType}
-        </Typography>
-      }
-    </FormControl>
+// Step 2: Investment Options (Use Checkboxes)
+import { Checkbox, FormGroup } from "@mui/material"; // Remove duplicate FormControlLabel import
 
-    {values.investmentType === "Real Estate" && (
-      <TextField
-        label="Real Estate Value (€)"
+const investmentOptions = [
+  {
+    value: "Real Estate",
+    label: "Real Estate (min €250,000)",
+    minAmount: 250000,
+    amountField: "realEstateValue",
+    amountLabel: "Real Estate Value (€)",
+  },
+  {
+    value: "Government Bonds",
+    label: "Government Bonds (min €350,000)",
+    minAmount: 350000,
+    // no extra amount field
+  },
+  {
+    value: "Donation",
+    label: "Donation (min €100,000)",
+    minAmount: 100000,
+    amountField: "donationAmount",
+    amountLabel: "Donation Amount (€)",
+  },
+  {
+    value: "Business Investment",
+    label: "Business Investment (min €500,000)",
+    minAmount: 500000,
+    // no extra amount field
+  },
+];
+
+const StepInvestment = ({ values, errors, onChange }: any) => {
+  // Convert values.investmentType to array for supporting multiple selection via checkbox
+  // If it's not array, treat it as array (for migration)
+  const selectedTypes =
+    Array.isArray(values.investmentType) && values.investmentType.length
+      ? values.investmentType
+      : values.investmentType
+      ? [values.investmentType]
+      : [];
+
+  const handleCheckboxChange = (optionValue: string) => (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (event.target.checked) {
+      // add to array
+      onChange("investmentType", [...selectedTypes, optionValue]);
+    } else {
+      // remove from array
+      onChange(
+        "investmentType",
+        selectedTypes.filter((val: string) => val !== optionValue)
+      );
+    }
+  };
+
+  return (
+    <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <FormControl
         required
-        type="number"
-        value={values.realEstateValue}
-        onChange={e => onChange("realEstateValue", e.target.value)}
-        error={!!errors.realEstateValue}
-        helperText={errors.realEstateValue}
-        inputProps={{ min: 250000 }}
-      />
-    )}
-    {values.investmentType === "Donation" && (
-      <TextField
-        label="Donation Amount (€)"
-        required
-        type="number"
-        value={values.donationAmount}
-        onChange={e => onChange("donationAmount", e.target.value)}
-        error={!!errors.donationAmount}
-        helperText={errors.donationAmount}
-        inputProps={{ min: 100000 }}
-      />
-    )}
-    {/* Add fields for other options if required */}
-  </Box>
-);
+        error={!!errors.investmentType}
+        component="fieldset"
+        variant="standard"
+      >
+        <Typography component="legend" sx={{ mb: 1 }}>
+          Investment Options
+        </Typography>
+        <FormGroup>
+          {investmentOptions.map(opt => (
+            <FormControlLabel
+              key={opt.value}
+              control={
+                <Checkbox
+                  checked={selectedTypes.includes(opt.value)}
+                  onChange={handleCheckboxChange(opt.value)}
+                  name={opt.value}
+                />
+              }
+              label={opt.label}
+            />
+          ))}
+        </FormGroup>
+        {errors.investmentType && (
+          <Typography color="error" variant="caption">
+            {errors.investmentType}
+          </Typography>
+        )}
+      </FormControl>
+
+      {/* Amount fields for selected types */}
+      {investmentOptions.map(opt =>
+        selectedTypes.includes(opt.value) && opt.amountField ? (
+          <TextField
+            key={opt.amountField}
+            label={opt.amountLabel}
+            required
+            type="number"
+            value={values[opt.amountField] || ""}
+            onChange={e => onChange(opt.amountField, e.target.value)}
+            error={!!errors[opt.amountField]}
+            helperText={errors[opt.amountField]}
+            inputProps={{ min: opt.minAmount }}
+          />
+        ) : null
+      )}
+    </Box>
+  );
+};
 
 // Step 3: KYC Information
 const StepKYC = ({ values, errors, onChange, user, countryOptions }: any) => {
