@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -13,92 +13,24 @@ import SearchIcon from "@mui/icons-material/Search";
 import CountryCard from "../../../../components/CountryCard";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import FilterPanel from "../../../../components/Filter/FilterPanel";
-
-const europeanCitizenshipCountries: any[] = [
-  {
-    country: "Portugal",
-    quote: "Where old-world charm meets modern lifestyle.",
-    type: "Golden Visa",
-    minimumInvestment: "€280,000+",
-    visaFreeAccess: "190+ countries",
-    dualCitizenship: "Allowed",
-    flagUrl: "https://flagcdn.com/pt.svg",
-    gradient: "linear-gradient(135deg, #ffffff 30%, #4f8cff 100%)",
-  },
-  {
-    country: "Greece",
-    quote: "Live your myth in Europe.",
-    type: "Golden Visa",
-    minimumInvestment: "€250,000+",
-    visaFreeAccess: "185+ countries",
-    dualCitizenship: "Allowed",
-    flagUrl: "https://flagcdn.com/gr.svg",
-    gradient: "linear-gradient(135deg, #ffffff 30%, #009bb8 100%)",
-  },
-  {
-    country: "Malta",
-    quote: "Gateway to Europe with a rich history.",
-    type: "Citizenship by Investment",
-    minimumInvestment: "€600,000+",
-    visaFreeAccess: "190+ countries",
-    dualCitizenship: "Allowed",
-    flagUrl: "https://flagcdn.com/mt.svg",
-    gradient: "linear-gradient(135deg, #ffffff 30%, #bfa974 100%)",
-  },
-  {
-    country: "Spain",
-    quote: "Sunshine, siestas, and second citizenship.",
-    type: "Golden Visa",
-    minimumInvestment: "€500,000+",
-    visaFreeAccess: "190+ countries",
-    dualCitizenship: "Restricted",
-    flagUrl: "https://flagcdn.com/es.svg",
-    gradient: "linear-gradient(135deg, #ffffff 30%, #e20327 100%)",
-  },
-  {
-    country: "Turkey",
-    quote: "A transcontinental bridge to the world.",
-    type: "Citizenship by Investment",
-    minimumInvestment: "$400,000+",
-    visaFreeAccess: "110+ countries",
-    dualCitizenship: "Allowed",
-    flagUrl: "https://flagcdn.com/tr.svg",
-    gradient: "linear-gradient(135deg, #ffffff 30%, #e30a17 100%)",
-  },
-];
+import { getEuropeanCitizenshipPrograms } from "../../../../services/citizenshipServices";
+import { useNavigate } from "react-router-dom";
 
 // Page size for pagination (same as study offer page)
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 15;
 
-// Filter config similar to study visa pattern - include search!
-const filterConfig = [
-  {
-    type: "search",
-    name: "search",
-    title: "Search",
-    placeholder: "Search by country, program type, investment...",
-  },
-  {
-    type: "checkbox",
-    name: "type",
-    title: "Program Type",
-    options: [
-      ...Array.from(
-        new Set(europeanCitizenshipCountries.map((c) => c.type).filter(Boolean))
-      ).map((t) => ({ label: t, value: t })),
-    ],
-  },
-  {
-    type: "checkbox",
-    name: "dualCitizenship",
-    title: "Dual Citizenship",
-    options: [
-      ...Array.from(
-        new Set(europeanCitizenshipCountries.map((c) => c.dualCitizenship).filter(Boolean))
-      ).map((t) => ({ label: t, value: t })),
-    ],
-  },
-];
+// Changing id type to number, and making it required
+type CitizenshipCountry = {
+  id: number; // id should be number and required
+  country: string;
+  quote: string;
+  type: string;
+  minimumInvestment: string;
+  visaFreeAccess: string;
+  dualCitizenship: string;
+  flagUrl: string;
+  gradient: string;
+};
 
 type Filters = {
   search?: string;
@@ -108,18 +40,90 @@ type Filters = {
 
 const defaultFilters: Filters = {};
 
+// Helper function: Normalize API to required UI structure, coerce id to number
+function normalizeCountry(program: any): CitizenshipCountry {
+  return {
+    id: typeof program.id === "number" ? program.id : Number(program.id ?? program._id ?? 0),
+    country: program.country?.name ?? "",
+    quote: program.quote || program.description || "",
+    type: typeof program.type === "string" ? program.type : String(program.type ?? ""),
+    minimumInvestment: program.minimum_investment || "",
+    visaFreeAccess: program.visa_free_access || "",
+    dualCitizenship: program.dual_citizenship || "",
+    flagUrl: program.flag_url || "",
+    gradient: program.gradient || "",
+  };
+}
+
 const EuropianCitizenshipListPage: React.FC = () => {
-  const [countries, setCountries] = useState<any[]>([]);
+  const [countries, setCountries] = useState<CitizenshipCountry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [page, setPage] = useState<number>(1);
+  const [filterConfig, setFilterConfig] = useState<any[]>([]);
+  const [search, setSearch] = useState<string>(""); // Form for search
+  const navigate = useNavigate();
 
-  // Sync data (simulate API call)
-  useEffect(() => {
-    setTimeout(() => {
-      setCountries(europeanCitizenshipCountries);
+  // Fetch citizenship programs from API
+  const fetchCitizenshipData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getEuropeanCitizenshipPrograms();
+
+      // Map API results to normalized CitizenshipCountry[]
+      const countryList: CitizenshipCountry[] = (data.results || []).map(normalizeCountry);
+
+      setCountries(countryList);
       setLoading(false);
-    }, 500);
+
+      // Dynamically build filter options based on data
+      setFilterConfig([
+        {
+          type: "search",
+          name: "search",
+          title: "Search",
+          placeholder: "Search by country, program type, investment...",
+        },
+        {
+          type: "checkbox",
+          name: "type",
+          title: "Program Type",
+          options: [
+            ...Array.from(
+              new Set(
+                countryList.map((c: CitizenshipCountry) => c.type).filter(Boolean)
+              )
+            ).map((t) => ({ label: t, value: t })),
+          ],
+        },
+        {
+          type: "checkbox",
+          name: "dualCitizenship",
+          title: "Dual Citizenship",
+          options: [
+            ...Array.from(
+              new Set(
+                countryList.map((c: CitizenshipCountry) => c.dualCitizenship).filter(Boolean)
+              )
+            ).map((t) => ({ label: t, value: t })),
+          ],
+        },
+      ]);
+    } catch {
+      setCountries([]);
+      setLoading(false);
+      setFilterConfig([
+        // fallback config
+        { type: "search", name: "search", title: "Search", placeholder: "Search by country, program type, investment..." },
+        { type: "checkbox", name: "type", title: "Program Type", options: [] },
+        { type: "checkbox", name: "dualCitizenship", title: "Dual Citizenship", options: [] },
+      ]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCitizenshipData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filtering logic following the AllStudyOffers approach (search and checkboxes)
@@ -168,9 +172,6 @@ const EuropianCitizenshipListPage: React.FC = () => {
     setPage(1);
   }, [filters]);
 
-  // Form for search (separate search field as in AllStudyOffers)
-  const [search, setSearch] = useState<string>("");
-
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -204,6 +205,12 @@ const EuropianCitizenshipListPage: React.FC = () => {
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // -- Navigation handler for program id (now always a number)
+  const handleCardClick = (countryId: number) => {
+    if (!countryId && countryId !== 0) return;
+    navigate(`/citizenship/europe/apply/${countryId}`);
   };
 
   return (
@@ -306,7 +313,22 @@ const EuropianCitizenshipListPage: React.FC = () => {
               <Typography>No European citizenship programs found.</Typography>
             ) : (
               paginatedCountries.map((c, idx) => (
-                <CountryCard key={c.country + idx} {...c} />
+                <Box
+                  key={`${c.id}-${c.country}-${idx}`}
+                  onClick={() => handleCardClick(c.id)}
+                  sx={{ cursor: "pointer", flex: "0 1 356px" /* match CountryCard minWidth */ }}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCardClick(c.id);
+                    }
+                  }}
+                  aria-label={`Apply for ${c.country} citizenship`}
+                >
+                  <CountryCard {...c} />
+                </Box>
               ))
             )}
           </Box>

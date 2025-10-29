@@ -82,6 +82,9 @@ import EducationServicesHome from "../pages/customer/valueServices/EducationServ
 import ReferralPage from "../pages/customer/referral";
 import CbiDashboard from "../pages/staff/marketplace/CbiPage";
 import EduFinanceDashboard from "../pages/staff/marketplace/EduFinanceCivilServantLoanPage";
+import EuropeanCitizenshipApplicationForm from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
+import EuropeanCitizenshipDetails from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
+import EuropeanCitizenshipForm from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -386,6 +389,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: "citizenship/europe",
         element: <EuropianCitizenshipListPage />,
+      },
+      {
+        path: "citizenship/europe/apply/:id",
+        element: <EuropeanCitizenshipForm />,
       },
       {
         path: "citizenship/investment-plan",
