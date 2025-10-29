@@ -82,8 +82,6 @@ import EducationServicesHome from "../pages/customer/valueServices/EducationServ
 import ReferralPage from "../pages/customer/referral";
 import CbiDashboard from "../pages/staff/marketplace/CbiPage";
 import EduFinanceDashboard from "../pages/staff/marketplace/EduFinanceCivilServantLoanPage";
-import EuropeanCitizenshipApplicationForm from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
-import EuropeanCitizenshipDetails from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
 import EuropeanCitizenshipForm from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
 
 // Public routes (unauthenticated)
