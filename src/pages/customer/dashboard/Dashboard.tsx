@@ -309,7 +309,7 @@ export const Dashboard: React.FC = () => {
                 Travel Wallet
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
-              {user?.wallet.currency} {user?.wallet.balance}
+              {user?.wallet?.currency} {user?.wallet?.balance}
               </Typography>
               <Box mt={4}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>

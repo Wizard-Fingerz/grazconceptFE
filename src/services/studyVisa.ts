@@ -38,6 +38,21 @@ export async function getAllStudyVisaApplication(params?: Record<string, any>) {
 }
 
 /**
+ * Fetch a study visa application by its ID.
+ * @param id The application ID.
+ * @returns Study application data.
+ */
+export async function getStudyVisaApplicationById(id: string | number) {
+  try {
+    const response = await api.get(`/app/study-visa-application/${id}/`);
+    if (!response.data) throw new Error("Failed to fetch study application details");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * Fetch the most recent study visa offers (limit 2).
  */
 export async function getMyRecentSudyVisaOffer() {

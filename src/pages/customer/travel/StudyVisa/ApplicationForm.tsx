@@ -28,9 +28,16 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { v4 as uuidv4 } from "uuid";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useAuth } from "../../../../context/AuthContext";
-import { fetchCountries, fetchSponsorshipTypes, fetchUniversities, fetchVisaTypes } from "../../../../services/definitionService";
+import {
+  fetchCountries,
+  fetchSponsorshipTypes,
+  fetchUniversities,
+  fetchVisaTypes,
+} from "../../../../services/definitionService";
+import { useParams } from "react-router-dom";
+import { getStudyVisaApplicationById } from "../../../../services/studyVisa";
 
-// --- DateInputField: A simple date input replacement for DatePicker ---
+// Date input helper (unchanged)
 const DateInputField: React.FC<{
   label: string;
   required?: boolean;
@@ -52,7 +59,6 @@ const DateInputField: React.FC<{
   max,
   readOnly = false,
 }) => {
-  // Convert Date to yyyy-MM-dd string for input value
   const getStringValue = (date: Date | null) =>
     date
       ? new Date(date.getTime() - date.getTimezoneOffset() * 60000)
@@ -82,13 +88,17 @@ const DateInputField: React.FC<{
   );
 };
 
-// Mocked API for submission
 const mockApiSubmit = (_data: any) =>
   new Promise<{ reference: string }>((resolve) =>
-    setTimeout(() => resolve({ reference: uuidv4().slice(0, 8).toUpperCase() }), 2000)
+    setTimeout(
+      () =>
+        resolve({
+          reference: uuidv4().slice(0, 8).toUpperCase(),
+        }),
+      2000
+    )
   );
 
-// Step titles
 const steps = [
   "Personal Information",
   "Educational Background",
@@ -98,93 +108,148 @@ const steps = [
   "Review & Submit",
 ];
 
-// // NOTE: We are NOT saving to localStorage anymore. The following helpers are now no-ops.
-// function saveToLocalStorage(_data: any, _step: number) {
-//   // No-op: localStorage saving removed
-// }
-function loadFromLocalStorage() {
-  // No-op: always return empty data and step 0
-  return {
-    data: undefined,
-    step: 0,
-  };
-}
-function clearLocalStorage() {
-  // No-op: localStorage clearing removed
-}
+// Validation functions (unchanged)
 
-// Validation functions for each step
+function clearLocalStorage() {}
+
 function validatePersonalInfo(data: any) {
   const errors: any = {};
   if (!data.firstName) errors.firstName = "First name is required";
   if (!data.lastName) errors.lastName = "Last name is required";
   if (!data.email) errors.email = "Email is required";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = "Invalid email";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+    errors.email = "Invalid email";
   if (!data.phone) errors.phone = "Phone number is required";
   if (!data.dateOfBirth) errors.dateOfBirth = "Date of birth is required";
   if (!data.gender) errors.gender = "Gender is required";
   if (!data.nationality) errors.nationality = "Nationality is required";
   if (!data.passportNumber) errors.passportNumber = "Passport number is required";
-  if (!data.passportExpiry) errors.passportExpiry = "Passport expiry date is required";
+  if (!data.passportExpiry)
+    errors.passportExpiry = "Passport expiry date is required";
   if (!data.currentAddress) errors.currentAddress = "Current address is required";
-  if (!data.countryOfResidence) errors.countryOfResidence = "Country of residence is required";
+  if (!data.countryOfResidence)
+    errors.countryOfResidence = "Country of residence is required";
   return errors;
 }
+
 function validateEducation(data: any) {
   const errors: any = {};
-  if (!data.highestQualification) errors.highestQualification = "Qualification is required";
-  if (!data.institutionName) errors.institutionName = "Institution name is required";
-  if (!data.courseOfStudy) errors.courseOfStudy = "Course of study is required";
-  if (data.cgpa === "" || data.cgpa === undefined || data.cgpa === null) errors.cgpa = "CGPA/Grade is required";
-  else if (isNaN(Number(data.cgpa))) errors.cgpa = "CGPA/Grade must be a number";
+  if (!data.highestQualification)
+    errors.highestQualification = "Qualification is required";
+  if (!data.institutionName)
+    errors.institutionName = "Institution name is required";
+  if (!data.courseOfStudy)
+    errors.courseOfStudy = "Course of study is required";
+  if (
+    data.cgpa === "" ||
+    data.cgpa === undefined ||
+    data.cgpa === null
+  )
+    errors.cgpa = "CGPA/Grade is required";
+  else if (isNaN(Number(data.cgpa)))
+    errors.cgpa = "CGPA/Grade must be a number";
   else if (Number(data.cgpa) < 0) errors.cgpa = "Minimum is 0";
   else if (Number(data.cgpa) > 5) errors.cgpa = "Maximum is 5";
-  if (!data.graduationYear && data.graduationYear !== 0) errors.graduationYear = "Year of graduation is required";
-  else if (isNaN(Number(data.graduationYear))) errors.graduationYear = "Year must be a number";
-  else if (Number(data.graduationYear) < 1950) errors.graduationYear = "Year too old";
-  else if (Number(data.graduationYear) > new Date().getFullYear()) errors.graduationYear = "Year cannot be in the future";
+  if (!data.graduationYear && data.graduationYear !== 0)
+    errors.graduationYear = "Year of graduation is required";
+  else if (isNaN(Number(data.graduationYear)))
+    errors.graduationYear = "Year must be a number";
+  else if (Number(data.graduationYear) < 1950)
+    errors.graduationYear = "Year too old";
+  else if (Number(data.graduationYear) > new Date().getFullYear())
+    errors.graduationYear = "Year cannot be in the future";
   return errors;
 }
+
 function validateVisaStudy(data: any) {
   const errors: any = {};
-  if (!data.destinationCountry) errors.destinationCountry = "Destination country is required";
-  if (!data.universityApplying) errors.universityApplying = "University/College is required";
-  if (!data.intendedStartDate) errors.intendedStartDate = "Start date is required";
-  if (!data.intendedEndDate) errors.intendedEndDate = "End date is required";
-  else if (data.intendedStartDate && new Date(data.intendedEndDate) < new Date(data.intendedStartDate)) {
+  if (!data.destinationCountry)
+    errors.destinationCountry = "Destination country is required";
+  if (!data.universityApplying)
+    errors.universityApplying = "University/College is required";
+  if (!data.intendedStartDate)
+    errors.intendedStartDate = "Start date is required";
+  if (!data.intendedEndDate)
+    errors.intendedEndDate = "End date is required";
+  else if (
+    data.intendedStartDate &&
+    new Date(data.intendedEndDate) < new Date(data.intendedStartDate)
+  ) {
     errors.intendedEndDate = "End date must be after start date";
   }
   if (!data.visaType) errors.visaType = "Visa type is required";
   if (!data.sponsorship) errors.sponsorship = "Sponsorship is required";
   return errors;
 }
+
 function validateDocuments(data: any) {
   const errors: any = {};
-  // Helper for file validation
-  function checkFile(field: string, required: boolean, maxSize: number, types: string[]) {
+  function checkFile(
+    field: string,
+    required: boolean,
+    maxSize: number,
+    types: string[]
+  ) {
     const file = data[field];
     if (required && !file) errors[field] = "This file is required";
     if (file) {
-      if (file.size > maxSize * 1024 * 1024) errors[field] = "File too large";
-      if (types.length && !types.includes(file.type)) errors[field] = "Unsupported format";
+      if (file.size > maxSize * 1024 * 1024)
+        errors[field] = "File too large";
+      if (types.length && !types.includes(file.type))
+        errors[field] = "Unsupported format";
     }
   }
-  checkFile("passportPhoto", true, 2, ["image/jpeg", "image/png", "image/jpg"]);
-  checkFile("passportDoc", true, 5, ["application/pdf", "image/jpeg", "image/png", "image/jpg"]);
-  checkFile("transcript", true, 5, ["application/pdf", "image/jpeg", "image/png", "image/jpg"]);
-  checkFile("admissionLetter", false, 5, ["application/pdf", "image/jpeg", "image/png", "image/jpg"]);
-  checkFile("financialStatement", true, 5, ["application/pdf", "image/jpeg", "image/png", "image/jpg"]);
-  checkFile("englishTest", false, 5, ["application/pdf", "image/jpeg", "image/png", "image/jpg"]);
+  checkFile("passportPhoto", true, 2, [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+  ]);
+  checkFile("passportDoc", true, 5, [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+  ]);
+  checkFile("transcript", true, 5, [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+  ]);
+  checkFile("admissionLetter", false, 5, [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+  ]);
+  checkFile("financialStatement", true, 5, [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+  ]);
+  checkFile("englishTest", false, 5, [
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+  ]);
   return errors;
 }
+
 function validateAdditional(data: any) {
   const errors: any = {};
   if (!data.previousVisa) errors.previousVisa = "Please select Yes or No";
-  if (data.previousVisa === "Yes" && !data.previousVisaDetails) errors.previousVisaDetails = "Please provide details";
-  if (!data.emergencyContactName) errors.emergencyContactName = "Contact name is required";
-  if (!data.emergencyContactPhone) errors.emergencyContactPhone = "Contact phone is required";
-  if (!data.statementOfPurpose) errors.statementOfPurpose = "Statement of purpose is required";
-  else if (data.statementOfPurpose.length < 30) errors.statementOfPurpose = "Statement should be at least 30 characters";
+  if (data.previousVisa === "Yes" && !data.previousVisaDetails)
+    errors.previousVisaDetails = "Please provide details";
+  if (!data.emergencyContactName)
+    errors.emergencyContactName = "Contact name is required";
+  if (!data.emergencyContactPhone)
+    errors.emergencyContactPhone = "Contact phone is required";
+  if (!data.statementOfPurpose)
+    errors.statementOfPurpose = "Statement of purpose is required";
+  else if (data.statementOfPurpose.length < 30)
+    errors.statementOfPurpose = "Statement should be at least 30 characters";
   return errors;
 }
 const stepValidators = [
@@ -195,7 +260,7 @@ const stepValidators = [
   validateAdditional,
 ];
 
-// File Upload Component with progress
+// FileUploadField (unchanged)
 const FileUploadField: React.FC<{
   name: string;
   label: string;
@@ -213,7 +278,6 @@ const FileUploadField: React.FC<{
     const f = e.target.files?.[0];
     if (f) {
       setProgress(0);
-      // Simulate upload progress
       let prog = 0;
       const interval = setInterval(() => {
         prog += 20;
@@ -234,7 +298,10 @@ const FileUploadField: React.FC<{
 
   return (
     <FormControl fullWidth sx={{ mb: 2 }}>
-      <InputLabel shrink>{label}{required ? " *" : ""}</InputLabel>
+      <InputLabel shrink>
+        {label}
+        {required ? " *" : ""}
+      </InputLabel>
       <Box
         className="border border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center bg-gray-50"
         sx={{ cursor: "pointer" }}
@@ -242,7 +309,9 @@ const FileUploadField: React.FC<{
       >
         <CloudUploadIcon className="text-primary-1 mb-2" fontSize="large" />
         <Typography variant="body2" className="mb-2">
-          {value ? value.name : `Drag & drop or click to upload (${accept})`}
+          {value
+            ? value.name
+            : `Drag & drop or click to upload (${accept})`}
         </Typography>
         <input
           ref={inputRef}
@@ -276,7 +345,7 @@ const FileUploadField: React.FC<{
   );
 };
 
-// Step 1: Personal Information
+// Step 1: Personal Information - unchanged
 const StepPersonalInfo = ({
   values,
   errors,
@@ -327,7 +396,6 @@ const StepPersonalInfo = ({
       label="Date of Birth"
       required
       value={
-        // Always get date of birth from user profile if available
         user?.date_of_birth
           ? new Date(user.date_of_birth)
           : values.dateOfBirth || null
@@ -440,7 +508,7 @@ const StepEducation = ({ values, errors, onChange }: any) => (
   </Box>
 );
 
-// Step 3: Visa & Study Details
+// Step 3
 const StepVisaStudy = ({
   values,
   errors,
@@ -563,7 +631,7 @@ const StepVisaStudy = ({
   );
 };
 
-// Step 4: Document Uploads
+// Step 4
 const StepDocuments = ({ values, errors, onChange }: any) => (
   <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
     <FileUploadField
@@ -627,7 +695,7 @@ const StepDocuments = ({ values, errors, onChange }: any) => (
   </Box>
 );
 
-// Step 5: Additional Information
+// Step 5
 const StepAdditional = ({ values, errors, onChange }: any) => (
   <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
     <FormControl required>
@@ -694,19 +762,43 @@ const StepAdditional = ({ values, errors, onChange }: any) => (
   </Box>
 );
 
-// Step 6: Review & Submit
-const StepReview = ({ data, onEditStep }: { data: any; onEditStep: (step: number) => void }) => {
-  // Helper to display file names
+// StepReview with special display for draft application prefill
+const StepReview = ({
+  data,
+  onEditStep,
+  applicationMeta,
+}: {
+  data: any;
+  onEditStep: (step: number) => void;
+  applicationMeta?: any;
+}) => {
   const getFileName = (file: any) => (file ? file.name : "Not uploaded");
   return (
     <Box>
       <Typography variant="h6" className="font-bold mb-2">
         Review Your Application
       </Typography>
+      {applicationMeta?.status_name === "Draft" && (
+        <Box className="mb-4 p-3 border border-yellow-400 bg-yellow-50 rounded">
+          <Typography variant="subtitle2" className="font-semibold">
+            This application is a draft loaded from the portal. Fields below were prefilled from your existing application.
+          </Typography>
+          <div>
+            <span>
+              <b>Institution:</b> {applicationMeta.institution_name} <br />
+              <b>Course:</b> {applicationMeta.course_of_study_name} <br />
+              <b>Program Type:</b> {applicationMeta.program_type_name} <br />
+              <b>Status:</b> {applicationMeta.status_name ?? "Draft"}
+            </span>
+          </div>
+        </Box>
+      )}
       <Box className="mb-4">
         <Typography variant="subtitle1" className="font-semibold">
           Personal Information
-          <Button size="small" onClick={() => onEditStep(0)} className="ml-2 text-primary-1">Edit</Button>
+          <Button size="small" onClick={() => onEditStep(0)} className="ml-2 text-primary-1">
+            Edit
+          </Button>
         </Typography>
         <Typography variant="body2">
           {data.firstName} {data.middleName} {data.lastName} <br />
@@ -720,7 +812,9 @@ const StepReview = ({ data, onEditStep }: { data: any; onEditStep: (step: number
       <Box className="mb-4">
         <Typography variant="subtitle1" className="font-semibold">
           Educational Background
-          <Button size="small" onClick={() => onEditStep(1)} className="ml-2 text-primary-1">Edit</Button>
+          <Button size="small" onClick={() => onEditStep(1)} className="ml-2 text-primary-1">
+            Edit
+          </Button>
         </Typography>
         <Typography variant="body2">
           {data.highestQualification} from {data.institutionName} <br />
@@ -732,7 +826,9 @@ const StepReview = ({ data, onEditStep }: { data: any; onEditStep: (step: number
       <Box className="mb-4">
         <Typography variant="subtitle1" className="font-semibold">
           Visa & Study Details
-          <Button size="small" onClick={() => onEditStep(2)} className="ml-2 text-primary-1">Edit</Button>
+          <Button size="small" onClick={() => onEditStep(2)} className="ml-2 text-primary-1">
+            Edit
+          </Button>
         </Typography>
         <Typography variant="body2">
           Destination: {data.destinationCountry} <br />
@@ -746,7 +842,9 @@ const StepReview = ({ data, onEditStep }: { data: any; onEditStep: (step: number
       <Box className="mb-4">
         <Typography variant="subtitle1" className="font-semibold">
           Documents
-          <Button size="small" onClick={() => onEditStep(3)} className="ml-2 text-primary-1">Edit</Button>
+          <Button size="small" onClick={() => onEditStep(3)} className="ml-2 text-primary-1">
+            Edit
+          </Button>
         </Typography>
         <Typography variant="body2">
           Passport Photo: {getFileName(data.passportPhoto)} <br />
@@ -760,11 +858,17 @@ const StepReview = ({ data, onEditStep }: { data: any; onEditStep: (step: number
       <Box className="mb-4">
         <Typography variant="subtitle1" className="font-semibold">
           Additional Information
-          <Button size="small" onClick={() => onEditStep(4)} className="ml-2 text-primary-1">Edit</Button>
+          <Button size="small" onClick={() => onEditStep(4)} className="ml-2 text-primary-1">
+            Edit
+          </Button>
         </Typography>
         <Typography variant="body2">
           Previous Visa: {data.previousVisa} <br />
-          {data.previousVisa === "Yes" && <>Details: {data.previousVisaDetails} <br /></>}
+          {data.previousVisa === "Yes" && (
+            <>
+              Details: {data.previousVisaDetails} <br />
+            </>
+          )}
           Travel History: {data.travelHistory} <br />
           Emergency Contact: {data.emergencyContactName} ({data.emergencyContactPhone}) <br />
           Statement of Purpose: <br />
@@ -800,7 +904,6 @@ const StepReview = ({ data, onEditStep }: { data: any; onEditStep: (step: number
   );
 };
 
-// Success Page
 const SuccessPage = ({ reference }: { reference: string }) => (
   <Box className="flex flex-col items-center justify-center min-h-[60vh]">
     <Typography variant="h4" className="font-bold mb-4 text-green-700">
@@ -826,16 +929,10 @@ const SuccessPage = ({ reference }: { reference: string }) => (
   </Box>
 );
 
-// Main Multi-Step Form Page
 const StudyVisaApplicationForm: React.FC = () => {
-  // Load from localStorage if available (now always returns empty)
-  const { data: _savedData, step: savedStep } = loadFromLocalStorage();
-
-  // Get logged-in user from useAuth
+  const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
 
-  // Build user prefill from logged-in user
-  // USER_PREFILL: Build prefill object from user profile, using correct field names and fallbacks
   const USER_PREFILL = {
     firstName: user?.first_name || "",
     lastName: user?.last_name || "",
@@ -849,23 +946,35 @@ const StudyVisaApplicationForm: React.FC = () => {
     countryOfResidence: user?.country_of_residence || user?.country || "",
   };
 
-  // State for stepper
-  const [activeStep, setActiveStep] = useState(savedStep || 0);
+  const [activeStep, setActiveStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [successRef, setSuccessRef] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({
     open: false,
     message: "",
     severity: "success",
   });
 
-  // Dropdown state
   const [countryOptions, setCountryOptions] = useState<string[] | null>(null);
   const [universityOptions, setUniversityOptions] = useState<string[] | null>(null);
   const [visaTypeOptions, setVisaTypeOptions] = useState<string[] | null>(null);
   const [sponsorshipOptions, setSponsorshipOptions] = useState<string[] | null>(null);
 
-  // Fetch dropdowns on mount
+  // Prefill application meta for Drafts
+  const [appMeta, setAppMeta] = useState<any>(null);
+
+  // Prefill application state
+  const [appPrefill, setAppPrefill] = useState<{
+    institutionName?: string;
+    courseOfStudy?: string;
+  }>({});
+
+  const [appLoading, setAppLoading] = useState(true);
+
   useEffect(() => {
     fetchCountries().then(setCountryOptions);
     fetchUniversities().then(setUniversityOptions);
@@ -873,8 +982,46 @@ const StudyVisaApplicationForm: React.FC = () => {
     fetchSponsorshipTypes().then(setSponsorshipOptions);
   }, []);
 
-  // Form state
-  // Define a type for the form values to avoid 'never' property errors
+  // New fetch with meta for draft
+  useEffect(() => {
+    let canceled = false;
+    async function fetchApplication() {
+      if (!id) {
+        setAppLoading(false);
+        setAppMeta(null);
+        return;
+      }
+      setAppLoading(true);
+      try {
+        const data = await getStudyVisaApplicationById(id);
+        if (!canceled) {
+          setAppPrefill({
+            institutionName: data?.institution_name || data?.previous_university || "",
+            courseOfStudy: data?.course_of_study_name || data?.previous_course_of_study || ""
+          });
+          // Save the meta to display in review if it's a draft/app partial
+          setAppMeta({
+            institution_name: data?.institution_name,
+            course_of_study_name: data?.course_of_study_name,
+            program_type_name: data?.program_type_name,
+            status_name: data?.status_name
+          });
+        }
+      } catch (error) {
+        if (!canceled) {
+          setAppPrefill({});
+          setAppMeta(null);
+        }
+      } finally {
+        if (!canceled) setAppLoading(false);
+      }
+    }
+    fetchApplication();
+    return () => {
+      canceled = true;
+    };
+  }, [id]);
+
   interface StudyVisaFormValues {
     // Step 1
     firstName: string;
@@ -918,8 +1065,8 @@ const StudyVisaApplicationForm: React.FC = () => {
     statementOfPurpose: string;
   }
 
+  // Apply prefill only once when fetched
   const [formValues, setFormValues] = useState<StudyVisaFormValues>({
-    // Step 1
     firstName: USER_PREFILL.firstName ?? "",
     lastName: USER_PREFILL.lastName ?? "",
     middleName: USER_PREFILL.middleName ?? "",
@@ -932,27 +1079,23 @@ const StudyVisaApplicationForm: React.FC = () => {
     passportExpiry: null,
     currentAddress: USER_PREFILL.currentAddress || "",
     countryOfResidence: USER_PREFILL.countryOfResidence || "",
-    // Step 2
     highestQualification: "",
     institutionName: "",
     courseOfStudy: "",
     cgpa: "",
     graduationYear: "",
-    // Step 3
     destinationCountry: "",
     universityApplying: "",
     intendedStartDate: null,
     intendedEndDate: null,
     visaType: "",
     sponsorship: "",
-    // Step 4
     passportPhoto: null,
     passportDoc: null,
     transcript: null,
     admissionLetter: null,
     financialStatement: null,
     englishTest: null,
-    // Step 5
     previousVisa: "",
     previousVisaDetails: "",
     travelHistory: "",
@@ -961,9 +1104,27 @@ const StudyVisaApplicationForm: React.FC = () => {
     statementOfPurpose: "",
   });
 
+  // Patch institutionName/courseOfStudy from appPrefill on load
+  useEffect(() => {
+    if (appPrefill && (appPrefill.institutionName || appPrefill.courseOfStudy)) {
+      setFormValues(prev => ({
+        ...prev,
+        institutionName:
+          appPrefill.institutionName != null
+            ? appPrefill.institutionName
+            : prev.institutionName,
+        courseOfStudy:
+          appPrefill.courseOfStudy != null
+            ? appPrefill.courseOfStudy
+            : prev.courseOfStudy,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appPrefill.institutionName, appPrefill.courseOfStudy]);
+
   const [formErrors, setFormErrors] = useState<any>({});
 
-  // Stepper content
+  // Step content
   const getStepContent = (step: number) => {
     switch (step) {
       case 0:
@@ -976,7 +1137,13 @@ const StudyVisaApplicationForm: React.FC = () => {
           />
         );
       case 1:
-        return <StepEducation values={formValues} errors={formErrors} onChange={handleFieldChange} />;
+        return (
+          <StepEducation
+            values={formValues}
+            errors={formErrors}
+            onChange={handleFieldChange}
+          />
+        );
       case 2:
         return (
           <StepVisaStudy
@@ -990,14 +1157,27 @@ const StudyVisaApplicationForm: React.FC = () => {
           />
         );
       case 3:
-        return <StepDocuments values={formValues} errors={formErrors} onChange={handleFieldChange} />;
+        return (
+          <StepDocuments
+            values={formValues}
+            errors={formErrors}
+            onChange={handleFieldChange}
+          />
+        );
       case 4:
-        return <StepAdditional values={formValues} errors={formErrors} onChange={handleFieldChange} />;
+        return (
+          <StepAdditional
+            values={formValues}
+            errors={formErrors}
+            onChange={handleFieldChange}
+          />
+        );
       case 5:
         return (
           <StepReview
             data={formValues}
             onEditStep={(s) => setActiveStep(s)}
+            applicationMeta={appMeta}
           />
         );
       default:
@@ -1005,9 +1185,8 @@ const StudyVisaApplicationForm: React.FC = () => {
     }
   };
 
-  // Handle field change
   function handleFieldChange(field: string, value: any) {
-    setFormValues((prev: any) => ({
+    setFormValues(prev => ({
       ...prev,
       [field]: value,
     }));
@@ -1017,7 +1196,6 @@ const StudyVisaApplicationForm: React.FC = () => {
     }));
   }
 
-  // Validate current step
   function validateStep(): boolean {
     const validator = stepValidators[activeStep];
     if (!validator) return true;
@@ -1026,49 +1204,59 @@ const StudyVisaApplicationForm: React.FC = () => {
     return Object.keys(errors).length === 0;
   }
 
-  // Handle next/submit
   const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep()) {
-      // If on step 0 (Personal Info), show a more specific message
       if (activeStep === 0) {
-        // Find which required fields are missing from the user profile
         const missingFields: string[] = [];
         if (!user?.first_name) missingFields.push("First Name");
         if (!user?.last_name) missingFields.push("Last Name");
         if (!user?.email) missingFields.push("Email");
         if (!user?.phone_number) missingFields.push("Phone Number");
-        if (!user?.date_of_birth && !formValues.dateOfBirth) missingFields.push("Date of Birth");
-        // You can add more fields as needed
+        if (!user?.date_of_birth && !formValues.dateOfBirth)
+          missingFields.push("Date of Birth");
 
-        let message = "Please complete your profile with the following information before continuing.";
+        let message =
+          "Please complete your profile with the following information before continuing.";
         if (missingFields.length > 0) {
-          message = `Please complete your profile with the following information: ${missingFields.join(", ")}.`;
+          message = `Please complete your profile with the following information: ${missingFields.join(
+            ", "
+          )}.`;
         }
-        setSnackbar({ open: true, message, severity: "error" });
+        setSnackbar({
+          open: true,
+          message,
+          severity: "error",
+        });
       } else {
-        setSnackbar({ open: true, message: "Please fix errors before continuing.", severity: "error" });
+        setSnackbar({
+          open: true,
+          message: "Please fix errors before continuing.",
+          severity: "error",
+        });
       }
       return;
     }
     if (activeStep === steps.length - 1) {
-      // Submit
       setSubmitting(true);
       try {
-        // Prepare data for API (convert dates to ISO, remove files for demo)
         const values = { ...formValues };
         const payload = {
           ...values,
-          // Always get date of birth from user profile if available
           dateOfBirth: user?.date_of_birth
             ? new Date(user.date_of_birth).toISOString()
             : values.dateOfBirth
             ? values.dateOfBirth.toISOString()
             : null,
-          passportExpiry: values.passportExpiry ? values.passportExpiry.toISOString() : null,
-          intendedStartDate: values.intendedStartDate ? values.intendedStartDate.toISOString() : null,
-          intendedEndDate: values.intendedEndDate ? values.intendedEndDate.toISOString() : null,
-          // For demo, just send file names
+          passportExpiry: values.passportExpiry
+            ? values.passportExpiry.toISOString()
+            : null,
+          intendedStartDate: values.intendedStartDate
+            ? values.intendedStartDate.toISOString()
+            : null,
+          intendedEndDate: values.intendedEndDate
+            ? values.intendedEndDate.toISOString()
+            : null,
           passportPhoto: values.passportPhoto?.name || "",
           passportDoc: values.passportDoc?.name || "",
           transcript: values.transcript?.name || "",
@@ -1080,7 +1268,11 @@ const StudyVisaApplicationForm: React.FC = () => {
         setSuccessRef(res.reference);
         clearLocalStorage();
       } catch (e) {
-        setSnackbar({ open: true, message: "Submission failed. Please try again.", severity: "error" });
+        setSnackbar({
+          open: true,
+          message: "Submission failed. Please try again.",
+          severity: "error",
+        });
       } finally {
         setSubmitting(false);
       }
@@ -1089,15 +1281,23 @@ const StudyVisaApplicationForm: React.FC = () => {
     }
   };
 
-  // Handle back
   const handleBack = () => {
     setActiveStep((prev) => prev - 1);
   };
 
-  // Progress bar
   const progress = ((activeStep + 1) / steps.length) * 100;
 
-  // If submitted, show success page
+  if (appLoading) {
+    return (
+      <Box className="flex flex-col items-center justify-center min-h-[40vh]">
+        <CircularProgress size={48} />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Loading application details...
+        </Typography>
+      </Box>
+    );
+  }
+
   if (successRef) {
     return <SuccessPage reference={successRef} />;
   }
