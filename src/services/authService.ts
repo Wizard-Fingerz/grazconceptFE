@@ -50,6 +50,7 @@ export interface UserProfile {
   bio?: string;
   address?: string;
   country?: string;
+  wallet?: any;
 }
 
 export interface RegisterResponse {
