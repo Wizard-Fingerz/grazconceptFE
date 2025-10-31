@@ -13,12 +13,23 @@ export async function getAllPilgrimages(params?: Record<string, any>) {
 // Get the recent pilgrimage applications/bookings for the current user (limit 5)
 export async function getMyRecentPilgrimageApplications() {
   try {
-    const response = await api.get(`/app/pilgrimage-bookings/?limit=5`);
+    const response = await api.get(`/app/pilgrimage-application/?limit=5`);
     return response.data;
   } catch (error) {
     throw error;
   }
 }
+
+// Get the recent pilgrimage applications/bookings for the current user (limit 5)
+export async function getPilgrimageApplications() {
+  try {
+    const response = await api.get(`/app/pilgrimage-application/`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 
 // Get pilgrimage ad banners (limit 3)
 export async function getPilgrimageBanners() {

@@ -16,12 +16,23 @@ export async function getAllVacations(params?: Record<string, any
 // Get recent vacation bookings for the current user (limit 5)
 export async function getMyRecentVacationBookings() {
   try {
-    const response = await api.get(`/app/vacation-bookings/?limit=5`);
+    const response = await api.get(`/app/vacation-application/?limit=5`);
     return response.data;
   } catch (error) {
     throw error;
   }
 }
+
+
+export async function getAllVacationBookings() {
+  try {
+    const response = await api.get(`/app/vacation-application/`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 
 // Get vacation ad banners (limit 3)
 export async function getVacationBanners() {
