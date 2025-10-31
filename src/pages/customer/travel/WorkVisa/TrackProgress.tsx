@@ -19,7 +19,13 @@ import {
   CircularProgress,
   Tabs,
   Tab,
+  Tooltip,
+  IconButton,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { getMyRecentSudyVisaApplicaton } from "../../../../services/studyVisa";
 import { getMyWorkVisaApplications } from "../../../../services/workVisaService";
@@ -101,6 +107,66 @@ function extractStatusTextStudy(item: any) {
     : typeof item.status === "string"
       ? item.status
       : "Application Submitted";
+}
+
+// New: Helper to paginate or truncate long phrases/words and show full phrase on toolkit (tooltip/dialog)
+function PaginatedPhrase({
+  phrase,
+  maxLength = 16,
+  showToolIcon = true,
+  sx = {},
+}: {
+  phrase: string;
+  maxLength?: number;
+  showToolIcon?: boolean;
+  sx?: any;
+}) {
+  const [open, setOpen] = useState(false);
+  if (typeof phrase !== "string") phrase = `${phrase}`;
+
+  // Remove leading/trailing, handle objects
+  let trimmed = phrase?.trim() ?? "";
+  // Show first maxLength chars, then ellipsis if too long
+  const isOverflow = trimmed.length > maxLength;
+  const shortText = isOverflow
+    ? trimmed.slice(0, maxLength) + "…"
+    : trimmed;
+
+  // Render as span with ellipsis and Dialog on click for full phrase
+  // Tooltip for accessibility if small phrase
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", ...sx }}>
+      {isOverflow ? (
+        <>
+          <Tooltip title={trimmed}>
+            <span>{shortText}</span>
+          </Tooltip>
+          {showToolIcon && (
+            <>
+              <IconButton
+                size="small"
+                onClick={() => setOpen(true)}
+                sx={{ ml: 0.5, p: 0.5 }}
+                aria-label="Show full phrase"
+              >
+                <InfoOutlinedIcon fontSize="inherit" />
+              </IconButton>
+              <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Complete Phrase</DialogTitle>
+                <DialogContent>
+                  <Typography style={{ wordBreak: "break-word" }}>
+                    {trimmed}
+                  </Typography>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+        </>
+      ) : (
+        <span>{shortText}</span>
+      )}
+    </span>
+  );
 }
 
 export const TrackProgress: React.FC = () => {
@@ -274,17 +340,21 @@ export const TrackProgress: React.FC = () => {
   const selectedApp = applications.find((app) => String(app.id) === selectedId);
 
   // Helper: string-safe render for possibly-object values
-  function renderMaybeObject(val: any) {
+  function renderMaybeObject(val: any, opts?: { phraseMax?: number }) {
     if (val == null) return "-";
-    if (typeof val === "object") {
-      return (
-        val.label ||
-        val.name ||
-        val.term ||
-        JSON.stringify(val)
-      );
-    }
-    return val;
+    let display = (typeof val === "object")
+      ? (val.label || val.name || val.term || JSON.stringify(val))
+      : val;
+
+    if (typeof display !== "string") display = `${display}`;
+    const phraseMax = opts?.phraseMax ?? 16;
+
+    return (
+      <PaginatedPhrase
+        phrase={display}
+        maxLength={phraseMax}
+      />
+    );
   }
 
   return (
@@ -439,10 +509,16 @@ export const TrackProgress: React.FC = () => {
             <Card className="rounded-2xl shadow-md">
               <CardContent>
                 <Typography variant="h6" className="font-bold mb-2">
-                  {renderMaybeObject(selectedApp.job)} {selectedApp.organization && selectedApp.organization !== "-" ? `at ${renderMaybeObject(selectedApp.organization)}` : ""}
+                  {renderMaybeObject(selectedApp.job, { phraseMax: 24 })}{" "}
+                  {selectedApp.organization && selectedApp.organization !== "-" ? (
+                    <>
+                      at{" "}
+                      {renderMaybeObject(selectedApp.organization, { phraseMax: 24 })}
+                    </>
+                  ) : ""}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {renderMaybeObject(selectedApp.country)} &middot; Applied:{" "}
+                  {renderMaybeObject(selectedApp.country, { phraseMax: 20 })} &middot; Applied:{" "}
                   {selectedApp.appliedAt
                     ? new Date(selectedApp.appliedAt).toLocaleDateString()
                     : "-"}
@@ -454,7 +530,9 @@ export const TrackProgress: React.FC = () => {
                 >
                   {selectedApp.steps.map((label: string, idx: number) => (
                     <Step key={typeof label === "string" ? label : idx} completed={idx < selectedApp.currentStep}>
-                      <StepLabel>{renderMaybeObject(label)}</StepLabel>
+                      <StepLabel>
+                        {renderMaybeObject(label, { phraseMax: 26 })}
+                      </StepLabel>
                     </Step>
                   ))}
                 </Stepper>
@@ -466,12 +544,20 @@ export const TrackProgress: React.FC = () => {
                         : "info"
                     }
                   >
-                    {statusDescriptions[
-                      typeof selectedApp.steps[selectedApp.currentStep] === "string"
-                        ? selectedApp.steps[selectedApp.currentStep]
-                        : renderMaybeObject(selectedApp.steps[selectedApp.currentStep])
-                    ] ||
-                      renderMaybeObject(selectedApp.status)}
+                    {
+                      (() => {
+                        const currentStep = selectedApp.steps[selectedApp.currentStep];
+                        const stepKey =
+                          typeof currentStep === "string"
+                            ? currentStep
+                            : renderMaybeObject(currentStep, { phraseMax: 26 }) as string;
+
+                        return (
+                          statusDescriptions[stepKey as keyof typeof statusDescriptions] ??
+                          renderMaybeObject(selectedApp.status)
+                        );
+                      })()
+                    }
                   </Alert>
                 </Box>
                 {/* Show "Schedule Interview" button only for relevant steps for Work/Study Visa */}
