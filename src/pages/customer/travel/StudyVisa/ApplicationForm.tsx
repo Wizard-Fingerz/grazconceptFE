@@ -29,7 +29,6 @@ import { v4 as uuidv4 } from "uuid";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useAuth } from "../../../../context/AuthContext";
 import {
-  fetchCountries,
   fetchSponsorshipTypes,
   fetchUniversities,
   fetchVisaTypes,
@@ -163,8 +162,10 @@ function validateEducation(data: any) {
 
 function validateVisaStudy(data: any) {
   const errors: any = {};
-  if (!data.destinationCountry)
-    errors.destinationCountry = "Destination country is required";
+  // Remove destinationCountry checks;
+  // Instead, validate institutionCountry
+  if (!data.institutionCountry)
+    errors.institutionCountry = "Institution country is required";
   if (!data.universityApplying)
     errors.universityApplying = "University/College is required";
   if (!data.intendedStartDate)
@@ -458,7 +459,7 @@ const StepPersonalInfo = ({
   </Box>
 );
 
-// Step 2: Educational Background
+// Step 2: Educational Background (unchanged)
 const StepEducation = ({ values, errors, onChange }: any) => (
   <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
     <TextField
@@ -508,33 +509,46 @@ const StepEducation = ({ values, errors, onChange }: any) => (
   </Box>
 );
 
-// Step 3
+// Step 3 - visa & study details with destination country REMOVED, institution country only
 const StepVisaStudy = ({
   values,
   errors,
   onChange,
-  countryOptions,
   universityOptions,
   visaTypeOptions,
   sponsorshipOptions,
+  prefill,
 }: any) => {
+  // Patch prefill values to only intended fields if present (on FIRST render of this step)
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    // Only run on first render and if prefill present
+    if (
+      firstRender.current &&
+      prefill &&
+      (prefill.institutionName || prefill.courseOfStudy || prefill.destinationCountry)
+    ) {
+      // Patch universityApplying and courseOfStudy into form fields if they are empty
+      if (prefill.institutionName && !values.universityApplying) {
+        onChange("universityApplying", prefill.institutionName);
+      }
+      // If destinationCountry is present and institutionCountry is not populated, use it
+      if (prefill.destinationCountry && !values.institutionCountry) {
+        onChange("institutionCountry", prefill.destinationCountry);
+      }
+      firstRender.current = false;
+    }
+    // eslint-disable-next-line
+  }, [
+    prefill,
+    values.universityApplying,
+    values.institutionCountry,
+    onChange,
+  ]);
+
   return (
     <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Autocomplete
-        options={countryOptions || []}
-        value={values.destinationCountry || ""}
-        onChange={(_, value) => onChange("destinationCountry", value)}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Destination Country"
-            required
-            error={!!errors.destinationCountry}
-            helperText={errors.destinationCountry}
-          />
-        )}
-        loading={!countryOptions}
-      />
       <Autocomplete
         options={universityOptions || []}
         value={values.universityApplying || ""}
@@ -549,6 +563,14 @@ const StepVisaStudy = ({
           />
         )}
         loading={!universityOptions}
+      />
+      <TextField
+        label="Institution Country"
+        required
+        value={values.institutionCountry || ""}
+        onChange={e => onChange("institutionCountry", e.target.value)}
+        error={!!errors.institutionCountry}
+        helperText={errors.institutionCountry}
       />
       <DateInputField
         label="Intended Start Date"
@@ -762,7 +784,7 @@ const StepAdditional = ({ values, errors, onChange }: any) => (
   </Box>
 );
 
-// StepReview with special display for draft application prefill
+// StepReview with special display for draft application prefill (unchanged)
 const StepReview = ({
   data,
   onEditStep,
@@ -831,8 +853,9 @@ const StepReview = ({
           </Button>
         </Typography>
         <Typography variant="body2">
-          Destination: {data.destinationCountry} <br />
+          {/* destinationCountry field removed */}
           University: {data.universityApplying} <br />
+          Institution Country: {data.institutionCountry} <br />
           Start: {data.intendedStartDate?.toLocaleDateString?.() || data.intendedStartDate} <br />
           End: {data.intendedEndDate?.toLocaleDateString?.() || data.intendedEndDate} <br />
           Visa Type: {data.visaType} <br />
@@ -959,7 +982,7 @@ const StudyVisaApplicationForm: React.FC = () => {
     severity: "success",
   });
 
-  const [countryOptions, setCountryOptions] = useState<string[] | null>(null);
+  // Note: countryOptions removed
   const [universityOptions, setUniversityOptions] = useState<string[] | null>(null);
   const [visaTypeOptions, setVisaTypeOptions] = useState<string[] | null>(null);
   const [sponsorshipOptions, setSponsorshipOptions] = useState<string[] | null>(null);
@@ -971,12 +994,13 @@ const StudyVisaApplicationForm: React.FC = () => {
   const [appPrefill, setAppPrefill] = useState<{
     institutionName?: string;
     courseOfStudy?: string;
+    destinationCountry?: string;
   }>({});
 
   const [appLoading, setAppLoading] = useState(true);
 
   useEffect(() => {
-    fetchCountries().then(setCountryOptions);
+    // fetchCountries removed
     fetchUniversities().then(setUniversityOptions);
     fetchVisaTypes().then(setVisaTypeOptions);
     fetchSponsorshipTypes().then(setSponsorshipOptions);
@@ -997,7 +1021,8 @@ const StudyVisaApplicationForm: React.FC = () => {
         if (!canceled) {
           setAppPrefill({
             institutionName: data?.institution_name || data?.previous_university || "",
-            courseOfStudy: data?.course_of_study_name || data?.previous_course_of_study || ""
+            courseOfStudy: data?.course_of_study_name || data?.previous_course_of_study || "",
+            destinationCountry: data?.destination_country || "", // destinationCountry is still kept for prefill as institutionCountry
           });
           // Save the meta to display in review if it's a draft/app partial
           setAppMeta({
@@ -1043,8 +1068,9 @@ const StudyVisaApplicationForm: React.FC = () => {
     cgpa: string;
     graduationYear: string;
     // Step 3
-    destinationCountry: string;
+    // destinationCountry REMOVED
     universityApplying: string;
+    institutionCountry: string;
     intendedStartDate: Date | null;
     intendedEndDate: Date | null;
     visaType: string;
@@ -1065,7 +1091,6 @@ const StudyVisaApplicationForm: React.FC = () => {
     statementOfPurpose: string;
   }
 
-  // Apply prefill only once when fetched
   const [formValues, setFormValues] = useState<StudyVisaFormValues>({
     firstName: USER_PREFILL.firstName ?? "",
     lastName: USER_PREFILL.lastName ?? "",
@@ -1084,8 +1109,9 @@ const StudyVisaApplicationForm: React.FC = () => {
     courseOfStudy: "",
     cgpa: "",
     graduationYear: "",
-    destinationCountry: "",
+    // destinationCountry: "", // REMOVED
     universityApplying: "",
+    institutionCountry: "",
     intendedStartDate: null,
     intendedEndDate: null,
     visaType: "",
@@ -1104,23 +1130,24 @@ const StudyVisaApplicationForm: React.FC = () => {
     statementOfPurpose: "",
   });
 
-  // Patch institutionName/courseOfStudy from appPrefill on load
+  // Patch institutionCountry and universityApplying from appPrefill on load
   useEffect(() => {
-    if (appPrefill && (appPrefill.institutionName || appPrefill.courseOfStudy)) {
+    if (appPrefill) {
       setFormValues(prev => ({
         ...prev,
-        institutionName:
-          appPrefill.institutionName != null
+        universityApplying:
+          appPrefill.institutionName != null && appPrefill.institutionName !== ""
             ? appPrefill.institutionName
-            : prev.institutionName,
-        courseOfStudy:
-          appPrefill.courseOfStudy != null
-            ? appPrefill.courseOfStudy
-            : prev.courseOfStudy,
+            : prev.universityApplying,
+        institutionCountry:
+          appPrefill.destinationCountry != null && appPrefill.destinationCountry !== ""
+            ? appPrefill.destinationCountry
+            : prev.institutionCountry,
+        // DO NOT patch courseOfStudy; it is for educational background, not visa step.
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appPrefill.institutionName, appPrefill.courseOfStudy]);
+  }, [appPrefill.institutionName, appPrefill.destinationCountry]);
 
   const [formErrors, setFormErrors] = useState<any>({});
 
@@ -1150,10 +1177,10 @@ const StudyVisaApplicationForm: React.FC = () => {
             values={formValues}
             errors={formErrors}
             onChange={handleFieldChange}
-            countryOptions={countryOptions}
             universityOptions={universityOptions}
             visaTypeOptions={visaTypeOptions}
             sponsorshipOptions={sponsorshipOptions}
+            prefill={appPrefill}
           />
         );
       case 3:
@@ -1199,7 +1226,7 @@ const StudyVisaApplicationForm: React.FC = () => {
   function validateStep(): boolean {
     const validator = stepValidators[activeStep];
     if (!validator) return true;
-    const errors = validator(formValues);
+    let errors = validator(formValues);
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }

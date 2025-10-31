@@ -398,11 +398,23 @@ export const ApplyStudyVisa: React.FC = () => {
     fetchMoreCourses();
   };
 
+  // ---- BEGIN: CHANGED PAYLOAD LOGIC FOR COUNTRY ----
+  // Filling in "country" in payload with the country of the selected institution if available
   const handleStartApplication = async () => {
     setSubmitting(true);
     try {
+      // If selectedInstitution is present, attempt to resolve the country from the selected institution object
+      let countryValue = selectedCountry;
+      // If an institution is selected, try to resolve its country (in case the UI only exposes selectedCountry as an initial filter)
+      if (selectedInstitution) {
+        const institutionObj = institutions.find((i: any) => String(i.id) === String(selectedInstitution));
+        if (institutionObj && institutionObj.country) {
+          countryValue = institutionObj.country;
+        }
+      }
+
       const payload: Record<string, any> = {
-        country: selectedCountry,
+        destination_country: countryValue,
         institution: selectedInstitution,
         program_type: selectedProgramType,
         course_of_study: selectedCourse,
@@ -431,6 +443,7 @@ export const ApplyStudyVisa: React.FC = () => {
       setSubmitting(false);
     }
   };
+  // ---- END: CHANGED PAYLOAD LOGIC FOR COUNTRY ----
 
   const getInstitutionName = (id: number | string) => {
     const inst = (institutions || []).find((i) => String(i.id) === String(id));
