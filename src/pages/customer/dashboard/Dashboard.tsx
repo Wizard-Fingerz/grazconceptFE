@@ -17,6 +17,11 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
+  CircularProgress
 } from "@mui/material";
 import {
   // Chat,
@@ -35,6 +40,7 @@ import { actionForms } from '../../../components/modals/ActionForms';
 import { submitActionForm } from '../../../services/actionFormService';
 import { toast } from 'react-toastify';
 import { getAddBanners } from '../../../services/studyVisa';
+import { getMyRecentWalletTransactions } from '../../../services/walletService';
 
 const FundWalletModalContent = ({ user }: { user: any }) => (
   <Box>
@@ -117,6 +123,11 @@ export const Dashboard: React.FC = () => {
   const [banners, setBanners] = useState<any[]>([]);
   const [loadingBanners, setLoadingBanners] = useState(true);
 
+  // Recent transactions state & loading state
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+
   useEffect(() => {
     let mounted = true;
     setLoadingBanners(true);
@@ -136,6 +147,39 @@ export const Dashboard: React.FC = () => {
       })
       .finally(() => {
         if (mounted) setLoadingBanners(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Fetch recent wallet transactions using useEffect so we can handle loading and error feedback
+  useEffect(() => {
+    let mounted = true;
+    setTransactionsLoading(true);
+    setTransactionsError(null);
+    // getMyRecentWalletTransactions now must return a Promise
+    Promise.resolve()
+      .then(() => getMyRecentWalletTransactions())
+      .then((data: any) => {
+        if (mounted) {
+          if (Array.isArray(data)) {
+            setTransactions(data);
+          } else if (data && Array.isArray(data.results)) {
+            setTransactions(data.results); // in case API returns with {results: []}
+          } else {
+            setTransactions([]);
+          }
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setTransactions([]);
+          setTransactionsError("Failed to load recent transactions.");
+        }
+      })
+      .finally(() => {
+        if (mounted) setTransactionsLoading(false);
       });
     return () => {
       mounted = false;
@@ -271,14 +315,65 @@ export const Dashboard: React.FC = () => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   Recent Transactions
                 </Typography>
-                <Box display="flex" justifyContent="space-between" fontSize="0.95rem" mt={1}>
-                  <span>Flight to Accra</span>
-                  <span>#25.00</span>
-                </Box>
-                <Box display="flex" justifyContent="space-between" fontSize="0.95rem">
-                  <span>Saving deposit</span>
-                  <span>#25.00</span>
-                </Box>
+                {/* Recent Transactions loading & error state handling */}
+                {transactionsLoading ? (
+                  <Box display="flex" alignItems="center" justifyContent="center" height={64} minHeight={64}>
+                    <CircularProgress size={20} />
+                    <Typography sx={{ ml: 1.5 }} color="text.secondary" fontSize="0.93rem">
+                      Loading...
+                    </Typography>
+                  </Box>
+                ) : transactionsError ? (
+                  <Box py={1}>
+                    <Typography color="error" variant="body2">
+                      {transactionsError}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <List dense={true}>
+                    {transactions.map((tx: any) => (
+                      <ListItem
+                        key={tx.id}
+                        disableGutters
+                        sx={{
+                          px: 0, py: 0.4,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <ListItemText
+                          primary={tx.description}
+                          secondary={tx.date}
+                          sx={{
+                            span: { fontSize: '0.97rem', fontWeight: 500 },
+                            '.MuiListItemText-secondary': { fontSize: '0.79rem', color: 'text.secondary' }
+                          }}
+                        />
+                        <Box display="flex" flexDirection="column" alignItems="flex-end">
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: tx.amount < 0 ? "error.main" : "success.main",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {tx.amount < 0 ? "-" : "+"}{tx.currency || (user?.wallet?.currency ?? 'NGN')} {Math.abs(tx.amount)}
+                          </Typography>
+                          {tx.type === "debit" ? (
+                            <Chip label="Debit" size="small" color="error" sx={{ mt: 0.2 }} />
+                          ) : (
+                            <Chip label="Credit" size="small" color="success" sx={{ mt: 0.2 }} />
+                          )}
+                        </Box>
+                      </ListItem>
+                    ))}
+                    {transactions.length === 0 && (
+                      <ListItem disableGutters>
+                        <ListItemText primary="No recent transactions." />
+                      </ListItem>
+                    )}
+                  </List>
+                )}
               </Box>
             </CardContent>
           </Card>
