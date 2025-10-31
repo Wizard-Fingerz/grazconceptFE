@@ -83,6 +83,7 @@ import ReferralPage from "../pages/customer/referral";
 import CbiDashboard from "../pages/staff/marketplace/CbiPage";
 import EduFinanceDashboard from "../pages/staff/marketplace/EduFinanceCivilServantLoanPage";
 import EuropeanCitizenshipForm from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
+import AllWorkVisaApplication from "../pages/customer/travel/WorkVisa/AllWorkVisaApplication";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -323,6 +324,16 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: "travel/work-visa/countries-jobs/:id",
         element: <JobDetails />,
+      },
+      {
+        path: "travel/work-visa/offer/:id",
+        element: <JobDetails />,
+      },
+      
+      {
+        path: "travel/work-visa/applications",
+        element: <AllWorkVisaApplication />,
+
       },
       {
         path: "travel/work-visa/schedule-interview",

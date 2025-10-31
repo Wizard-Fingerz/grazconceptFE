@@ -41,6 +41,15 @@ export async function getMyWorkVisaApplications() {
   }
 }
 
+export async function getAllWorkVisaApplication(params?: Record<string, any>) {
+  try {
+    const response = await api.get(`/app/work-visa-application/`, { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 // Get work visa ad banners (limit 3)
 export async function getWorkVisaBanners() {
   try {

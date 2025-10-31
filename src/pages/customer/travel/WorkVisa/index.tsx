@@ -17,7 +17,6 @@ import PublicIcon from "@mui/icons-material/Public";
 import EventIcon from "@mui/icons-material/Event";
 // import TrackChangesIcon from "@mui/icons-material/TrackChanges";
 import AssignmentIcon from "@mui/icons-material/Assignment";
-// You must implement these in your /services/workVisa
 import {
   getMyRecentWorkVisaApplications,
   getMyRecentWorkVisaOffers,
@@ -26,7 +25,7 @@ import {
 /**
  * ApplicationCard - Reusable card for displaying application info.
  */
-export const ApplicationCard: React.FC<{
+const ApplicationCard: React.FC<{
   company: string;
   country: string;
   job: string;
@@ -122,7 +121,7 @@ export const ApplicationCard: React.FC<{
 /**
  * OfferCard - Reusable card for displaying a work visa offer.
  */
-export const OfferCard: React.FC<{
+const OfferCard: React.FC<{
   offer: any;
   onViewOffer: () => void;
 }> = ({ offer, onViewOffer }) => (
@@ -132,7 +131,7 @@ export const OfferCard: React.FC<{
   >
     <CardContent>
       <Typography variant="subtitle1" className="font-bold mb-2">
-        Offer: {offer.company_name || "Company"}
+        Offer: {offer.company_name || offer.organization?.name || "Company"}
       </Typography>
       <Typography variant="body2" className="mb-1">
         Job: {offer.job_title || "Job Title"}
@@ -147,7 +146,7 @@ export const OfferCard: React.FC<{
           color:
             offer.status === "Active"
               ? "#388e3c"
-              : offer.status === "Expired"
+              : offer.status === "Expired" || offer.status === "Rejected"
               ? "#d32f2f"
               : "#616161",
         }}
@@ -169,48 +168,44 @@ export const OfferCard: React.FC<{
 /**
  * GuideCard - Reusable card for displaying a guide/resource.
  */
-export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
+const GuideCard: React.FC<{ title: string }> = ({ title }) => (
   <Button className="bg-[#f5ebe1] rounded-xl px-6 py-3 font-semibold normal-case shadow-sm hover:bg-[#f3e1d5]">
     {title}
   </Button>
 );
 
-/**
- * ApplyWorkVisa - Page for applying for a Work visa.
- * Uses reusable ApplicationCard, OfferCard and GuideCard components.
- */
 export const ApplyWorkVisa: React.FC = () => {
   const navigate = useNavigate();
 
-  // Navigation handlers for each ActionCard
   const handleViewCountriesJobs = () => {
     navigate("/travel/work-visa/countries-jobs");
   };
   const handleScheduleInterview = () => {
     navigate("/travel/work-visa/schedule-interview");
   };
-  // const handleTrackProgress = () => {
-  //   navigate("/travel/work-visa/track-progress");
-  // };
   const handleSubmitCV = () => {
     navigate("/travel/work-visa/submit-cv");
   };
 
-  // --- Recent Applications and Offers State ---
+  // Tabs
   const [tabValue, setTabValue] = useState(0);
 
-  // Applications
+  // Applications state
   const [recentApplications, setRecentApplications] = useState<any[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(true);
 
-  // Offers
+  // Offers state
   const [recentOffers, setRecentOffers] = useState<any[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     setLoadingApplications(true);
-    getMyRecentWorkVisaApplications?.()
+
+    // Ensure service returns a promise
+    Promise.resolve(getMyRecentWorkVisaApplications?.())
       .then((data: any) => {
+        if (!mounted) return;
         if (data && Array.isArray(data.results)) {
           setRecentApplications(data.results);
         } else if (Array.isArray(data)) {
@@ -219,14 +214,20 @@ export const ApplyWorkVisa: React.FC = () => {
           setRecentApplications([]);
         }
       })
-      .catch(() => setRecentApplications([]))
-      .finally(() => setLoadingApplications(false));
+      .catch(() => mounted && setRecentApplications([]))
+      .finally(() => mounted && setLoadingApplications(false));
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     setLoadingOffers(true);
-    getMyRecentWorkVisaOffers?.()
+    Promise.resolve(getMyRecentWorkVisaOffers?.())
       .then((data: any) => {
+        if (!mounted) return;
         if (data && Array.isArray(data.results)) {
           setRecentOffers(data.results);
         } else if (Array.isArray(data)) {
@@ -235,56 +236,67 @@ export const ApplyWorkVisa: React.FC = () => {
           setRecentOffers([]);
         }
       })
-      .catch(() => setRecentOffers([]))
-      .finally(() => setLoadingOffers(false));
+      .catch(() => mounted && setRecentOffers([]))
+      .finally(() => mounted && setLoadingOffers(false));
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Tab change handler
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  // Handler for viewing an offer (expand as needed)
   const handleViewOffer = (offerId: string | number) => {
     navigate(`/travel/work-visa/offer/${offerId}`);
   };
-  // Handler for "View More" button click, depends on tab
+
   const handleViewMore = () => {
     if (tabValue === 0) {
       navigate("/travel/work-visa/applications");
     } else if (tabValue === 1) {
-      navigate("/travel/work-visa/offers");
+      navigate("/travel/work-visa/countries-jobs");
     }
   };
 
   // Application status label mapping
-  const getStatusLabel = (status: number | string | null | undefined) => {
-    const statusMap: Record<string, string> = {
-      "33": "Draft",
-      "34": "Submitted",
-      "35": "Pending",
-      "36": "Approved",
-      "37": "Rejected",
-      // For demo/status text fallback
-      "Under Review": "Under Review",
-      "Completed": "Completed"
-    };
-    if (status == null) return "Unknown Status";
-    return statusMap[String(status)] || String(status);
+  const getStatusLabel = (status: any) => {
+    if (typeof status === "object" && status) {
+      return status.term || String(status.id) || "Unknown Status";
+    }
+    if (typeof status === "string" || typeof status === "number") {
+      const statusMap: Record<string, string> = {
+        "33": "Draft",
+        "34": "Submitted",
+        "35": "Pending",
+        "36": "Approved",
+        "37": "Rejected",
+        UnderReview: "Under Review",
+        "Under Review": "Under Review",
+        Completed: "Completed"
+      };
+      return statusMap[String(status)] || String(status);
+    }
+    return "Unknown Status";
   };
 
-  // Helper for sensible company name fallback if missing
-  const getCompanyName = (item: any) =>
-    item?.company_name || item?.company || "Unknown Company";
+  // Helper for company/job/country name fallback
+  const getCompanyName = (item: any) => {
+    return (
+      item?.offer?.organization?.name ||
+      item?.offer?.company_name ||
+      item?.company ||
+      "Unknown Company"
+    );
+  };
   const getJobName = (item: any) =>
-    item?.job_title || item?.job || "Unknown Job";
+    item?.offer?.job_title || item?.job_title || item?.job || "Unknown Job";
   const getCountryName = (item: any) =>
-    item?.country || "Unknown Country";
+    item?.offer?.country || item?.country || "Unknown Country";
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: "100%", maxWidth: 1400, mx: "auto" }}>
       <CustomerPageHeader>
-        {/* Page Header */}
         <Typography variant="h4" className="font-bold mb-2">
           Apply for
         </Typography>
@@ -293,11 +305,9 @@ export const ApplyWorkVisa: React.FC = () => {
         </Typography>
       </CustomerPageHeader>
 
-      {/* Sub Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <Typography variant="body1" className="text-gray-700 max-w-md">
-          Get assistance with your work visa application from our experienced
-          travel advisors
+          Get assistance with your work visa application from our experienced travel advisors
         </Typography>
         <Button
           variant="contained"
@@ -307,7 +317,6 @@ export const ApplyWorkVisa: React.FC = () => {
         </Button>
       </div>
 
-      {/* Action Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <ActionCard
           icon={<PublicIcon fontSize="inherit" />}
@@ -334,10 +343,7 @@ export const ApplyWorkVisa: React.FC = () => {
           onClick={handleSubmitCV}
         />
       </div>
-      {/* Start Application Button */}
-      {/* Optionally: add a button for starting application */}
 
-      {/* Tabs for Recent Applications / Offers */}
       <Box sx={{ mt: 4, mb: 2 }}>
         <Tabs
           value={tabValue}
@@ -371,7 +377,7 @@ export const ApplyWorkVisa: React.FC = () => {
               </Typography>
             ) : (
               recentApplications.map((app: any) => (
-                <Box key={app.id} sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}>
+                <Box key={app.id ?? Math.random()} sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}>
                   <ApplicationCard
                     company={getCompanyName(app)}
                     country={getCountryName(app)}
@@ -404,7 +410,7 @@ export const ApplyWorkVisa: React.FC = () => {
             ) : (
               recentOffers.map((offer: any) => (
                 <OfferCard
-                  key={offer.id}
+                  key={offer.id ?? Math.random()}
                   offer={offer}
                   onViewOffer={() => handleViewOffer(offer.id)}
                 />
@@ -414,7 +420,6 @@ export const ApplyWorkVisa: React.FC = () => {
         )}
       </Box>
 
-      {/* View More Button */}
       <Box className="flex items-center justify-end mb-4" sx={{ mt: 2 }}>
         <Button
           size="small"
@@ -426,7 +431,6 @@ export const ApplyWorkVisa: React.FC = () => {
         </Button>
       </Box>
 
-      {/* Guides & Resources */}
       <Typography
         variant="h6"
         className="font-bold mb-4"
