@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   Card,
@@ -17,9 +17,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ShareIcon from "@mui/icons-material/Share";
 import EmailIcon from "@mui/icons-material/Email";
 import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
-
-// Only Client Components can use useState, etc. Do NOT use async for this component.
-const REFERRAL_LINK = `${window.location.origin}/signup?ref=myuniqueid`;
+import { useAuth } from '../../../context/AuthContext';
 
 const ReferralPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -28,6 +26,15 @@ const ReferralPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+
+  const { user } = useAuth();
+
+  // Compose the referral link using the user's custom_id if present, fallback to "unknown"
+  const referralId = user?.custom_id || "unknown";
+  const REFERRAL_LINK = useMemo(
+    () => `${window.location.origin}/register?ref=${encodeURIComponent(referralId)}`,
+    [referralId]
+  );
 
   const validateEmail = (email: string) => {
     // Basic email validation
