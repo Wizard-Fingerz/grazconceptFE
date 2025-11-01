@@ -19,6 +19,8 @@ import {
   Snackbar,
   Alert,
   IconButton,
+  Checkbox,
+  FormGroup,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -104,9 +106,24 @@ function validateRequirements(_data: any) {
 }
 function validateInvestmentOption(data: any) {
   const errors: any = {};
-  if (!data.investmentType) errors.investmentType = "Investment option is required";
-  if (data.investmentType === "Real Estate" && !data.realEstateValue) errors.realEstateValue = "Enter property value";
-  if (data.investmentType === "Donation" && !data.donationAmount) errors.donationAmount = "Enter donation amount";
+  // If at least one option exists, require it
+  if (!data.investmentType || (Array.isArray(data.investmentType) && data.investmentType.length === 0)) {
+    errors.investmentType = "Investment option is required";
+  }
+
+  // Generic validation: For each selected option, check if it has an amountField and require value
+  if (data._investmentMeta && Array.isArray(data._investmentMeta)) {
+    data._investmentMeta.forEach((opt: any) => {
+      if (
+        opt.amountField &&
+        Array.isArray(data.investmentType) &&
+        data.investmentType.includes(opt.value) &&
+        !data[opt.amountField]
+      ) {
+        errors[opt.amountField] = `Enter ${opt.amountLabel || "required amount"}`;
+      }
+    });
+  }
   return errors;
 }
 function validateKYC(data: any) {
@@ -230,7 +247,6 @@ const FileUploadField: React.FC<{
 };
 
 // Step 1: Application Requirements (info fetched from API)
-// Following the sample, show requirements as formatted lines (split by newline and dash as bullet), and render description in its format, preserving newlines and emojis, with a monospaced font or as a <pre> block.
 const StepRequirements: React.FC<{
   loading: boolean;
   offer: any | null;
@@ -297,56 +313,64 @@ const StepRequirements: React.FC<{
   );
 };
 
-// Step 2: Investment Options (Use Checkboxes)
-import { Checkbox, FormGroup } from "@mui/material"; // Remove duplicate FormControlLabel import
+// Step 2: Investment Options (dynamic; now always shows full content)
+const StepInvestment = ({
+  values,
+  errors,
+  onChange,
+  offer,
+}: {
+  values: any;
+  errors: any;
+  onChange: any;
+  offer: any;
+}) => {
+  // Figure out the options to show: comes from offer.investment_options or []
+  // Each option: { value, label, minAmount, amountField, amountLabel }
+  let investmentOptions: any[] = [];
+  if (offer && Array.isArray(offer.investment_options)) {
+    investmentOptions = offer.investment_options.map((opt: any) => {
+      // Support old or new keys
+      return {
+        value: opt.value ?? opt.label ?? opt.type ?? "",
+        label: opt.label || opt.value || opt.type || "",
+        minAmount: typeof opt.min_amount === "number" ? opt.min_amount : 0,
+        amountField: opt.amount_field ?? (
+          opt.type === "Real Estate" || opt.value === "Real Estate"
+            ? "realEstateValue"
+            : opt.type === "Donation" || opt.value === "Donation"
+            ? "donationAmount"
+            : undefined
+        ),
+        amountLabel: opt.amount_label || (
+          opt.type === "Real Estate" || opt.value === "Real Estate"
+            ? "Real Estate Value (€)"
+            : opt.type === "Donation" || opt.value === "Donation"
+            ? "Donation Amount (€)"
+            : "Amount"
+        )
+      };
+    });
+  }
 
-const investmentOptions = [
-  {
-    value: "Real Estate",
-    label: "Real Estate (min €250,000)",
-    minAmount: 250000,
-    amountField: "realEstateValue",
-    amountLabel: "Real Estate Value (€)",
-  },
-  {
-    value: "Government Bonds",
-    label: "Government Bonds (min €350,000)",
-    minAmount: 350000,
-    // no extra amount field
-  },
-  {
-    value: "Donation",
-    label: "Donation (min €100,000)",
-    minAmount: 100000,
-    amountField: "donationAmount",
-    amountLabel: "Donation Amount (€)",
-  },
-  {
-    value: "Business Investment",
-    label: "Business Investment (min €500,000)",
-    minAmount: 500000,
-    // no extra amount field
-  },
-];
+  // -- Selected types: always expect array for clarity
+  let selectedTypes: string[] = [];
+  // Adapt: supports both single select & multi
+  if (Array.isArray(values.investmentType)) {
+    selectedTypes = values.investmentType;
+  } else if (values.investmentType && typeof values.investmentType === "string" && values.investmentType.length) {
+    selectedTypes = [values.investmentType];
+  }
 
-const StepInvestment = ({ values, errors, onChange }: any) => {
-  // Convert values.investmentType to array for supporting multiple selection via checkbox
-  // If it's not array, treat it as array (for migration)
-  const selectedTypes =
-    Array.isArray(values.investmentType) && values.investmentType.length
-      ? values.investmentType
-      : values.investmentType
-      ? [values.investmentType]
-      : [];
+  // For validation: Inject meta into form values (for access in validation)
+  values._investmentMeta = investmentOptions;
 
   const handleCheckboxChange = (optionValue: string) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     if (event.target.checked) {
-      // add to array
       onChange("investmentType", [...selectedTypes, optionValue]);
     } else {
-      // remove from array
       onChange(
         "investmentType",
         selectedTypes.filter((val: string) => val !== optionValue)
@@ -354,6 +378,7 @@ const StepInvestment = ({ values, errors, onChange }: any) => {
     }
   };
 
+  // Instead of hiding amount fields, always render the options if available
   return (
     <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormControl
@@ -361,24 +386,80 @@ const StepInvestment = ({ values, errors, onChange }: any) => {
         error={!!errors.investmentType}
         component="fieldset"
         variant="standard"
+        sx={{ minWidth: 0 }}
+        fullWidth
       >
         <Typography component="legend" sx={{ mb: 1 }}>
           Investment Options
         </Typography>
-        <FormGroup>
-          {investmentOptions.map(opt => (
-            <FormControlLabel
-              key={opt.value}
-              control={
-                <Checkbox
-                  checked={selectedTypes.includes(opt.value)}
-                  onChange={handleCheckboxChange(opt.value)}
-                  name={opt.value}
+        <FormGroup sx={{ gap: 2 }}>
+          {investmentOptions.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No investment options available.
+            </Typography>
+          ) : (
+            investmentOptions.map((opt) => (
+              <Box
+                key={opt.value}
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 2,
+                  p: 2,
+                  border: "1px solid #eee",
+                  borderRadius: 2,
+                  boxShadow: selectedTypes.includes(opt.value)
+                    ? "0 0 0 2px #1976d2"
+                    : "none",
+                  background: selectedTypes.includes(opt.value)
+                    ? "#e3f2fd"
+                    : "#fafbfc",
+                  width: "100%",
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={selectedTypes.includes(opt.value)}
+                      onChange={handleCheckboxChange(opt.value)}
+                      name={opt.value}
+                      sx={{ mr: 1 }}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                        {opt.label}
+                      </Typography>
+                      {opt.minAmount > 0 && (
+                        <Typography variant="caption" color="textSecondary">
+                          Min Investment: {typeof opt.minAmount === "number" ? `€${opt.minAmount.toLocaleString()}` : opt.minAmount}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                  sx={{ m: 0, alignItems: "flex-start", flexGrow: 1 }}
                 />
-              }
-              label={opt.label}
-            />
-          ))}
+                {/* Amount field visible if selected and has an input field */}
+                {opt.amountField && selectedTypes.includes(opt.value) && (
+                  <Box sx={{ ml: 2, minWidth: 180, flexShrink: 0 }}>
+                    <TextField
+                      label={opt.amountLabel}
+                      required
+                      type="number"
+                      value={values[opt.amountField] || ""}
+                      onChange={e => onChange(opt.amountField, e.target.value)}
+                      error={!!errors[opt.amountField]}
+                      helperText={errors[opt.amountField]}
+                      inputProps={{ min: opt.minAmount }}
+                      size="small"
+                      fullWidth
+                    />
+                  </Box>
+                )}
+              </Box>
+            ))
+          )}
         </FormGroup>
         {errors.investmentType && (
           <Typography color="error" variant="caption">
@@ -386,31 +467,12 @@ const StepInvestment = ({ values, errors, onChange }: any) => {
           </Typography>
         )}
       </FormControl>
-
-      {/* Amount fields for selected types */}
-      {investmentOptions.map(opt =>
-        selectedTypes.includes(opt.value) && opt.amountField ? (
-          <TextField
-            key={opt.amountField}
-            label={opt.amountLabel}
-            required
-            type="number"
-            value={values[opt.amountField] || ""}
-            onChange={e => onChange(opt.amountField, e.target.value)}
-            error={!!errors[opt.amountField]}
-            helperText={errors[opt.amountField]}
-            inputProps={{ min: opt.minAmount }}
-          />
-        ) : null
-      )}
     </Box>
   );
 };
 
 // Step 3: KYC Information
 const StepKYC = ({ values, errors, onChange, user, countryOptions }: any) => {
-  // Prefill logic: If the KYC fields are empty (undefined/null/""), fill with user data
-  // Only runs on first render of the step (or when user changes)
   React.useEffect(() => {
     if (user) {
       if (!values.firstName && user.firstName) onChange("firstName", user.firstName);
@@ -418,7 +480,6 @@ const StepKYC = ({ values, errors, onChange, user, countryOptions }: any) => {
       if (!values.nationality && user.nationality) onChange("nationality", user.nationality);
       if (!values.dateOfBirth && user.dateOfBirth) {
         let dob = user.dateOfBirth;
-        // If ISO string, convert to Date
         onChange(
           "dateOfBirth",
           typeof dob === "string" ? new Date(dob) : dob
@@ -612,9 +673,22 @@ const StepReview = ({ data, onEditStep }: { data: any; onEditStep: (step: number
           <Button size="small" onClick={() => onEditStep(1)} className="ml-2 text-primary-1">Edit</Button>
         </Typography>
         <Typography variant="body2">
-          Option: {data.investmentType} <br />
-          {data.investmentType === "Real Estate" && <>Property Value: €{data.realEstateValue}</>}
-          {data.investmentType === "Donation" && <>Donation: €{data.donationAmount}</>}
+          {Array.isArray(data.investmentType)
+            ? data.investmentType.join(", ")
+            : data.investmentType || "N/A"}
+          <br />
+          {/* Show possible amount fields */}
+          {data._investmentMeta &&
+            Array.isArray(data._investmentMeta) &&
+            data._investmentMeta.map((opt: any) =>
+              Array.isArray(data.investmentType) && data.investmentType.includes(opt.value) && opt.amountField && data[opt.amountField] ? (
+                <React.Fragment key={opt.amountField}>
+                  {opt.label}: €{data[opt.amountField]}
+                  <br />
+                </React.Fragment>
+              ) : null
+            )
+          }
         </Typography>
       </Box>
       <Box className="mb-4">
@@ -783,9 +857,11 @@ const EuropeanCitizenshipForm: React.FC = () => {
   interface CitizenshipFormValues {
     // Requirements: no input
     // Step 2 - Investment
-    investmentType?: string;
+    investmentType?: string[] | string; // Support single or multi
     realEstateValue?: string;
     donationAmount?: string;
+    // To support arbitrary amount fields (from investment_options)
+    [key: string]: any;
     // Step 3 - KYC
     firstName: string;
     lastName: string;
@@ -801,10 +877,11 @@ const EuropeanCitizenshipForm: React.FC = () => {
     maritalStatus?: string;
     hasCriminalRecord?: string;
     criminalRecordDetails?: string;
+    _investmentMeta?: any[];
   }
   const [formValues, setFormValues] = useState<CitizenshipFormValues>({
     // Step 2
-    investmentType: "",
+    investmentType: [],
     realEstateValue: "",
     donationAmount: "",
     // Step 3
@@ -822,6 +899,7 @@ const EuropeanCitizenshipForm: React.FC = () => {
     maritalStatus: "",
     hasCriminalRecord: "",
     criminalRecordDetails: "",
+    _investmentMeta: []
   });
 
   const [formErrors, setFormErrors] = useState<any>({});
@@ -832,7 +910,7 @@ const EuropeanCitizenshipForm: React.FC = () => {
       case 0:
         return <StepRequirements loading={offerLoading} offer={offer} error={offerError} />;
       case 1:
-        return <StepInvestment values={formValues} errors={formErrors} onChange={handleFieldChange} />;
+        return <StepInvestment values={formValues} errors={formErrors} onChange={handleFieldChange} offer={offer} />;
       case 2:
         return <StepKYC values={formValues} errors={formErrors} onChange={handleFieldChange} user={user} countryOptions={countryOptions} />;
       case 3:
