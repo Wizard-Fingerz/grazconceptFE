@@ -25,6 +25,7 @@ interface AuthContextType {
     firstName: string,
     lastName: string,
     userType: number,
+    referred_by: string,
   ) => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
@@ -137,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     firstName: string,
     lastName: string,
     userType: number,
+    referred_by: string,
   ) => {
     try {
       // Call registration service and get the response data
@@ -147,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         first_name: firstName,
         last_name: lastName,
         user_type: userType,
+        referred_by: referred_by,
       });
 
       // After successful registration, get the user profile and set authentication state

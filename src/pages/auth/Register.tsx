@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 // import GoogleIcon from '@mui/icons-material/Google';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,  } from 'react-router-dom';
 import userServices from '../../services/user';
 
 interface RegisterFormData {
@@ -32,6 +32,12 @@ interface RegisterFormData {
   password: string;
   confirmPassword: string;
   userType: number;
+  referred_by?: string | null;
+}
+
+function useQuery() {
+  // Helper to get query params
+  return new URLSearchParams(window.location.search);
 }
 
 export const Register: React.FC = () => {
@@ -39,12 +45,16 @@ export const Register: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  console.log(isMobile);
+  console.log(isMobile); // Optionally remove or keep this if needed
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userTypes, setUserTypes] = useState<any[]>([]);
+
+  // Get ref from query params
+  const query = useQuery();
+  const referred_by = query.get('ref') || null;
 
   const [formData, setFormData] = useState<RegisterFormData>({
     fullName: '',
@@ -52,7 +62,16 @@ export const Register: React.FC = () => {
     password: '',
     confirmPassword: '',
     userType: 0,
+    referred_by: referred_by,
   });
+
+  // Keep referred_by updated if ref param changes
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      referred_by: referred_by,
+    }));
+  }, [referred_by]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,7 +145,8 @@ export const Register: React.FC = () => {
         formData.confirmPassword,
         firstName,
         lastName,
-        formData.userType
+        formData.userType,
+        formData.referred_by ?? ''
       );
     } catch {
       setError('Registration failed. Please try again.');
@@ -175,6 +195,12 @@ export const Register: React.FC = () => {
           </Alert>
         )}
 
+        {referred_by && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            You were referred by <b>{referred_by}</b>
+          </Alert>
+        )}
+
         <TextField
           required
           fullWidth
@@ -212,8 +238,6 @@ export const Register: React.FC = () => {
             </MenuItem>
           ))}
         </TextField>
-
-
 
         <TextField
           fullWidth

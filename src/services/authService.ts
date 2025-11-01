@@ -12,6 +12,7 @@ export interface RegisterData {
   password: string;
   password2: string;
   first_name: string;
+  referred_by?: string,
   last_name: string;
   user_type_name?: 'customer' | 'agent';
   user_type: number;
@@ -50,6 +51,7 @@ export interface UserProfile {
   bio?: string;
   address?: string;
   country?: string;
+  referred_by?: string,
   wallet?: any;
 }
 
@@ -58,6 +60,7 @@ export interface RegisterResponse {
   username: string;
   email: string;
   first_name: string;
+  referred_by?: string,
   last_name: string;
   user_type_name: 'customer' | 'agent';
 }
