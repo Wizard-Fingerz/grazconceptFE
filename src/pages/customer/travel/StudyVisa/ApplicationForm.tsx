@@ -627,7 +627,7 @@ const StepVisaStudy = ({
           {Array.isArray(sponsorshipOptions) && sponsorshipOptions.length > 0
             ? sponsorshipOptions.map(
                 (s: any) => (
-                  <MenuItem key={s.id || s.term} value={s.term || s}>
+                  <MenuItem key={s.id} value={s.id}>
                     {s.term || s}
                   </MenuItem>
                 )

@@ -27,7 +27,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import api from "../../../../services/api";
 import { capitalizeWords } from "../../../../utils";
 
-// Define the steps and their fields
+// Define the steps and their fields (updated for new fields)
 const FORM_STEPS = [
   {
     label: "Personal Information",
@@ -44,28 +44,32 @@ const FORM_STEPS = [
       "highest_qualification",
       "previous_university",
       "previous_course_of_study",
-      "cgpa_grade",
-      "year_of_graduation",
+      "cgpa",
+      "graduation_year",
     ],
   },
   {
     label: "Visa & Study Details",
     fields: [
+      "destination_country",
+      "institution",
+      "course_of_study",
+      "program_type",
       "intended_start_date",
       "intended_end_date",
       "visa_type",
-      "sponsorship_details",
+      "sponsorship",
     ],
   },
   {
     label: "Document Uploads",
     fields: [
       "passport_photo",
-      "international_passport",
-      "academic_transcripts",
+      "passport_document",
+      "academic_transcript",
       "admission_letter",
       "financial_statement",
-      "english_proficiency_test",
+      "english_test_result",
     ],
   },
   {
@@ -78,6 +82,13 @@ const FORM_STEPS = [
       "emergency_contact_relationship",
       "emergency_contact_phone",
       "statement_of_purpose",
+    ],
+  },
+  {
+    label: "Review & Submit",
+    fields: [
+      "is_submitted",
+      "submitted_at",
     ],
   },
 ];
@@ -171,18 +182,22 @@ const StudyVisaDetails: React.FC = () => {
     highest_qualification: "",
     previous_university: "",
     previous_course_of_study: "",
-    cgpa_grade: "",
-    year_of_graduation: "",
+    cgpa: "",
+    graduation_year: "",
+    destination_country: "",
+    institution: "",
+    course_of_study: "",
+    program_type: "",
     intended_start_date: "",
     intended_end_date: "",
     visa_type: "",
-    sponsorship_details: "",
+    sponsorship: "",
     passport_photo: null as File | null,
-    international_passport: null as File | null,
-    academic_transcripts: null as File | null,
+    passport_document: null as File | null,
+    academic_transcript: null as File | null,
     admission_letter: null as File | null,
     financial_statement: null as File | null,
-    english_proficiency_test: null as File | null,
+    english_test_result: null as File | null,
     previous_visa_applications: false,
     previous_visa_details: "",
     travel_history: "",
@@ -190,6 +205,8 @@ const StudyVisaDetails: React.FC = () => {
     emergency_contact_relationship: "",
     emergency_contact_phone: "",
     statement_of_purpose: "",
+    is_submitted: false,
+    submitted_at: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -308,31 +325,40 @@ const StudyVisaDetails: React.FC = () => {
     return undefined;
   };
 
-  // Map of field name to label and type
+  // Map of field name to label and type (all fields for this application's purposes)
   const formFields = [
+    // Personal Information
     { name: "applicant", label: "Full Name", type: "text", required: true },
     { name: "passport_number", label: "Passport Number", type: "text", required: true },
     { name: "country", label: "Country of Citizenship", type: "text", required: true },
     { name: "passport_expiry_date", label: "Passport Expiry Date", type: "date", required: true },
 
+    // Educational Background
     { name: "highest_qualification", label: "Highest Qualification", type: "text", required: true },
     { name: "previous_university", label: "Previous University", type: "text", required: false },
     { name: "previous_course_of_study", label: "Previous Course of Study", type: "text", required: false },
-    { name: "cgpa_grade", label: "CGPA/Grade", type: "text", required: false },
-    { name: "year_of_graduation", label: "Year of Graduation", type: "text", required: false },
+    { name: "cgpa", label: "CGPA", type: "text", required: false },
+    { name: "graduation_year", label: "Graduation Year", type: "text", required: false },
 
+    // Visa & Study Details
+    { name: "destination_country", label: "Destination Country", type: "text", required: false },
+    { name: "institution", label: "Institution", type: "text", required: false },
+    { name: "course_of_study", label: "Course of Study", type: "text", required: false },
+    { name: "program_type", label: "Program Type", type: "text", required: false },
     { name: "intended_start_date", label: "Intended Start Date", type: "date", required: true },
     { name: "intended_end_date", label: "Intended End Date", type: "date", required: true },
     { name: "visa_type", label: "Visa Type", type: "text", required: true },
-    { name: "sponsorship_details", label: "Sponsorship Details", type: "text", required: false },
+    { name: "sponsorship", label: "Sponsorship", type: "text", required: false },
 
+    // Document Uploads
     { name: "passport_photo", label: "Passport Photo", type: "file", required: true },
-    { name: "international_passport", label: "International Passport", type: "file", required: true },
-    { name: "academic_transcripts", label: "Academic Transcripts", type: "file", required: false },
+    { name: "passport_document", label: "Passport Document", type: "file", required: true },
+    { name: "academic_transcript", label: "Academic Transcript", type: "file", required: false },
     { name: "admission_letter", label: "Admission Letter", type: "file", required: false },
     { name: "financial_statement", label: "Financial Statement", type: "file", required: false },
-    { name: "english_proficiency_test", label: "English Proficiency Test", type: "file", required: false },
+    { name: "english_test_result", label: "English Test Result", type: "file", required: false },
 
+    // Additional Information
     { name: "previous_visa_applications", label: "Previous Visa Applications", type: "boolean", required: false },
     { name: "previous_visa_details", label: "Previous Visa Details", type: "text", required: false },
     { name: "travel_history", label: "Travel History", type: "text", required: false },
@@ -340,23 +366,41 @@ const StudyVisaDetails: React.FC = () => {
     { name: "emergency_contact_relationship", label: "Emergency Contact Relationship", type: "text", required: true },
     { name: "emergency_contact_phone", label: "Emergency Contact Phone", type: "text", required: true },
     { name: "statement_of_purpose", label: "Statement of Purpose", type: "textarea", required: true },
+
+    // Review & Submit
+    { name: "is_submitted", label: "Application Submitted", type: "boolean", required: false },
+    { name: "submitted_at", label: "Submitted At", type: "text", required: false },
+
+    // System fields & naming for display only
+    { name: "application_date", label: "Application Date", type: "text", required: false },
+    { name: "status", label: "Status", type: "text", required: false },
+    { name: "notes", label: "Notes", type: "text", required: false },
+    { name: "institution_name", label: "Institution Name", type: "text", required: false },
+    { name: "course_of_study_name", label: "Course of Study Name", type: "text", required: false },
+    { name: "program_type_name", label: "Program Type Name", type: "text", required: false },
+    { name: "status_name", label: "Status Name", type: "text", required: false },
   ];
 
-  // Remove fields that are already present in the offer
+  // Remove fields that are already present in the offer, or are system fields
+  const offerFields = [
+    "id",
+    "study_visa_offer",
+    "destination_country",
+    "institution",
+    "course_of_study",
+    "program_type",
+    "status",
+    "notes",
+    "application_date",
+    "is_submitted",
+    "submitted_at",
+    "institution_name",
+    "course_of_study_name",
+    "program_type_name",
+    "status_name",
+  ];
+
   const visibleFormFields = formFields.filter((field) => {
-    const offerFields = [
-      "id",
-      "study_visa_offer",
-      "destination_country",
-      "institution",
-      "course_of_study",
-      "program_type",
-      "status",
-      "notes",
-      "application_date",
-      "is_submitted",
-      "submitted_at",
-    ];
     if (offerFields.includes(field.name)) return false;
     if (getOfferField(field.name)) return false;
     return true;
@@ -436,7 +480,7 @@ const StudyVisaDetails: React.FC = () => {
         if (Object.prototype.hasOwnProperty.call(form, key)) {
           if (visibleFormFields.find((f) => f.name === key)) {
             if (key === "applicant") continue;
-            if (key === "previous_visa_applications") {
+            if (key === "previous_visa_applications" || key === "is_submitted") {
               formData.append(key, form[key] ? "true" : "false");
               continue;
             }
@@ -474,18 +518,22 @@ const StudyVisaDetails: React.FC = () => {
         highest_qualification: "",
         previous_university: "",
         previous_course_of_study: "",
-        cgpa_grade: "",
-        year_of_graduation: "",
+        cgpa: "",
+        graduation_year: "",
+        destination_country: "",
+        institution: "",
+        course_of_study: "",
+        program_type: "",
         intended_start_date: "",
         intended_end_date: "",
         visa_type: "",
-        sponsorship_details: "",
+        sponsorship: "",
         passport_photo: null,
-        international_passport: null,
-        academic_transcripts: null,
+        passport_document: null,
+        academic_transcript: null,
         admission_letter: null,
         financial_statement: null,
-        english_proficiency_test: null,
+        english_test_result: null,
         previous_visa_applications: false,
         previous_visa_details: "",
         travel_history: "",
@@ -493,6 +541,8 @@ const StudyVisaDetails: React.FC = () => {
         emergency_contact_relationship: "",
         emergency_contact_phone: "",
         statement_of_purpose: "",
+        is_submitted: false,
+        submitted_at: "",
       });
       setActiveStep(0);
     } catch (err) {
@@ -672,27 +722,37 @@ const StudyVisaDetails: React.FC = () => {
   const renderApplicationDetails = (app: any) => {
     if (!app) return null;
 
-    // List fields in nice order
+    // List fields in nice order matching the Python fields order
     const displayFields = [
+      // 1️⃣ Personal Information
       "applicant",
+      "study_visa_offer",
       "passport_number",
       "country",
       "passport_expiry_date",
+      // 2️⃣ Educational Background
       "highest_qualification",
       "previous_university",
       "previous_course_of_study",
-      "cgpa_grade",
-      "year_of_graduation",
+      "cgpa",
+      "graduation_year",
+      // 3️⃣ Visa & Study Details
+      "destination_country",
+      "institution",
+      "course_of_study",
+      "program_type",
       "intended_start_date",
       "intended_end_date",
       "visa_type",
-      "sponsorship_details",
+      "sponsorship",
+      // 4️⃣ Document Uploads
       "passport_photo",
-      "international_passport",
-      "academic_transcripts",
+      "passport_document",
+      "academic_transcript",
       "admission_letter",
       "financial_statement",
-      "english_proficiency_test",
+      "english_test_result",
+      // 5️⃣ Additional Information
       "previous_visa_applications",
       "previous_visa_details",
       "travel_history",
@@ -700,11 +760,17 @@ const StudyVisaDetails: React.FC = () => {
       "emergency_contact_relationship",
       "emergency_contact_phone",
       "statement_of_purpose",
-      // Probably backend fields:
-      "status",
+      // 6️⃣ Review & Submit
       "is_submitted",
       "submitted_at",
-      "created_at",
+      // System fields
+      "application_date",
+      "status",
+      "notes",
+      "institution_name",
+      "course_of_study_name",
+      "program_type_name",
+      "status_name",
     ];
 
     return (
@@ -754,8 +820,6 @@ const StudyVisaDetails: React.FC = () => {
       </Box>
     );
   };
-
-
 
   return (
     <Box
