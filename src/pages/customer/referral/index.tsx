@@ -255,57 +255,7 @@ const ReferralPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-      {/* End: Referred friends list */}
 
-      <Card>
-        <CardContent>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-            Send Referral Link by Email
-          </Typography>
-          <form onSubmit={handleSendEmail} autoComplete="off">
-            <TextField
-              type="email"
-              label="Friend's Email"
-              placeholder="friend@example.com"
-              value={email}
-              required
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={sending}
-              fullWidth
-              margin="normal"
-              sx={{ mb: 2 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={sending}
-                sx={{ flex: 1, fontWeight: 600 }}
-              >
-                {sending ? "Sending..." : "Send Referral"}
-              </Button>
-            </Box>
-          </form>
-          {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          )}
-          {emailSent && (
-            <Alert severity="success" sx={{ mt: 2 }}>
-              Email sent successfully!
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
       <Snackbar
         open={copied}
         message="Link copied!"
