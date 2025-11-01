@@ -126,6 +126,17 @@ const authService = {
     }
   },
 
+  // New getMyreferee method
+  async getMyreferees() {
+    try {
+      const response = await api.get('/users/my-referees/');
+      return response.data;
+    } catch (error) {
+      ErrorService.handleApiError(error, { operation: 'Get My Referee' });
+      throw error;
+    }
+  },
+
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
