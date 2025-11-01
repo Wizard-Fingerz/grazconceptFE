@@ -42,45 +42,102 @@ import { toast } from 'react-toastify';
 import { getAddBanners } from '../../../services/studyVisa';
 import { getMyRecentWalletTransactions } from '../../../services/walletService';
 
-const FundWalletModalContent = ({ user }: { user: any }) => (
-  <Box>
-    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-      Fund Your Wallet
-    </Typography>
-    <Typography variant="body2" sx={{ mb: 1 }}>
-      Please use the account details below to fund your wallet.
-    </Typography>
-    <Divider sx={{ my: 2 }} />
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" color="text.secondary">
-        Account Name
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
+
+const FundWalletModalContent = ({ user }: { user: any }) => {
+  const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
+
+  const ACCOUNT_NUMBER = "4000331192";
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(ACCOUNT_NUMBER);
+    setCopySnackbarOpen(true);
+  };
+
+  const handleCloseSnackbar = (
+    _event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setCopySnackbarOpen(false);
+  };
+
+  return (
+    <Box>
+      {/* <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+        Fund Your Wallet
+      </Typography> */}
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        {user?.first_name} {user?.last_name}, please use the account details below to fund your wallet.
       </Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-        {user?.first_name} {user?.last_name}
+      <Divider sx={{ my: 2 }} />
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle2" color="text.secondary">
+          Account Name
+        </Typography>
+        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+          {/* {user?.first_name} {user?.last_name} */}
+          GRAZLINKS ENTERPRISE - GRAZ TRAVEL& TOUR SERVICES
+        </Typography>
+      </Box>
+      <Box sx={{ mb: 2, display: "flex", alignItems: "center" }}>
+        <Box>
+          <Typography variant="subtitle2" color="text.secondary">
+            Account Number
+          </Typography>
+          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+            {ACCOUNT_NUMBER}
+          </Typography>
+        </Box>
+        <Tooltip title="Copy Account Number">
+          <IconButton
+            aria-label="copy account number"
+            sx={{ ml: 1 }}
+            size="small"
+            onClick={handleCopy}
+          >
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle2" color="text.secondary">
+          Bank Name
+        </Typography>
+        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+          Moniepoint MFB
+        </Typography>
+      </Box>
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="caption" color="text.secondary">
+        After transferring to this account, please email your payment receipt to <b>peter.oluwole@grazconcept.com.ng</b> so your wallet balance can be updated.
       </Typography>
+
+      <Snackbar
+        open={copySnackbarOpen}
+        autoHideDuration={2000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={handleCloseSnackbar}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
+          Account number copied to clipboard!
+        </MuiAlert>
+      </Snackbar>
     </Box>
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" color="text.secondary">
-        Account Number
-      </Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-        1234567890
-      </Typography>
-    </Box>
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" color="text.secondary">
-        Bank Name
-      </Typography>
-      <Typography variant="body1" sx={{ fontWeight: 600 }}>
-        Example Bank
-      </Typography>
-    </Box>
-    <Divider sx={{ my: 2 }} />
-    <Typography variant="caption" color="text.secondary">
-      Transfers to this account will be credited to your wallet automatically.
-    </Typography>
-  </Box>
-);
+  );
+};
 
 // Map action label to result page route
 const actionResultRoutes: Record<string, string> = {
