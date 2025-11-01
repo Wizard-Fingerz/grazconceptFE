@@ -21,78 +21,19 @@ import {
   Chip,
   Link,
   Breadcrumbs,
+  Select,
+  MenuItem,
+  FormControl,
 } from "@mui/material";
 import { getStudyVisaOfferById } from "../../../../services/studyVisa";
 import { useAuth } from "../../../../context/AuthContext";
 import api from "../../../../services/api";
 import { capitalizeWords } from "../../../../utils";
-
-// Define the steps and their fields (updated for new fields)
-const FORM_STEPS = [
-  {
-    label: "Personal Information",
-    fields: [
-      "applicant",
-      "passport_number",
-      "country",
-      "passport_expiry_date",
-    ],
-  },
-  {
-    label: "Educational Background",
-    fields: [
-      "highest_qualification",
-      "previous_university",
-      "previous_course_of_study",
-      "cgpa",
-      "graduation_year",
-    ],
-  },
-  {
-    label: "Visa & Study Details",
-    fields: [
-      "destination_country",
-      "institution",
-      "course_of_study",
-      "program_type",
-      "intended_start_date",
-      "intended_end_date",
-      "visa_type",
-      "sponsorship",
-    ],
-  },
-  {
-    label: "Document Uploads",
-    fields: [
-      "passport_photo",
-      "passport_document",
-      "academic_transcript",
-      "admission_letter",
-      "financial_statement",
-      "english_test_result",
-    ],
-  },
-  {
-    label: "Additional Information",
-    fields: [
-      "previous_visa_applications",
-      "previous_visa_details",
-      "travel_history",
-      "emergency_contact_name",
-      "emergency_contact_relationship",
-      "emergency_contact_phone",
-      "statement_of_purpose",
-    ],
-  },
-  {
-    label: "Review & Submit",
-    fields: [
-      "is_submitted",
-      "submitted_at",
-    ],
-  },
-];
-
+import {
+  fetchStudySponsorshipTypes,
+  fetchStudyVisaTypes,
+} from "../../../../services/definitionService";
+ 
 function renderDescriptionLive(text: string) {
   if (!text) return null;
   const paragraphs = text.split(/\r?\n\r?\n/);
@@ -173,6 +114,16 @@ const StudyVisaDetails: React.FC = () => {
     return user.email || "";
   };
 
+  // Visa type and sponsorship options from API services
+  const [visaTypeOptions, setVisaTypeOptions] = useState<{ value: string; label: string }[]>([
+    { value: "", label: "Please select Visa Type" },
+  ]);
+  const [sponsorshipOptions, setSponsorshipOptions] = useState<{ value: string; label: string }[]>([
+    { value: "", label: "Please select Sponsorship Option" },
+  ]);
+  const [loadingVisaOptions, setLoadingVisaOptions] = useState<boolean>(false);
+  const [loadingSponsorshipOptions, setLoadingSponsorshipOptions] = useState<boolean>(false);
+
   // Application form state
   const [form, setForm] = useState({
     applicant: getUserFullName(),
@@ -228,7 +179,73 @@ const StudyVisaDetails: React.FC = () => {
   const [liveDescription, setLiveDescription] = useState<string>("");
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load offer details
+  // Steps definition (no change)
+  const FORM_STEPS = [
+    {
+      label: "Personal Information",
+      fields: [
+        "applicant",
+        "passport_number",
+        "country",
+        "passport_expiry_date",
+      ],
+    },
+    {
+      label: "Educational Background",
+      fields: [
+        "highest_qualification",
+        "previous_university",
+        "previous_course_of_study",
+        "cgpa",
+        "graduation_year",
+      ],
+    },
+    {
+      label: "Visa & Study Details",
+      fields: [
+        "destination_country",
+        "institution",
+        "course_of_study",
+        "program_type",
+        "intended_start_date",
+        "intended_end_date",
+        "visa_type",
+        "sponsorship",
+      ],
+    },
+    {
+      label: "Document Uploads",
+      fields: [
+        "passport_photo",
+        "passport_document",
+        "academic_transcript",
+        "admission_letter",
+        "financial_statement",
+        "english_test_result",
+      ],
+    },
+    {
+      label: "Additional Information",
+      fields: [
+        "previous_visa_applications",
+        "previous_visa_details",
+        "travel_history",
+        "emergency_contact_name",
+        "emergency_contact_relationship",
+        "emergency_contact_phone",
+        "statement_of_purpose",
+      ],
+    },
+    {
+      label: "Review & Submit",
+      fields: [
+        "is_submitted",
+        "submitted_at",
+      ],
+    },
+  ];
+
+  // Load offer details only
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -243,6 +260,60 @@ const StudyVisaDetails: React.FC = () => {
         setLoading(false);
       });
   }, [id]);
+
+  // Fetch visa type and sponsorship type options from their API services (expect new API data structure)
+  useEffect(() => {
+    setLoadingVisaOptions(true);
+    fetchStudyVisaTypes()
+      .then((data) => {
+        // Expecting API response: {results: [{id, term, ...}]}
+        const rawItems = Array.isArray(data?.results) ? data.results : [];
+        const options: { value: string; label: string }[] = [
+          { value: "", label: "Please select Visa Type" },
+          ...rawItems.map((v: any) => ({
+            value: v.id?.toString() ?? v.term,
+            label: v.term ?? v.id?.toString() ?? "",
+          })),
+        ];
+        setVisaTypeOptions(options.length > 1 ? options : [
+          { value: "", label: "Please select Visa Type" },
+          { value: "Other", label: "Other" },
+        ]);
+        setLoadingVisaOptions(false);
+      })
+      .catch(() => {
+        setVisaTypeOptions([
+          { value: "", label: "Please select Visa Type" },
+          { value: "Other", label: "Other" },
+        ]);
+        setLoadingVisaOptions(false);
+      });
+
+    setLoadingSponsorshipOptions(true);
+    fetchStudySponsorshipTypes()
+      .then((data) => {
+        const rawItems = Array.isArray(data?.results) ? data.results : [];
+        const options: { value: string; label: string }[] = [
+          { value: "", label: "Please select Sponsorship Option" },
+          ...rawItems.map((v: any) => ({
+            value: v.id?.toString() ?? v.term,
+            label: v.term ?? v.id?.toString() ?? "",
+          })),
+        ];
+        setSponsorshipOptions(options.length > 1 ? options : [
+          { value: "", label: "Please select Sponsorship Option" },
+          { value: "Other", label: "Other" },
+        ]);
+        setLoadingSponsorshipOptions(false);
+      })
+      .catch(() => {
+        setSponsorshipOptions([
+          { value: "", label: "Please select Sponsorship Option" },
+          { value: "Other", label: "Other" },
+        ]);
+        setLoadingSponsorshipOptions(false);
+      });
+  }, []);
 
   // Reset applicant field if user changes
   useEffect(() => {
@@ -263,21 +334,16 @@ const StudyVisaDetails: React.FC = () => {
     setApplicationLoading(true);
     setApplicationError(null);
 
-    // Backend API for study visa applications: /app/study-visa-application/?offer_id=id
     api
       .get("/app/study-visa-application/", {
         params: { offer_id: id }
       })
       .then((res) => {
-        // Defensive: .results if paginated, else assume array
         const results = Array.isArray(res.data?.results)
           ? res.data.results
           : Array.isArray(res.data)
             ? res.data
             : [];
-
-        // Try to match the current user
-        // Either .client ID equals user.id, or applicant string matches this user's name
         let matches = results.filter(
           (a: any) =>
             (a?.client === user.id) ||
@@ -285,14 +351,12 @@ const StudyVisaDetails: React.FC = () => {
               getUserFullName() &&
               String(a.applicant).toLowerCase().trim() === getUserFullName().toLowerCase().trim())
         );
-        // Pick the latest one by submitted_at/date if multiple
         matches = matches.sort((a: any, b: any) => {
           if (a.submitted_at && b.submitted_at)
             return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
           return (b.id || 0) - (a.id || 0);
         });
 
-        // Only consider those referencing this offer ID
         const found = matches.find(
           (a: any) =>
             (!!a.study_visa_offer && String(a.study_visa_offer) === String(id)) ||
@@ -347,8 +411,8 @@ const StudyVisaDetails: React.FC = () => {
     { name: "program_type", label: "Program Type", type: "text", required: false },
     { name: "intended_start_date", label: "Intended Start Date", type: "date", required: true },
     { name: "intended_end_date", label: "Intended End Date", type: "date", required: true },
-    { name: "visa_type", label: "Visa Type", type: "text", required: true },
-    { name: "sponsorship", label: "Sponsorship", type: "text", required: false },
+    { name: "visa_type", label: "Visa Type", type: "select", required: true },
+    { name: "sponsorship", label: "Sponsorship", type: "select", required: false },
 
     // Document Uploads
     { name: "passport_photo", label: "Passport Photo", type: "file", required: true },
@@ -417,8 +481,9 @@ const StudyVisaDetails: React.FC = () => {
     fields: step.fields.filter((fname) => visibleFormFieldsMap[fname]),
   })).filter((step) => step.fields.length > 0);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, files, checked } = e.target as any;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any) => {
+    const target = e.target;
+    const { name, value, type, files, checked } = target;
     if (name === "applicant") return;
     if (type === "file") {
       setForm((prev) => ({
@@ -546,7 +611,6 @@ const StudyVisaDetails: React.FC = () => {
       });
       setActiveStep(0);
     } catch (err) {
-      // If fails, show a generic error in submitSuccess or via snackbar/toast if you add one
       setSubmitSuccess(false);
     }
     setSubmitting(false);
@@ -616,7 +680,7 @@ const StudyVisaDetails: React.FC = () => {
   // Requirements logic as before
   const requirements = (() => {
     if (Array.isArray(offer.requirements) && offer.requirements.length > 0) {
-      const minEnglishScoreText = 'Minimum English Score: 5.0';
+      const minEnglishScoreText = "Minimum English Score: 5.0";
       const alreadyIncluded = offer.requirements.some(
         (req: string) =>
           req.toLowerCase().includes("minimum english score") ||
@@ -631,18 +695,14 @@ const StudyVisaDetails: React.FC = () => {
       ...(offer.minimum_grade ? [`Minimum Grade: ${offer.minimum_grade}`] : []),
       ...(offer.english_proficiency_required
         ? [
-          `English Proficiency Required: Yes`,
-          offer.english_test_type
-            ? `Test Type: ${offer.english_test_type}`
-            : "",
-          offer.minimum_english_score
-            ? `Minimum Score: ${offer.minimum_english_score}`
-            : "",
-        ].filter(Boolean)
+            `English Proficiency Required: Yes`,
+            offer.english_test_type ? `Test Type: ${offer.english_test_type}` : "",
+            offer.minimum_english_score
+              ? `Minimum Score: ${offer.minimum_english_score}`
+              : "",
+          ].filter(Boolean)
         : [`English Proficiency Required: No`]),
-      ...(offer.other_requirements
-        ? [offer.other_requirements]
-        : []),
+      ...(offer.other_requirements ? [offer.other_requirements] : []),
     ];
     if (offer.minimum_english_score !== undefined && offer.minimum_english_score !== null) {
       reqs.push(`Minimum English Score: ${offer.minimum_english_score}`);
@@ -659,39 +719,37 @@ const StudyVisaDetails: React.FC = () => {
   // Compose display fields
   const statusDisplay =
     offer.status_display ||
-    (typeof offer.status === "number"
-      ? `Status Code: ${offer.status}`
-      : undefined);
+    (typeof offer.status === "number" ? `Status Code: ${offer.status}` : undefined);
 
   const tuitionFee =
     offer.tuition_fee !== undefined && offer.tuition_fee !== null
       ? `£${Number(offer.tuition_fee).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
       : "N/A";
 
   const applicationDeadline = offer.application_deadline
     ? new Date(offer.application_deadline).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
     : "N/A";
 
   const startDate = offer.start_date
     ? new Date(offer.start_date).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
     : "N/A";
   const endDate = offer.end_date
     ? new Date(offer.end_date).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
     : "N/A";
 
   const programType =
@@ -1090,6 +1148,65 @@ const StudyVisaDetails: React.FC = () => {
                 {visibleSteps[activeStep]?.fields.map((fname) => {
                   const field = visibleFormFieldsMap[fname];
                   if (!field) return null;
+
+                  // Visa Type select
+                  if (field.name === "visa_type") {
+                    return (
+                      <FormControl
+                        fullWidth
+                        margin="normal"
+                        required={field.required}
+                        key={field.name}
+                        disabled={loadingVisaOptions}
+                      >
+                        <InputLabel id="visa-type-label">{field.label}</InputLabel>
+                        <Select
+                          labelId="visa-type-label"
+                          id="visa-type"
+                          name={field.name}
+                          label={field.label}
+                          value={form[field.name]}
+                          onChange={handleInputChange}
+                        >
+                          {visaTypeOptions.map((opt) => (
+                            <MenuItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    );
+                  }
+
+                  // Sponsorship select
+                  if (field.name === "sponsorship") {
+                    return (
+                      <FormControl
+                        fullWidth
+                        margin="normal"
+                        required={field.required}
+                        key={field.name}
+                        disabled={loadingSponsorshipOptions}
+                      >
+                        <InputLabel id="sponsorship-label">{field.label}</InputLabel>
+                        <Select
+                          labelId="sponsorship-label"
+                          id="sponsorship"
+                          name={field.name}
+                          label={field.label}
+                          value={form[field.name]}
+                          onChange={handleInputChange}
+                        >
+                          {sponsorshipOptions.map((opt) => (
+                            <MenuItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    );
+                  }
+
                   if (field.type === "textarea") {
                     return (
                       <TextField
