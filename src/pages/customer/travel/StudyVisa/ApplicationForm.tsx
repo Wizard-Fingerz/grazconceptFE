@@ -1017,17 +1017,49 @@ const StudyVisaApplicationForm: React.FC = () => {
       setAppLoading(true);
       try {
         const data = await getStudyVisaApplicationById(id);
-        if (!canceled) {
+        if (!canceled && data) {
+          // Prefill *all* fields from data
+          setFormValues((prev: any) => ({
+            ...prev,
+            passportNumber: data.passport_number || "",
+            passportExpiry: data.passport_expiry_date ? new Date(data.passport_expiry_date) : null,
+            highestQualification: data.highest_qualification || "",
+            institutionName: data.institution_name || data.previous_university || "",
+            courseOfStudy: data.course_of_study_name || data.previous_course_of_study || "",
+            cgpa: data.cgpa || "",
+            graduationYear: data.graduation_year || "",
+            destinationCountry: data.destination_country || "",
+            universityApplying: data.institution_name || "",
+            intendedStartDate: data.intended_start_date ? new Date(data.intended_start_date) : null,
+            intendedEndDate: data.intended_end_date ? new Date(data.intended_end_date) : null,
+            visaType: data.visa_type || "",
+            sponsorship: data.sponsorship || "",
+            passportPhoto: data.passport_photo || null,
+            passportDoc: data.passport_document || null,
+            transcript: data.academic_transcript || null,
+            admissionLetter: data.admission_letter || null,
+            financialStatement: data.financial_statement || null,
+            englishTest: data.english_test_result || null,
+            previousVisa: data.previous_visa_applications === true ? "Yes" : data.previous_visa_applications === false ? "No" : "",
+            previousVisaDetails: data.previous_visa_details || "",
+            travelHistory: data.travel_history || "",
+            emergencyContactName: data.emergency_contact_name || "",
+            emergencyContactPhone: data.emergency_contact_phone || "",
+            statementOfPurpose: data.statement_of_purpose || "",
+            // If your form values have more properties, map them similarly here.
+          }));
+
+          // Prefill additional meta if needed
           setAppPrefill({
-            institutionName: data?.institution_name || data?.previous_university || "",
-            courseOfStudy: data?.course_of_study_name || data?.previous_course_of_study || "",
-            destinationCountry: data?.destination_country || "",
+            institutionName: data.institution_name || data.previous_university || "",
+            courseOfStudy: data.course_of_study_name || data.previous_course_of_study || "",
+            destinationCountry: data.destination_country || "",
           });
           setAppMeta({
-            institution_name: data?.institution_name,
-            course_of_study_name: data?.course_of_study_name,
-            program_type_name: data?.program_type_name,
-            status_name: data?.status_name
+            institution_name: data.institution_name,
+            course_of_study_name: data.course_of_study_name,
+            program_type_name: data.program_type_name,
+            status_name: data.status_name
           });
         }
       } catch (error) {
@@ -1249,7 +1281,7 @@ const StudyVisaApplicationForm: React.FC = () => {
     fd.append("gender", formValues.gender);
     fd.append("nationality", formValues.nationality);
     fd.append("passport_number", formValues.passportNumber);
-    fd.append("passport_expiry", formValues.passportExpiry
+    fd.append("passport_expiry_date", formValues.passportExpiry
       ? formValues.passportExpiry.toISOString()
       : "");
     fd.append("current_address", formValues.currentAddress);
