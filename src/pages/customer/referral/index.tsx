@@ -4,10 +4,7 @@ import {
   Card,
   CardContent,
   Typography,
-  TextField,
-  Button,
   Alert,
-  InputAdornment,
   IconButton,
   Snackbar,
   Tooltip,
@@ -22,7 +19,6 @@ import {
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ShareIcon from "@mui/icons-material/Share";
-import EmailIcon from "@mui/icons-material/Email";
 import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
 import { useAuth } from '../../../context/AuthContext';
 import authService from "../../../services/authService";
@@ -38,10 +34,7 @@ type RefereeType = {
 };
 
 const ReferralPage: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
@@ -82,27 +75,8 @@ const ReferralPage: React.FC = () => {
       .finally(() => setLoadingReferees(false));
   }, []);
 
-  const validateEmail = (email: string) => {
-    // Basic email validation
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  };
 
-  const handleSendEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setEmailSent(false);
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    setSending(true);
-    // Simulate API call
-    setTimeout(() => {
-      setSending(false);
-      setEmailSent(true);
-      setEmail("");
-    }, 1200);
-  };
+
 
   const handleCopy = async () => {
     try {
