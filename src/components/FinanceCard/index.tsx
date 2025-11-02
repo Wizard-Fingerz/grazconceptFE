@@ -4,11 +4,13 @@ import { Paper, CardContent, Typography, Button, Box, Stack, Divider } from "@mu
 interface Transaction {
     title: string;
     amount: string;
+    currency?: string;
 }
 
 interface FinanceCardProps {
     title: string;
-    amount: string;
+    amount: string | number;
+    currency?: string;
     buttonText?: string;
     transactions?: Transaction[];
     onButtonClick?: () => void;
@@ -17,6 +19,7 @@ interface FinanceCardProps {
 const FinanceCard: React.FC<FinanceCardProps> = ({
     title,
     amount,
+    currency = "",
     buttonText,
     transactions = [],
     onButtonClick,
@@ -26,21 +29,22 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
             elevation={4}
             sx={{
                 width: 280,
-                minHeight: 250,         // Increased card height
-                borderRadius: 1.5,      // Reduced border radius (from 3)
+                minHeight: 250,
+                borderRadius: 1.5,
                 background: "#fff",
                 position: "relative",
             }}
         >
-            <CardContent sx={{ p: 3 }}> {/* Increased padding (was default) */}
+            <CardContent sx={{ p: 3 }}>
                 <Typography variant="subtitle2" fontWeight={600} gutterBottom>
                     {title}
                 </Typography>
                 <Typography variant="h6" fontWeight={700} gutterBottom>
+                    {/* Show the currency before the amount, e.g., NGN 5,000 */}
+                    {currency ? `${currency} ` : ""}
                     {amount}
                 </Typography>
 
-                {/* Reduced/reuse button with non-white color */}
                 {buttonText && (
                     <Button
                         variant="contained"
@@ -54,8 +58,8 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
                             px: 2,
                             minWidth: "unset",
                             fontSize: "0.9rem",
-                            backgroundColor: "#f5be52", // Use a gold-like color (not white)
-                            color: "#292100", // Dark contrasting text
+                            backgroundColor: "#f5be52",
+                            color: "#292100",
                             boxShadow: "none",
                             borderRadius: "8px",
                             "&:hover": { backgroundColor: "#dca90f" },
@@ -79,7 +83,11 @@ const FinanceCard: React.FC<FinanceCardProps> = ({
                             sx={{ color: "#444", fontSize: "0.875rem" }}
                         >
                             <span>{item.title}</span>
-                            <span>{item.amount}</span>
+                            <span>
+                                {/* Show currency per transaction if provided, else use card currency */}
+                                {item.currency ? `${item.currency} ` : (currency ? `${currency} ` : "")}
+                                {item.amount}
+                            </span>
                         </Box>
                     ))}
                 </Stack>

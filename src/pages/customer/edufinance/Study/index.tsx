@@ -17,45 +17,7 @@ import { toast } from "react-toastify";
 import { ImageCard } from "../../../../components/ImageCard";
 import { useNavigate } from "react-router-dom";
 import FinanceCard from "../../../../components/FinanceCard";
-
-/**
- * Hardcoded loan offers just for display mapping,
- * since getLoanById is being used below and previously caused errors.
- */
-const MOCK_LOANS = [
-    {
-        id: 1,
-        loan_title: "Masters Loan at Harvard",
-        country: "USA",
-        institution: "Harvard University",
-        amount: 70000,
-        currency: "USD",
-        type: "Unsecured",
-    },
-    {
-        id: 2,
-        loan_title: "Masters Loan at University of Toronto",
-        country: "Canada",
-        institution: "University of Toronto",
-        amount: 55000,
-        currency: "CAD",
-        type: "Secured",
-    },
-    {
-        id: 3,
-        loan_title: "Undergraduate Loan at Imperial College London",
-        country: "UK",
-        institution: "Imperial College London",
-        amount: 45000,
-        currency: "GBP",
-        type: "Unsecured",
-    },
-];
-
-// Helper to get loan offer by ID for mapping application to details
-function getLoanById(id: number) {
-    return MOCK_LOANS.find((loan) => loan.id === id);
-}
+import { getRecentStudyLoanOffers, getLoanAnalyticsSummary } from "../../../../services/edufinanceService";
 
 // ApplicationCard for Study Abroad Loan offers/applications
 export const ApplicationCard: React.FC<{
@@ -222,74 +184,91 @@ export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
 
 export const StudyAbroadLoanPage: React.FC = () => {
     const navigate = useNavigate();
+
+    // ---- DATA STATES ----
     const [recentApplications, setRecentApplications] = useState<any[]>([]);
-    const [loadingApplications, setLoadingApplications] = useState(true);
+    const [loadingApplications, setLoadingApplications] = useState<boolean>(true);
 
     const [banners, setBanners] = useState<any[]>([]);
-    const [loadingBanners, setLoadingBanners] = useState(true);
+    const [loadingBanners, setLoadingBanners] = useState<boolean>(true);
 
-    // Offers Tab state
-    const [tabIndex, setTabIndex] = useState(0);
+    const [offers, setOffers] = useState<any[]>([]);
+    const [loadingOffers, setLoadingOffers] = useState<boolean>(true);
 
-    // Mock wallet state
+    const [loanAnalytics, setLoanAnalytics] = useState<any>(null);
+    const [loanAnalyticsLoading, setLoanAnalyticsLoading] = useState<boolean>(true);
+    const [loanAnalyticsError, setLoanAnalyticsError] = useState<string | null>(null);
+
+    // Tab - 0: Recent Applications, 1: Offers
+    const [tabIndex, setTabIndex] = useState<number>(0);
+
     const [walletLoading] = useState(false);
 
     const theme = useTheme();
     const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
+    // --- API: Banners ---
     useEffect(() => {
-        let mounted = true;
+        let ignore = false;
         setLoadingBanners(true);
-        getAddBanners()
-            .then((data: any) => {
-                if (mounted) {
-                    if (data && Array.isArray(data.results)) {
-                        setBanners(data.results);
-                    } else {
-                        setBanners([]);
-                    }
-                }
-            })
-            .catch(() => {
-                if (mounted) setBanners([]);
-            })
-            .finally(() => {
-                if (mounted) setLoadingBanners(false);
-            });
-        return () => {
-            mounted = false;
-        };
+        getAddBanners().then((data: any) => {
+            if (ignore) return;
+            if (data && Array.isArray(data.results)) {
+                setBanners(data.results);
+            } else {
+                setBanners([]);
+            }
+        }).catch(() => {
+            if (!ignore) setBanners([]);
+        }).finally(() => {
+            if (!ignore) setLoadingBanners(false);
+        });
+
+        return () => { ignore = true; };
     }, []);
 
-    const transactions = [
-        { title: "Flight to Accra", amount: "#25.00" },
-        { title: "Saving deposit", amount: "#25.00" },
-    ];
+    // --- API: Offers (missing in original) ---
+    useEffect(() => {
+        setLoadingOffers(true);
+        // Simulate fetching offers: could be replaced by an actual API like getStudyLoanOffers()
+        // Here we're just setting to an array for illustration. Real use should fetch actual offers.
+        // If there's a real "getOffers" API, use it.
+        // getStudyLoanOffers().then(...)
 
-    // Fake fetching recent applications
+        // TODO: Replace this block below with actual API call to fetch offers!
+        setTimeout(() => {
+            // Fake offers; For demo, so page doesn't break
+            setOffers([
+                {
+                    id: 1,
+                    loan_title: 'Canada University Loan',
+                    country: 'Canada',
+                    institution: 'Toronto University',
+                    amount: 10000,
+                    currency: 'CAD',
+                    type: 'Education Loan'
+                },
+                {
+                    id: 2,
+                    loan_title: 'UK Masters Loan',
+                    country: 'United Kingdom',
+                    institution: 'Oxford',
+                    amount: 8000,
+                    currency: 'GBP',
+                    type: 'Study Loan'
+                }
+            ]);
+            setLoadingOffers(false);
+        }, 700);
+    }, []);
+
+    // --- API: Recent Applications ---
     useEffect(() => {
         async function fetchApplications() {
             setLoadingApplications(true);
             try {
-                await new Promise((r) => setTimeout(r, 400));
-                setRecentApplications([
-                    {
-                        id: "loanapp1",
-                        loan_id: 1,
-                        status: "Under Review",
-                        created_at: "2024-06-01T12:00:00.000Z",
-                        amount: 5000,
-                        currency: "USD"
-                    },
-                    {
-                        id: "loanapp2",
-                        loan_id: 3,
-                        status: "Disbursed",
-                        created_at: "2024-05-01T09:00:00.000Z",
-                        amount: 15000,
-                        currency: "USD"
-                    },
-                ]);
+                const data = await getRecentStudyLoanOffers();
+                setRecentApplications(Array.isArray(data) ? data : (data?.results ?? []));
             } catch {
                 setRecentApplications([]);
             }
@@ -298,10 +277,31 @@ export const StudyAbroadLoanPage: React.FC = () => {
         fetchApplications();
     }, []);
 
-    // Check offer loan ID in recent app to hide from the offers list (optional)
+    // --- API: Analytics ---
+    useEffect(() => {
+        setLoanAnalyticsLoading(true);
+        setLoanAnalyticsError(null);
+        getLoanAnalyticsSummary()
+            .then((summary: any) => {
+                setLoanAnalytics(summary);
+            })
+            .catch((_err) => {
+                setLoanAnalyticsError("Failed to load loan analytics");
+            })
+            .finally(() => {
+                setLoanAnalyticsLoading(false);
+            });
+    }, []);
+
+    // --- Helper: Application <-> Offer match ---
+    function getLoanById(id: number | string) {
+        return offers.find((loan: any) => `${loan.id}` === `${id}`);
+    }
+
+    // ---- IDs for applied offers ----
     const appliedLoanIds = recentApplications.map(app => app.loan_id);
 
-    // Responsive columns helper replacement
+    // --- Helper: Col width ---
     const getColumnWidth = (breakpoints: any) => ({
         flex: `0 0 auto`,
         minWidth: breakpoints.xs || "100%",
@@ -310,6 +310,152 @@ export const StudyAbroadLoanPage: React.FC = () => {
         ...(breakpoints.sm && { [`@media (min-width:600px)`]: { minWidth: breakpoints.sm, width: breakpoints.sm } }),
         ...(breakpoints.md && { [`@media (min-width:900px)`]: { minWidth: breakpoints.md, width: breakpoints.md } }),
     });
+
+
+
+    // --- Render Analytics Cards (fixed) ---
+    function renderAnalyticsCards() {
+        if (loanAnalyticsLoading) {
+            return (
+                <Box sx={{ width: "100%" }}>
+                    <Card className="rounded-2xl shadow-md"
+                        sx={{
+                            mb: 3,
+                            background: "linear-gradient(90deg, #fbe5d6 75%, #fffdfa 120%)",
+                            minWidth: 300,
+                            maxWidth: 420,
+                            py: 2,
+                            px: { xs: 2, sm: 4 },
+                            display: "flex",
+                            alignItems: "center",
+                        }}
+                    >
+                        <CardContent sx={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <CircularProgress color="secondary" />
+                            <Typography sx={{ ml: 2 }}>Loading analytics...</Typography>
+                        </CardContent>
+                    </Card>
+                </Box>
+            );
+        }
+        if (loanAnalyticsError) {
+            return (
+                <Box sx={{ width: "100%" }}>
+                    <Card className="rounded-2xl shadow-md"
+                        sx={{
+                            background: "#fffdfa",
+                            minWidth: 300,
+                            maxWidth: 420,
+                            py: 2,
+                            px: { xs: 2, sm: 4 },
+                        }}>
+                        <CardContent>
+                            <Typography color="error">
+                                {loanAnalyticsError}
+                            </Typography>
+                        </CardContent>
+                    </Card>
+                </Box>
+            );
+        }
+        const summary = loanAnalytics || {};
+        const currency = summary.currency || "NGN";
+        const walletBalance = typeof summary.wallet_balance === "number"
+            ? summary.wallet_balance
+            : parseFloat(summary.wallet_balance) || 0.0;
+        const totalLoanAmount = typeof summary.total_loan_amount === "number"
+            ? summary.total_loan_amount
+            : parseFloat(summary.total_loan_amount) || 0.0;
+        const totalAmountPaid = typeof summary.total_amount_paid === "number"
+            ? summary.total_amount_paid
+            : parseFloat(summary.total_amount_paid) || 0.0;
+
+        return (
+            <Box
+                sx={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: { xs: "column", md: "row" },
+                    gap: { xs: 2, md: 8 },
+                    flexWrap: { xs: "wrap", md: "nowrap" },
+                    alignItems: "stretch",
+                }}
+            >
+                <Box
+                    sx={{
+                        ...getColumnWidth({
+                            xs: "100%",
+                            sm: 260,
+                            md: 260,
+                            max: 420,
+                        }),
+                        mb: { xs: 2, md: 0 },
+                        flex: { xs: "unset", md: 1 },
+                    }}
+                >
+                    <FinanceCard
+                        title="Travel Wallet"
+                        amount={walletBalance}
+                        currency={currency}
+                        buttonText="Fund wallet"
+                        transactions={
+                            Array.isArray(summary.wallet_transactions)
+                                ? summary.wallet_transactions
+                                : []
+                        }
+                    />
+                </Box>
+                <Box
+                    sx={{
+                        ...getColumnWidth({
+                            xs: "100%",
+                            sm: 260,
+                            md: 260,
+                            max: 420,
+                        }),
+                        mb: { xs: 2, md: 0 },
+                        flex: { xs: "unset", md: 1 },
+                    }}
+                >
+                    <FinanceCard
+                        title="Loan Amount"
+                        amount={totalLoanAmount}
+                        currency={currency}
+                        buttonText="Make Payment"
+                        transactions={
+                            Array.isArray(summary.recent_loan_application)
+                                ? summary.recent_loan_application
+                                : []
+                        }
+                    />
+                </Box>
+                <Box
+                    sx={{
+                        ...getColumnWidth({
+                            xs: "100%",
+                            sm: 260,
+                            md: 260,
+                            max: 420,
+                        }),
+                        mb: { xs: 2, md: 0 },
+                        flex: { xs: "unset", md: 1 },
+                    }}
+                >
+                    <FinanceCard
+                        title="Amount Paid"
+                        amount={totalAmountPaid}
+                        currency={currency}
+                        buttonText="Make Payment"
+                        transactions={
+                            Array.isArray(summary.recent_loan_repayment)
+                                ? summary.recent_loan_repayment
+                                : []
+                        }
+                    />
+                </Box>
+            </Box>
+        );
+    }
 
     return (
         <Box
@@ -358,7 +504,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                 </Button>
             </Box>
 
-            {/* Wallet Card Area */}
+            {/* WALLET / ANALYTICS CARDS */}
             <Box sx={{ mb: 2 }}>
                 {walletLoading ? (
                     <Card
@@ -379,57 +525,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                             <Typography sx={{ ml: 2 }}>Loading Wallet...</Typography>
                         </CardContent>
                     </Card>
-                ) : (
-                    <Box
-                        sx={{
-                            width: "100%",
-                            display: "flex",
-                            flexDirection: { xs: "column", md: "row" },
-                            gap: { xs: 2, md: 8 }, // significantly increase horizontal gap on desktop
-                            flexWrap: { xs: "wrap", md: "nowrap" },
-                            alignItems: "stretch",
-                        }}
-                    >
-                        {[
-                            {
-                                title: "Travel Wallet",
-                                amount: "#125,000,000",
-                                buttonText: "Fund wallet"
-                            },
-                            {
-                                title: "Loan Amount",
-                                amount: "#1,425,000,000",
-                                buttonText: "Make Payment"
-                            },
-                            {
-                                title: "Amount Paid",
-                                amount: "#425,000,000",
-                                buttonText: "Make Payment"
-                            }
-                        ].map((item, _idx) => (
-                            <Box
-                                key={item.title}
-                                sx={{
-                                    ...getColumnWidth({
-                                        xs: "100%",
-                                        sm: 260,
-                                        md: 260,
-                                        max: 420
-                                    }),
-                                    mb: { xs: 2, md: 0 },
-                                    flex: { xs: "unset", md: 1 }, // ensure items grow equally
-                                }}
-                            >
-                                <FinanceCard
-                                    title={item.title}
-                                    amount={item.amount}
-                                    buttonText={item.buttonText}
-                                    transactions={transactions}
-                                />
-                            </Box>
-                        ))}
-                    </Box>
-                )}
+                ) : renderAnalyticsCards()}
             </Box>
 
             {/* Banner/Promotional Area */}
@@ -438,7 +534,6 @@ export const StudyAbroadLoanPage: React.FC = () => {
                     <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>
                         Start a New Loan Application
                     </Typography>
-                    {/* Responsive banners using Flexbox */}
                     <Box
                         sx={{
                             display: "flex",
@@ -570,7 +665,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                             })}
                                         >
                                             <ApplicationCard
-                                                title={loan.loan_title || "Study Abroad Loan"}
+                                                title={loan.loan_title || loan.title || "Study Abroad Loan"}
                                                 country={loan.country}
                                                 institution={loan.institution}
                                                 status={app.status}
@@ -614,36 +709,49 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                 flexWrap: "nowrap",
                             }}
                         >
-                            {MOCK_LOANS
-                                .filter(loan => !appliedLoanIds.includes(loan.id))
-                                .map((loan) => (
-                                    <Box
-                                        key={loan.id}
-                                        sx={getColumnWidth({
-                                            xs: "100%",
-                                            sm: 280,
-                                            md: 320,
-                                            max: 380
-                                        })}
-                                    >
-                                        <ApplicationCard
-                                            title={loan.loan_title}
-                                            country={loan.country}
-                                            institution={loan.institution}
-                                            amount={loan.amount}
-                                            currency={loan.currency}
-                                            type={loan.type}
-                                            onApply={() => {
-                                                toast.info(
-                                                    "Begin your application for this loan offer."
-                                                );
-                                                // Place navigation or application logic here
-                                            }}
-                                        />
+                            {loadingOffers ? (
+                                <Box sx={{ width: "100%" }}>
+                                    <Box className="flex items-center justify-center w-full py-8">
+                                        <CircularProgress size={32} />
                                     </Box>
-                                ))}
-                            {/* Empty message if all offers taken */}
-                            {MOCK_LOANS.filter(loan => !appliedLoanIds.includes(loan.id)).length === 0 && (
+                                </Box>
+                            ) : offers.length === 0 ? (
+                                <Box sx={{ width: "100%" }}>
+                                    <Typography
+                                        variant="body2"
+                                        className="text-gray-500 flex items-center"
+                                    >
+                                        No available offers at this time.
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                offers
+                                    .filter((loan: any) => !appliedLoanIds.includes(loan.id))
+                                    .map((loan: any) => (
+                                        <Box
+                                            key={loan.id}
+                                            sx={getColumnWidth({
+                                                xs: "100%",
+                                                sm: 280,
+                                                md: 320,
+                                                max: 380
+                                            })}
+                                        >
+                                            <ApplicationCard
+                                                title={loan.loan_title || loan.title || ""}
+                                                country={loan.country}
+                                                institution={loan.institution}
+                                                amount={loan.amount}
+                                                currency={loan.currency}
+                                                type={loan.type}
+                                                onApply={() => {
+                                                    toast.info("Begin your application for this loan offer.");
+                                                }}
+                                            />
+                                        </Box>
+                                    ))
+                            )}
+                            {!loadingOffers && offers.filter((loan: any) => !appliedLoanIds.includes(loan.id)).length === 0 && (
                                 <Box sx={{ width: "100%" }}>
                                     <Typography
                                         variant="body2"
