@@ -245,11 +245,11 @@ export const MainLayout: React.FC = () => {
               label: "Support Tickets",
               to: "/support/tickets",
             },
-            {
-              icon: <SupportAgentIcon />,
-              label: "Live Chat & Email",
-              to: "/support/chat",
-            },
+            // {
+            //   icon: <SupportAgentIcon />,
+            //   label: "Live Chat & Email",
+            //   to: "/support/chat",
+            // },
             {
               icon: <MenuBookIcon />,
               label: "Knowledge Base",
