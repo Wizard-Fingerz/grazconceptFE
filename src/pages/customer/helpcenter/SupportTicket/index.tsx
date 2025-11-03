@@ -21,21 +21,29 @@ import { toast } from "react-toastify";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import api from "../../../../services/api";
-// Import your pre-configured API instance (e.g., axios instance)
 
-// Type Definitions
+// Type Definitions based on new API shape
 type TicketMessage = {
+    id: number | string;
     sender: "user" | "support";
     text: string;
     timestamp: string;
 };
 
-type TicketStatus = "Open" | "Closed" | "Pending" | "Resolved";
+type TicketStatusTerm = "Open" | "Closed" | "Pending" | "Resolved";
+
+interface TicketStatusObj {
+    id: number | string;
+    term: TicketStatusTerm;
+    table_name: string;
+    is_active: boolean;
+    is_system_defined: boolean;
+}
 
 interface Ticket {
     id: number | string;
     subject: string;
-    status: TicketStatus;
+    status: TicketStatusObj;
     created_at: string;
     last_reply: string;
     messages: TicketMessage[];
@@ -46,7 +54,9 @@ type TabValue = "open" | "closed" | "all";
 // --- API functions using api instance ---
 
 const fetchTickets = async (): Promise<Ticket[]> => {
-    const { data } = await api.get("/support-ticket", { withCredentials: true });
+    const { data } = await api.get("/app/support-ticket");
+    // If API paginates, the results would be in data.results
+    if (data?.results) return data.results;
     return data;
 };
 
@@ -58,9 +68,8 @@ const createTicket = async ({
     message: string;
 }): Promise<Ticket> => {
     const { data } = await api.post(
-        "/support-ticket",
-        { subject, message },
-        { withCredentials: true }
+        "/app/support-ticket/",
+        { subject, message }
     );
     return data;
 };
@@ -70,15 +79,15 @@ const replyToTicket = async (
     message: string
 ): Promise<TicketMessage> => {
     const { data } = await api.post(
-        `/support-ticket/${id}/reply`,
-        { message },
-        { withCredentials: true }
+        `/app/support-ticket/${id}/reply/`,
+        { message }
     );
     return data;
 };
 
-function statusColor(status: TicketStatus | undefined): "primary" | "default" | "warning" | "success" {
-    switch (status) {
+function statusColor(status: TicketStatusObj | undefined): "primary" | "default" | "warning" | "success" {
+    const term = status?.term;
+    switch (term) {
         case "Open":
             return "primary";
         case "Closed":
@@ -111,19 +120,27 @@ const SupportTicket: React.FC = () => {
     const [replyMsg, setReplyMsg] = useState<string>("");
     const [replyLoading, setReplyLoading] = useState<boolean>(false);
 
+    // Refetch helper for submitting
+    const refetchTickets = async () => {
+        setLoading(true);
+        try {
+            const fetchedTickets = await fetchTickets();
+            if (Array.isArray(fetchedTickets)) {
+                setTickets(fetchedTickets);
+            } else {
+                setTickets([]);
+            }
+        } catch {
+            setTickets([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Fetch tickets on mount
     useEffect(() => {
-        setLoading(true);
-        fetchTickets()
-            .then((fetchedTickets) => {
-                if (Array.isArray(fetchedTickets)) {
-                    setTickets(fetchedTickets);
-                } else {
-                    setTickets([]);
-                }
-            })
-            .catch(() => setTickets([]))
-            .finally(() => setLoading(false));
+        refetchTickets();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleOpenNewDialog = () => {
@@ -139,10 +156,10 @@ const SupportTicket: React.FC = () => {
         }
         setCreateLoading(true);
         try {
-            const ticket = await createTicket({ subject: subject.trim(), message: message.trim() });
-            setTickets((prev) => [ticket, ...prev]);
+            await createTicket({ subject: subject.trim(), message: message.trim() });
             setNewDialogOpen(false);
             toast.success("Support ticket created successfully!");
+            await refetchTickets();
         } catch (err: any) {
             toast.error(err?.response?.data?.message || err?.message || "Failed to create support ticket. Please try again.");
         }
@@ -156,25 +173,19 @@ const SupportTicket: React.FC = () => {
         }
         setReplyLoading(true);
         try {
-            const reply = await replyToTicket(ticketId, replyMsg.trim());
-            setTickets((prev) =>
-                prev.map((t) =>
-                    t.id === ticketId
-                        ? {
-                            ...t,
-                            last_reply: reply.timestamp,
-                            messages: [...t.messages, reply]
-                        }
-                        : t
-                )
-            );
-            // Also update selectedTicket's messages if open
+            await replyToTicket(ticketId, replyMsg.trim());
+            // Refetch tickets to get the latest messages
+            await refetchTickets();
+            // Update the selected ticket (if still exists)
             if (selectedTicket && selectedTicket.id === ticketId) {
-                setSelectedTicket({
-                    ...selectedTicket,
-                    last_reply: reply.timestamp,
-                    messages: [...selectedTicket.messages, reply]
-                });
+                // Find the fresh ticket by id
+                const fetchedTickets = await fetchTickets();
+                const updatedItem = fetchedTickets.find(t => t.id === ticketId);
+                if (updatedItem) {
+                    setSelectedTicket(updatedItem);
+                } else {
+                    setSelectedTicket(null);
+                }
             }
             setReplyMsg("");
             toast.success("Your reply was sent.");
@@ -185,8 +196,8 @@ const SupportTicket: React.FC = () => {
     };
 
     function filterTickets(tab: TabValue): Ticket[] {
-        if (tab === "open") return tickets.filter((t) => t.status === "Open" || t.status === "Pending");
-        if (tab === "closed") return tickets.filter((t) => t.status === "Closed" || t.status === "Resolved");
+        if (tab === "open") return tickets.filter((t) => t.status?.term === "Open" || t.status?.term === "Pending");
+        if (tab === "closed") return tickets.filter((t) => t.status?.term === "Closed" || t.status?.term === "Resolved");
         return tickets;
     }
 
@@ -204,7 +215,6 @@ const SupportTicket: React.FC = () => {
                 mx: "auto",
             }}
         >
-
             <CustomerPageHeader>
                 <Typography variant="h4" className="font-bold mb-2">
                     Suport Center
@@ -271,7 +281,7 @@ const SupportTicket: React.FC = () => {
                                 <Chip
                                     size="small"
                                     color={statusColor(ticket.status)}
-                                    label={ticket.status}
+                                    label={ticket.status?.term}
                                     sx={{ fontWeight: 500, textTransform: "capitalize" }}
                                 />
                             </Box>
@@ -352,7 +362,7 @@ const SupportTicket: React.FC = () => {
                     {selectedTicket && (
                         <>
                             <Box sx={{ mb: 2 }}>
-                                <Chip color={statusColor(selectedTicket.status)} size="small" label={selectedTicket.status} />
+                                <Chip color={statusColor(selectedTicket.status)} size="small" label={selectedTicket.status?.term} />
                                 <Typography variant="body2" sx={{ mt: 1, color: "#4d2a01" }}>
                                     Opened: {formatDate(selectedTicket.created_at)}
                                 </Typography>
@@ -364,7 +374,7 @@ const SupportTicket: React.FC = () => {
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                                 {selectedTicket.messages.map((msg, idx) => (
                                     <Box
-                                        key={idx}
+                                        key={msg.id || idx}
                                         sx={{
                                             alignSelf: msg.sender === "user" ? "flex-end" : "flex-start",
                                             maxWidth: "80%",
@@ -395,7 +405,7 @@ const SupportTicket: React.FC = () => {
                         </>
                     )}
                 </DialogContent>
-                <DialogActions sx={{ display: selectedTicket?.status === "Closed" ? "none" : "flex" }}>
+                <DialogActions sx={{ display: selectedTicket?.status?.term === "Closed" ? "none" : "flex" }}>
                     <Box sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}>
                         <TextField
                             placeholder="Reply to support..."

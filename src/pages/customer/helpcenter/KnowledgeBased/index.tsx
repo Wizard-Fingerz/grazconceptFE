@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     Box,
     Typography,
@@ -12,6 +12,7 @@ import {
     Button,
     Tabs,
     Tab,
+    Pagination,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -36,61 +37,80 @@ type FAQ = {
     category?: string;
 };
 
+type FaqApiResponse = {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    num_pages: number;
+    page_size: number;
+    current_page: number;
+    results: FAQ[];
+};
+
 const KnowledgeBasePage: React.FC = () => {
     const [faqs, setFaqs] = useState<FAQ[]>([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [count, setCount] = useState<number>(0);
+    const [numPages, setNumPages] = useState<number>(1);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [loading, setLoading] = useState<boolean>(false);
 
     // categorization states
-    const [selectedTab, setSelectedTab] = useState("All");
+    const [selectedTab, setSelectedTab] = useState<string>("All");
+    const [searchTerm, setSearchTerm] = useState<string>("");
     const [expandedIndex, setExpandedIndex] = useState<number | false>(false);
 
-    // Fetch FAQs from API
-    useEffect(() => {
-        setLoading(true);
-        api
-            .get("/faq-articles", { withCredentials: true })
-            .then((response) => {
-                let data = response.data;
-                // Make sure every FAQ has a category ("Other" if not)
-                if (Array.isArray(data)) {
-                    const cleaned = data.map((faq) => ({
-                        ...faq,
-                        category: faq.category || "Other",
-                    }));
-                    setFaqs(cleaned);
+    // Fetch FAQs from API (paginated)
+    const fetchFaqs = useCallback(
+        async ({
+            page = 1,
+            tab = selectedTab,
+            search = searchTerm
+        }: { page?: number; tab?: string; search?: string }) => {
+            setLoading(true);
+            try {
+                let queryParts: string[] = [];
+                if (page) queryParts.push(`page=${page}`);
+                if (tab && tab !== "All") queryParts.push(`category=${encodeURIComponent(tab)}`);
+                if (search && search.trim()) queryParts.push(`search=${encodeURIComponent(search.trim())}`);
+                const queryString = queryParts.length ? "?" + queryParts.join("&") : "";
+                const response = await api.get(`/app/faq-articles/${queryString}`);
+                const data: FaqApiResponse = response.data;
+
+                if (data && Array.isArray(data.results)) {
+                    setFaqs(
+                        data.results.map(faq => ({
+                            ...faq,
+                            category: faq.category || "Other",
+                        }))
+                    );
+                    setCount(data.count ?? data.results.length);
+                    setNumPages(data.num_pages || 1);
                 } else {
                     setFaqs([]);
+                    setCount(0);
+                    setNumPages(1);
                 }
-            })
-            .catch(() => {
-                // You might want to show a toast here
+            } catch {
                 setFaqs([]);
-            })
-            .finally(() => setLoading(false));
-    }, []);
+                setCount(0);
+                setNumPages(1);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [selectedTab, searchTerm]
+    );
 
-    // Filter FAQs based on selected tab and search
-    const getFilteredFaqs = () => {
-        let categoryFaqs =
-            selectedTab === "All"
-                ? faqs
-                : faqs.filter((faq) => (faq.category || "Other") === selectedTab);
+    // Make sure to trigger API call on selectedTab, searchTerm, or currentPage change
+    useEffect(() => {
+        fetchFaqs({ page: currentPage, tab: selectedTab, search: searchTerm });
+        setExpandedIndex(false); // Collapse all accordions on reload
+    }, [selectedTab, searchTerm, currentPage, fetchFaqs]);
 
-        if (searchTerm.trim()) {
-            categoryFaqs = categoryFaqs.filter(
-                ({ question, answer }) =>
-                    question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    answer.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        return categoryFaqs;
-    };
-
-    const filteredFaqs = getFilteredFaqs();
-
+    // Handlers
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
+        setCurrentPage(1);
     };
 
     const handleExpand = (idx: number) => (_: React.SyntheticEvent, isExpanded: boolean) => {
@@ -99,7 +119,18 @@ const KnowledgeBasePage: React.FC = () => {
 
     const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
         setSelectedTab(newValue);
-        setExpandedIndex(false); // Collapse all accordions when changing tab
+        setCurrentPage(1);
+        setExpandedIndex(false);
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm("");
+        setCurrentPage(1);
+    };
+
+    const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
+        setCurrentPage(page);
+        setExpandedIndex(false);
     };
 
     return (
@@ -118,6 +149,15 @@ const KnowledgeBasePage: React.FC = () => {
                 </Typography>
                 <Typography variant="body1" className="text-gray-700 mb-4">
                     Find answers to the most common questions and get support for your account, applications, and more.
+                </Typography>
+                {/* Count Display */}
+                <Typography variant="subtitle2" sx={{ color: "#9B670E", fontWeight: 500, mb: 1 }}>
+                    {loading
+                        ? "Loading count..."
+                        : (count === 1
+                            ? "1 article found"
+                            : `${count} articles found`)
+                    }
                 </Typography>
             </CustomerPageHeader>
 
@@ -170,7 +210,7 @@ const KnowledgeBasePage: React.FC = () => {
                 <Button
                     variant="text"
                     sx={{ ml: 2 }}
-                    onClick={() => setSearchTerm("")}
+                    onClick={handleClearSearch}
                     disabled={!searchTerm}
                 >
                     Clear
@@ -182,13 +222,13 @@ const KnowledgeBasePage: React.FC = () => {
                     <CircularProgress />
                     <Typography sx={{ mt: 2 }}>Loading FAQs...</Typography>
                 </Box>
-            ) : filteredFaqs.length === 0 ? (
+            ) : faqs.length === 0 ? (
                 <Typography sx={{ color: "#b17820", py: 5, textAlign: "center" }}>
                     No articles or questions found. Try another search term.
                 </Typography>
             ) : (
                 <Box>
-                    {filteredFaqs.map((faq, idx) => (
+                    {faqs.map((faq, idx) => (
                         <Accordion
                             expanded={expandedIndex === idx}
                             onChange={handleExpand(idx)}
@@ -203,6 +243,27 @@ const KnowledgeBasePage: React.FC = () => {
                             </AccordionDetails>
                         </Accordion>
                     ))}
+
+                    {(numPages > 1) && (
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "center",
+                                mt: 4,
+                                mb: 2,
+                            }}
+                        >
+                            <Pagination
+                                count={numPages}
+                                page={currentPage}
+                                onChange={handlePageChange}
+                                color="primary"
+                                shape="rounded"
+                                showFirstButton
+                                showLastButton
+                            />
+                        </Box>
+                    )}
                 </Box>
             )}
         </Box>
