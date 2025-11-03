@@ -20,6 +20,8 @@ import {
 import { toast } from "react-toastify";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
+import api from "../../../../services/api";
+// Import your pre-configured API instance (e.g., axios instance)
 
 // Type Definitions
 type TicketMessage = {
@@ -41,55 +43,11 @@ interface Ticket {
 
 type TabValue = "open" | "closed" | "all";
 
-// Dummy services (replace with actual API calls)
+// --- API functions using api instance ---
+
 const fetchTickets = async (): Promise<Ticket[]> => {
-    // Simulate API call delay
-    return new Promise((resolve) =>
-        setTimeout(
-            () =>
-                resolve([
-                    {
-                        id: 1,
-                        subject: "Issue with payment",
-                        status: "Open",
-                        created_at: "2024-05-10T10:00:00Z",
-                        last_reply: "2024-06-02T12:00:00Z",
-                        messages: [
-                            {
-                                sender: "user",
-                                text: "I was charged twice for my subscription.",
-                                timestamp: "2024-05-10T10:01:00Z"
-                            },
-                            {
-                                sender: "support",
-                                text: "Thank you for reaching out. We are investigating.",
-                                timestamp: "2024-05-10T12:30:00Z"
-                            }
-                        ]
-                    },
-                    {
-                        id: 2,
-                        subject: "Cannot log in to my account",
-                        status: "Closed",
-                        created_at: "2024-04-13T16:22:00Z",
-                        last_reply: "2024-04-15T09:00:00Z",
-                        messages: [
-                            {
-                                sender: "user",
-                                text: "I'm unable to log in after resetting my password.",
-                                timestamp: "2024-04-13T16:23:00Z"
-                            },
-                            {
-                                sender: "support",
-                                text: "We have reset your account. Please try again.",
-                                timestamp: "2024-04-15T09:00:00Z"
-                            }
-                        ]
-                    }
-                ]),
-            1000
-        )
-    );
+    const { data } = await api.get("/support-ticket", { withCredentials: true });
+    return data;
 };
 
 const createTicket = async ({
@@ -99,45 +57,24 @@ const createTicket = async ({
     subject: string;
     message: string;
 }): Promise<Ticket> => {
-    // Simulate API call delay
-    return new Promise((resolve) =>
-        setTimeout(
-            () =>
-                resolve({
-                    id: Math.random().toString(36).slice(2),
-                    subject,
-                    status: "Open",
-                    created_at: new Date().toISOString(),
-                    last_reply: new Date().toISOString(),
-                    messages: [
-                        {
-                            sender: "user",
-                            text: message,
-                            timestamp: new Date().toISOString()
-                        }
-                    ]
-                }),
-            1300
-        )
+    const { data } = await api.post(
+        "/support-ticket",
+        { subject, message },
+        { withCredentials: true }
     );
+    return data;
 };
 
 const replyToTicket = async (
-    _id: number | string,
+    id: number | string,
     message: string
 ): Promise<TicketMessage> => {
-    // Simulate API call delay
-    return new Promise<TicketMessage>((resolve) =>
-        setTimeout(
-            () =>
-                resolve({
-                    sender: "user",
-                    text: message,
-                    timestamp: new Date().toISOString()
-                }),
-            1000
-        )
+    const { data } = await api.post(
+        `/support-ticket/${id}/reply`,
+        { message },
+        { withCredentials: true }
     );
+    return data;
 };
 
 function statusColor(status: TicketStatus | undefined): "primary" | "default" | "warning" | "success" {
@@ -174,6 +111,7 @@ const SupportTicket: React.FC = () => {
     const [replyMsg, setReplyMsg] = useState<string>("");
     const [replyLoading, setReplyLoading] = useState<boolean>(false);
 
+    // Fetch tickets on mount
     useEffect(() => {
         setLoading(true);
         fetchTickets()
@@ -205,8 +143,8 @@ const SupportTicket: React.FC = () => {
             setTickets((prev) => [ticket, ...prev]);
             setNewDialogOpen(false);
             toast.success("Support ticket created successfully!");
-        } catch {
-            toast.error("Failed to create support ticket. Please try again.");
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || err?.message || "Failed to create support ticket. Please try again.");
         }
         setCreateLoading(false);
     };
@@ -240,8 +178,8 @@ const SupportTicket: React.FC = () => {
             }
             setReplyMsg("");
             toast.success("Your reply was sent.");
-        } catch {
-            toast.error("Failed to send reply. Please try again.");
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || err?.message || "Failed to send reply. Please try again.");
         }
         setReplyLoading(false);
     };
@@ -271,9 +209,7 @@ const SupportTicket: React.FC = () => {
                 <Typography variant="h4" className="font-bold mb-2">
                     Suport Center
                 </Typography>
-              
             </CustomerPageHeader>
-
 
             {/* Sub Header */}
             <Box
@@ -288,7 +224,7 @@ const SupportTicket: React.FC = () => {
                     variant="body1"
                     className="text-gray-700"
                     sx={{
-                        maxWidth: { xs: "100%",  md: "80%", },
+                        maxWidth: { xs: "100%", md: "80%" },
                         mb: { xs: 2, md: 0 }
                     }}
                 >
@@ -298,8 +234,6 @@ const SupportTicket: React.FC = () => {
                     Create Ticket
                 </Button>
             </Box>
-
-
 
             <Tabs
                 value={selectedTab}

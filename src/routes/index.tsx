@@ -85,6 +85,7 @@ import EduFinanceDashboard from "../pages/staff/marketplace/EduFinanceCivilServa
 import EuropeanCitizenshipForm from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
 import AllWorkVisaApplication from "../pages/customer/travel/WorkVisa/AllWorkVisaApplication";
 import SupportTicket from "../pages/customer/helpcenter/SupportTicket";
+import KnowledgeBasePage from "../pages/customer/helpcenter/KnowledgeBased";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -462,7 +463,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "support/kb",
-        element: <CustomerPlaceholderPage title="Knowledge Base" />,
+        element: <KnowledgeBasePage/>,
       },
       {
         path: "settings/notifications",
