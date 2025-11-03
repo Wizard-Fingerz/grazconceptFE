@@ -86,6 +86,7 @@ import EuropeanCitizenshipForm from "../pages/customer/citizenship/European/Euro
 import AllWorkVisaApplication from "../pages/customer/travel/WorkVisa/AllWorkVisaApplication";
 import SupportTicket from "../pages/customer/helpcenter/SupportTicket";
 import KnowledgeBasePage from "../pages/customer/helpcenter/KnowledgeBased";
+import NotificationSettingsPage from "../pages/customer/accountsettings/Notifications";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -467,7 +468,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "settings/notifications",
-        element: <CustomerPlaceholderPage title="Notifications" />,
+        element: <NotificationSettingsPage />,
       },
       {
         path: "settings/support",
