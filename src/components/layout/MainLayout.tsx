@@ -266,11 +266,11 @@ export const MainLayout: React.FC = () => {
               label: "Notifications",
               to: "/settings/notifications",
             },
-            {
-              icon: <HelpIcon />,
-              label: "Help & Support",
-              to: "/settings/support",
-            },
+            // {
+            //   icon: <HelpIcon />,
+            //   label: "Help & Support",
+            //   to: "/settings/support",
+            // },
             {
               icon: <SettingsIcon />,
               label: "Advanced Settings",
