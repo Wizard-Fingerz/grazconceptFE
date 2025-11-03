@@ -84,6 +84,7 @@ import CbiDashboard from "../pages/staff/marketplace/CbiPage";
 import EduFinanceDashboard from "../pages/staff/marketplace/EduFinanceCivilServantLoanPage";
 import EuropeanCitizenshipForm from "../pages/customer/citizenship/European/EuropeanCitizenshipDetails";
 import AllWorkVisaApplication from "../pages/customer/travel/WorkVisa/AllWorkVisaApplication";
+import SupportTicket from "../pages/customer/helpcenter/SupportTicket";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -453,7 +454,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "support/tickets",
-        element: <CustomerPlaceholderPage title="Support Tickets" />,
+        element: <SupportTicket />,
       },
       {
         path: "support/chat",
