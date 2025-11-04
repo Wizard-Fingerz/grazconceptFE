@@ -14,32 +14,25 @@ import {
     Chip,
     Button,
 } from "@mui/material";
-import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
-import SmsIcon from "@mui/icons-material/Sms";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import api from "../../../../services/api";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 
+// Updated type: support "notification_type" and "is_read" fields, and fallback for previous structure
 type NotificationMessage = {
     id: string | number;
     title: string;
     message: string;
-    type: "email" | "sms" | "push";
-    read: boolean;
+    notification_type?: string;
+    type?: "email" | "sms" | "push" | string;
+    is_read?: boolean;
+    read?: boolean;
     created_at: string;
 };
 
-const getTypeIcon = (type: NotificationMessage["type"]) => {
-    switch (type) {
-        case "email":
-            return <MarkEmailReadIcon color="primary" />;
-        case "sms":
-            return <SmsIcon color="primary" />;
-        case "push":
-            return <NotificationsIcon color="primary" />;
-        default:
-            return <NotificationsIcon />;
-    }
+const getTypeIcon = (_type?: NotificationMessage["type"] | string) => {
+    // You can expand to SMS/Email if needed
+    return <NotificationsIcon color="primary" />;
 };
 
 const NotificationSettingsPage: React.FC = () => {
@@ -55,10 +48,29 @@ const NotificationSettingsPage: React.FC = () => {
         api
             .get("/notification/notifications/")
             .then((res) => {
+                // API may send data in .results, or as an array directly
+                let fetchedNotifications: NotificationMessage[] = [];
                 if (isMounted && res.data && Array.isArray(res.data.results)) {
-                    setNotifications(res.data.results);
+                    fetchedNotifications = res.data.results;
                 } else if (isMounted && Array.isArray(res.data)) {
-                    setNotifications(res.data);
+                    fetchedNotifications = res.data;
+                }
+                // Filter out falsy values and ensure each notification has an id, title, message, created_at
+                if (
+                    isMounted &&
+                    Array.isArray(fetchedNotifications) &&
+                    fetchedNotifications.length > 0
+                ) {
+                    setNotifications(
+                        fetchedNotifications.filter(
+                            (n) =>
+                                n &&
+                                (typeof n.id === "string" || typeof n.id === "number") &&
+                                n.title &&
+                                n.message &&
+                                n.created_at
+                        )
+                    );
                 } else {
                     setNotifications([]);
                 }
@@ -80,7 +92,11 @@ const NotificationSettingsPage: React.FC = () => {
         try {
             await api.post("/notification/notifications/mark-all-read/");
             setNotifications((prev) =>
-                prev.map((n) => ({ ...n, read: true }))
+                prev.map((n) => ({
+                    ...n,
+                    is_read: true,
+                    read: true,
+                }))
             );
             setSuccess("All notifications marked as read.");
         } catch {
@@ -97,6 +113,8 @@ const NotificationSettingsPage: React.FC = () => {
      * and the ListItemText.secondary also renders as <p>. Nesting would cause <p><p>...</p></p>.
      * Solution: Render inner Typography (for message body) as <span>.
      */
+
+    // Distinguish unread and read in the UI, but show ALL notifications
     return (
         <Box
             sx={{
@@ -107,13 +125,12 @@ const NotificationSettingsPage: React.FC = () => {
                 mx: "auto",
             }}
         >
-            
             <CustomerPageHeader>
                 <Typography variant="h4" className="font-bold mb-2">
                     My Notifications
                 </Typography>
             </CustomerPageHeader>
-          
+        
             <Typography variant="body1" mb={3} color="text.secondary">
                 Here are your latest messages, updates, and important alerts across all channels.
             </Typography>
@@ -140,63 +157,73 @@ const NotificationSettingsPage: React.FC = () => {
                         </Typography>
                     ) : (
                         <List sx={{ width: "100%" }}>
-                            {notifications.map((n, idx) => (
-                                <React.Fragment key={n.id}>
-                                    <ListItem
-                                        alignItems="flex-start"
-                                        sx={{
-                                            opacity: n.read ? 0.64 : 1,
-                                            bgcolor: n.read ? undefined : "#FFFAE8",
-                                            borderRadius: 1,
-                                        }}
-                                    >
-                                        <ListItemIcon>{getTypeIcon(n.type)}</ListItemIcon>
-                                        <ListItemText
-                                            primary={
-                                                <Box display="flex" alignItems="center">
-                                                    <Typography
-                                                        sx={{
-                                                            fontWeight: n.read ? 500 : 700,
-                                                            fontSize: "1rem",
-                                                            mr: 1,
-                                                        }}
-                                                    >
-                                                        {n.title}
-                                                    </Typography>
-                                                    {!n.read && (
-                                                        <Chip
-                                                            label="NEW"
-                                                            color="warning"
-                                                            size="small"
-                                                            sx={{ ml: 0.5, fontWeight: 600, height: 20 }}
-                                                        />
-                                                    )}
-                                                </Box>
-                                            }
-                                            secondary={
-                                                <>
-                                                    <Typography
-                                                        variant="body2"
-                                                        color="text.secondary"
-                                                        sx={{ whiteSpace: "pre-line" }}
-                                                        component="span" // Prevents <p> inside <p>
-                                                    >
-                                                        {n.message}
-                                                    </Typography>
-                                                    <Typography
-                                                        variant="caption"
-                                                        color="text.disabled"
-                                                        sx={{ display: "block", mt: 0.5 }}
-                                                    >
-                                                        {new Date(n.created_at).toLocaleString()}
-                                                    </Typography>
-                                                </>
-                                            }
-                                        />
-                                    </ListItem>
-                                    {idx !== notifications.length - 1 && <Divider sx={{ my: 1 }} />}
-                                </React.Fragment>
-                            ))}
+                            {notifications.map((n, idx) => {
+                                // is_read: boolean (API), read: boolean (legacy/frontend)
+                                const isRead =
+                                    typeof n.is_read === "boolean"
+                                        ? n.is_read
+                                        : typeof n.read === "boolean"
+                                        ? n.read
+                                        : false;
+                                return (
+                                    <React.Fragment key={n.id}>
+                                        <ListItem
+                                            alignItems="flex-start"
+                                            sx={{
+                                                opacity: isRead ? 0.64 : 1,
+                                                bgcolor: !isRead ? "#FFFAE8" : undefined,
+                                                borderRadius: 1,
+                                                mb: 0.5,
+                                            }}
+                                        >
+                                            <ListItemIcon>{getTypeIcon(n.notification_type || n.type)}</ListItemIcon>
+                                            <ListItemText
+                                                primary={
+                                                    <Box display="flex" alignItems="center">
+                                                        <Typography
+                                                            sx={{
+                                                                fontWeight: isRead ? 500 : 700,
+                                                                fontSize: "1rem",
+                                                                mr: 1,
+                                                            }}
+                                                        >
+                                                            {n.title}
+                                                        </Typography>
+                                                        {!isRead && (
+                                                            <Chip
+                                                                label="NEW"
+                                                                color="warning"
+                                                                size="small"
+                                                                sx={{ ml: 0.5, fontWeight: 600, height: 20 }}
+                                                            />
+                                                        )}
+                                                    </Box>
+                                                }
+                                                secondary={
+                                                    <>
+                                                        <Typography
+                                                            variant="body2"
+                                                            color="text.secondary"
+                                                            sx={{ whiteSpace: "pre-line" }}
+                                                            component="span"
+                                                        >
+                                                            {n.message}
+                                                        </Typography>
+                                                        <Typography
+                                                            variant="caption"
+                                                            color="text.disabled"
+                                                            sx={{ display: "block", mt: 0.5 }}
+                                                        >
+                                                            {new Date(n.created_at).toLocaleString()}
+                                                        </Typography>
+                                                    </>
+                                                }
+                                            />
+                                        </ListItem>
+                                        {idx !== notifications.length - 1 && <Divider sx={{ my: 1 }} />}
+                                    </React.Fragment>
+                                );
+                            })}
                         </List>
                     )}
                 </Paper>
