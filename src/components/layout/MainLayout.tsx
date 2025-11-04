@@ -11,6 +11,12 @@ import {
   useTheme,
   useMediaQuery,
   Badge,
+  Menu,
+  MenuItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  Tooltip,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -59,10 +65,17 @@ import {
   ProductionQuantityLimitsSharp,
   LiveTv,
   Label,
+  Error as ErrorIcon,
+  Info as InfoIcon,
+  Done as DoneIcon,
 } from "@mui/icons-material";
 import { useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import SidebarContent from "../SideBar/SidebarContent";
+import {
+  subscribeToNotifications,
+  requestUserNotifications
+} from "../../services/notificationServices";
 
 const drawerWidth = 280;
 const collapsedDrawerWidth = 72;
@@ -73,6 +86,15 @@ type SidebarSection = {
   section: string;
   icon: React.ReactNode;
   items: SidebarItem[];
+};
+
+type Notification = {
+  id: string | number;
+  type: string;
+  message: string;
+  read: boolean;
+  time?: string;
+  [key: string]: any;
 };
 
 // Helper to normalize user_type_name to a valid role key
@@ -86,9 +108,33 @@ function getRoleFromUser(user: any): RoleKey {
   return "customer";
 }
 
+// Simple time formatting for notifications (optional utility)
+function formatNotificationTime(ts?: string | number | Date) {
+  if (!ts) return "";
+  const date =
+    typeof ts === "object"
+      ? ts
+      : typeof ts === "number"
+      ? new Date(ts)
+      : new Date(ts);
+  const now = new Date();
+  const diff = (now.getTime() - date.getTime()) / 1000;
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 24 * 3600) return `${Math.floor(diff / 3600)}h ago`;
+  return date.toLocaleDateString();
+}
+
 export const MainLayout: React.FC = () => {
   const [open, setOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // --- Notification State
+  const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  // Track unread notifications: either a boolean 'read' field or fallback to all as unread
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
@@ -112,6 +158,108 @@ export const MainLayout: React.FC = () => {
       setOpen(!open);
     }
   };
+
+  // Notification handlers
+  const handleNotifOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setNotifAnchorEl(event.currentTarget);
+    // Explicitly request notifications every time the menu opens
+    requestUserNotifications();
+  };
+  const handleNotifClose = () => {
+    setNotifAnchorEl(null);
+  };
+
+  // Track ref to latest notifications to preserve unread state on repeat requests
+  const notificationsRef = useRef<Notification[]>([]);
+  useEffect(() => { notificationsRef.current = notifications }, [notifications]);
+
+  // Notifications WebSocket subscription
+  useEffect(() => {
+    let isMounted = true;
+
+    // Handle incoming notification WebSocket data, supports backend structure: {notifications: [...]}
+    const MAX_MESSAGE_LENGTH = 30; // Or adjust as needed
+
+    const truncateMessage = (msg?: string) => {
+      if (typeof msg !== "string") return msg;
+      return msg.length > MAX_MESSAGE_LENGTH
+        ? msg.slice(0, MAX_MESSAGE_LENGTH) + "..."
+        : msg;
+    };
+
+    const onNotification = (data: any) => {
+      if (!isMounted) return;
+
+      // If the server sends the new API structure: { notifications: [...] }
+      let notificationsArr: any[] | null = null;
+      if (Array.isArray(data)) {
+        notificationsArr = data;
+      } else if (
+        typeof data === "object" &&
+        data !== null &&
+        Array.isArray(data.notifications)
+      ) {
+        notificationsArr = data.notifications;
+      }
+
+      if (notificationsArr) {
+        // Use new structure for each notification, with message truncation
+        const normalized = notificationsArr
+          .map((n, idx) => ({
+            ...n,
+            message: truncateMessage(n.message),
+            id: n.id ?? n.pk ?? n._id ?? (n.message ? truncateMessage(n.message) + (n.time ?? idx) : idx),
+            type: n.notification_type || n.type || "info",
+            read: "read" in n ? !!n.read : ("is_read" in n ? !!n.is_read : false),
+            time: n.time || n.created_at || n.timestamp || n.updated_at,
+            title: n.title, // allow for explicit title property if available
+          }))
+          .reverse();
+
+        // If all IDs in normalized already exist, don't update
+        const incomingIds = new Set(normalized.map(n => n.id));
+        const existingIds = new Set(notificationsRef.current.map(n => n.id));
+        const hasNew = [...incomingIds].some(id => !existingIds.has(id));
+        if (hasNew || notificationsRef.current.length !== normalized.length) {
+          setNotifications(normalized);
+        }
+      } else if (typeof data === "object" && data !== null) {
+        // Single notification, as either a fresh push or legacy, with truncation
+        setNotifications((prev) => {
+          const id =
+            data.id ??
+            data.pk ??
+            data._id ??
+            (data.message ? truncateMessage(data.message) + (data.time ?? Date.now()) : Date.now());
+          if (prev.length > 0 && prev[0].id === id) return prev;
+          return [
+            {
+              ...data,
+              message: truncateMessage(data.message),
+              id,
+              type: data.notification_type || data.type || "info",
+              read: "read" in data
+                ? !!data.read
+                : ("is_read" in data ? !!data.is_read : false),
+              time: data.time || data.created_at || data.timestamp || data.updated_at,
+              title: data.title,
+            },
+            ...prev,
+          ];
+        });
+      }
+    };
+
+
+    const unsubscribe = subscribeToNotifications(onNotification);
+    // Request notifications on mount as additional safety
+    requestUserNotifications();
+
+    return () => {
+      isMounted = false;
+      unsubscribe?.();
+    };
+  }, []);
 
   // Updated customer sidebar: fixed paths and icons
   const sidebarStructureByRole: Record<RoleKey, SidebarSection[]> = useMemo(
@@ -866,6 +1014,20 @@ export const MainLayout: React.FC = () => {
     />
   );
 
+  // Notification icon with menu
+  function NotifTypeIcon({ type }: { type: string }) {
+    switch (type) {
+      case "error":
+        return <ErrorIcon color="error" fontSize="small" />;
+      case "info":
+        return <InfoIcon color="info" fontSize="small" />;
+      case "success":
+        return <DoneIcon color="success" fontSize="small" />;
+      default:
+        return <NotificationsIcon fontSize="small" />;
+    }
+  }
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <CssBaseline />
@@ -901,11 +1063,81 @@ export const MainLayout: React.FC = () => {
           </Typography>
 
           <Stack direction="row" spacing={1}>
-            <IconButton sx={{ bgcolor: theme.palette.background.paper }}>
-              <Badge badgeContent={3} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
+            <Tooltip title="Notifications">
+              <IconButton
+                sx={{ bgcolor: theme.palette.background.paper }}
+                aria-label="show notifications"
+                onClick={handleNotifOpen}
+                color={unreadCount > 0 ? "primary" : "default"}
+              >
+                <Badge badgeContent={unreadCount} color="error">
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+            <Menu
+              anchorEl={notifAnchorEl}
+              open={Boolean(notifAnchorEl)}
+              onClose={handleNotifClose}
+              PaperProps={{
+                sx: {
+                  minWidth: 320,
+                  maxWidth: 350,
+                  boxShadow: theme.shadows[4],
+                  mt: 1.5,
+                },
+              }}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ px: 2, pt: 1, fontWeight: 'bold' }}>
+                Notifications
+              </Typography>
+              <Divider sx={{ mb: 1 }} />
+              {notifications.length === 0 ? (
+                <MenuItem disabled>
+                  <ListItemText primary="No notifications" />
+                </MenuItem>
+              ) : (
+                notifications.map((notif) => (
+                  <MenuItem
+                    key={notif.id}
+                    dense
+                    sx={{
+                      alignItems: 'flex-start',
+                      background: !notif.read
+                        ? theme.palette.action.selected
+                        : "inherit",
+                    }}
+                    onClick={handleNotifClose}
+                  >
+                    <ListItemIcon sx={{ mt: 0.2 }}>
+                      <NotifTypeIcon type={notif.type} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={notif.message}
+                      secondary={formatNotificationTime(notif.time)}
+                      secondaryTypographyProps={{
+                        sx: { fontSize: 12, color: "text.secondary", mt: 0.3 },
+                      }}
+                      primaryTypographyProps={{
+                        sx: {
+                          fontWeight: !notif.read ? 600 : 400,
+                          fontSize: 14,
+                        },
+                      }}
+                    />
+                  </MenuItem>
+                ))
+              )}
+            </Menu>
+
             <IconButton sx={{ bgcolor: theme.palette.background.paper }}>
               <SettingsIcon />
             </IconButton>
