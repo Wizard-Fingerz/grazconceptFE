@@ -173,10 +173,7 @@ function getTransactionDescription(tx: any) {
   }
 
   // Compose amount with sign
-  let sign = "";
-  if (typeof tx.amount === 'number') sign = tx.amount < 0 ? "-" : "+";
-  else if (typeof tx.amount === 'string' && tx.amount[0] === "-") sign = "-";
-  else sign = "+";
+  // Removed unused 'sign' variable as it was declared but never used.
 
   // Currency
   const currency = tx.currency || "NGN";
@@ -735,7 +732,13 @@ const SuggestionCard = ({ title }: { title: string }) => (
   </Card>
 );
 
-const HelpButton = ({ text }: { text: string }) => (
+const HelpButton = ({
+  text,
+  onClick,
+}: {
+  text: string;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+}) => (
   <Button
     variant="outlined"
     sx={{
@@ -750,6 +753,7 @@ const HelpButton = ({ text }: { text: string }) => (
       fontSize: { xs: '0.95rem', sm: '1rem' },
     }}
     fullWidth
+    onClick={onClick}
   >
     {text} <span style={{ marginLeft: 'auto' }}> &gt; </span>
   </Button>
