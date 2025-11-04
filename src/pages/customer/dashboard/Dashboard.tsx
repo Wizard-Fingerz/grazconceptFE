@@ -357,6 +357,9 @@ export const Dashboard: React.FC = () => {
       case "Study Visa Offers":
         route = "/travel/study-visa/offers";
         break;
+      case "Raise Ticket":
+        route = "/support/tickets";
+        break;
       default:
         // fallback to modal for unknown actions (for banners, etc)
         setModalLabel(label);
@@ -666,7 +669,7 @@ export const Dashboard: React.FC = () => {
             <Box display="flex" flexDirection="column" gap={2}>
               <HelpButton text="Chat" />
               <HelpButton text="Call" />
-              <HelpButton text="Raise Ticket" />
+              <HelpButton text="Raise Ticket" onClick={() => handleActionClick("Raise Ticket")} />
             </Box>
           </Paper>
         </Box>
