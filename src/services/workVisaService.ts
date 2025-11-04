@@ -4,7 +4,7 @@ import api from './api';
 // Get all work visa offers
 export async function getAllWorkVisas() {
   try {
-    const response = await api.get(`/app/work-visa-offers`);
+    const response = await api.get(`/app/work-visa-offers/`);
     return response.data;
   } catch (error) {
     throw error;
