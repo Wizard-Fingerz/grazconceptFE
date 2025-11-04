@@ -87,6 +87,7 @@ import AllWorkVisaApplication from "../pages/customer/travel/WorkVisa/AllWorkVis
 import SupportTicket from "../pages/customer/helpcenter/SupportTicket";
 import KnowledgeBasePage from "../pages/customer/helpcenter/KnowledgeBased";
 import NotificationSettingsPage from "../pages/customer/accountsettings/Notifications";
+import SettingsPage from "../pages/customer/accountsettings/SettingsPage";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -476,7 +477,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "settings/advanced",
-        element: <CustomerPlaceholderPage title="Advanced Settings" />,
+        element: <SettingsPage  />,
       },
       {
         path: "settings/profile",

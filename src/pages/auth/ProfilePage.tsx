@@ -125,15 +125,22 @@ const ProfilePage: React.FC = () => {
 
   const profileCompletion = calculateProfileCompletion(user);
 
-  // Determine the correct profile image URL
-  // Prefer profile_picture_url, then profile_picture, else fallback to undefined
+  // Prefer profile_picture_url, then profile_picture, else undefined
   const profileImageUrl =
     user.profile_picture_url ||
     user.profile_picture ||
     undefined;
 
   return (
-    <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
+    <Box
+      sx={{
+        px: { xs: 1, sm: 2, md: 4 },
+        py: { xs: 1, sm: 2 },
+        width: "100%",
+        maxWidth: 800, // Constrain inner width further!
+        mx: "auto",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -156,7 +163,6 @@ const ProfilePage: React.FC = () => {
             color: "white",
           }}
         >
-          {/* Only show initials if no image */}
           {!profileImageUrl && (user.first_name?.[0] || user.last_name?.[0] || "")}
         </Avatar>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
@@ -184,8 +190,8 @@ const ProfilePage: React.FC = () => {
           </Typography>
         )}
       </Box>
-      <Divider sx={{ my: 3, width: "100vw" }} />
-      <Box sx={{ mb: 2, width: "100vw", maxWidth: "100vw", px: { xs: 2, sm: 4 } }}>
+      <Divider sx={{ my: 3, width: "100%" }} />
+      <Box sx={{ mb: 2, width: "100%", px: { xs: 0, sm: 0 } }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
           Profile Completion: <b>{profileCompletion}%</b>
         </Typography>
@@ -212,16 +218,16 @@ const ProfilePage: React.FC = () => {
             alignItems: "center",
             bgcolor: "warning.light",
             color: "warning.dark",
-            width: "100vw",
-            maxWidth: "100vw",
-            px: { xs: 2, sm: 4 },
+            width: "100%",
+            maxWidth: "100%",
+            px: { xs: 1, sm: 2 },
           }}
           icon={false}
         >
           <b>Incomplete Profile:</b> Your profile is currently <b>{profileCompletion}%</b> complete. Please update your information to reach at least 80% completion and unlock all available features.
         </Alert>
       )}
-      <Stack spacing={2} sx={{ width: "100vw", maxWidth: "100vw", px: { xs: 2, sm: 4 } }}>
+      <Stack spacing={2} sx={{ width: "100%", maxWidth: "100%", px: 0 }}>
         {PROFILE_FIELDS.map(({ label, key }) => (
           <ProfileField
             key={key}
@@ -253,7 +259,8 @@ const ProfileField: React.FC<ProfileFieldProps> = ({ label, value }) => {
         border: "1px solid",
         borderColor: "grey.200",
         width: "100%",
-        maxWidth: "100vw",
+        maxWidth: "100%",
+        overflowWrap: "anywhere",
       }}
     >
       <Typography
