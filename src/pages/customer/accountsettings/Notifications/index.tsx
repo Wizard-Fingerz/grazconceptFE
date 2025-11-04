@@ -53,7 +53,7 @@ const NotificationSettingsPage: React.FC = () => {
         let isMounted = true;
         setLoading(true);
         api
-            .get("/users/notifications/")
+            .get("/notification/notifications/")
             .then((res) => {
                 if (isMounted && res.data && Array.isArray(res.data.results)) {
                     setNotifications(res.data.results);
@@ -78,7 +78,7 @@ const NotificationSettingsPage: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            await api.post("/users/notifications/mark-all-read/");
+            await api.post("/notification/notifications/mark-all-read/");
             setNotifications((prev) =>
                 prev.map((n) => ({ ...n, read: true }))
             );
@@ -90,6 +90,13 @@ const NotificationSettingsPage: React.FC = () => {
         }
     };
 
+    /**
+     * Fix hydration error:
+     * Avoid a <p> inside another <p>.
+     * Material-UI <Typography> with `variant="body2"` renders as <p> by default,
+     * and the ListItemText.secondary also renders as <p>. Nesting would cause <p><p>...</p></p>.
+     * Solution: Render inner Typography (for message body) as <span>.
+     */
     return (
         <Box
             sx={{
@@ -103,7 +110,7 @@ const NotificationSettingsPage: React.FC = () => {
             
             <CustomerPageHeader>
                 <Typography variant="h4" className="font-bold mb-2">
-                My Notifications
+                    My Notifications
                 </Typography>
             </CustomerPageHeader>
           
@@ -172,6 +179,7 @@ const NotificationSettingsPage: React.FC = () => {
                                                         variant="body2"
                                                         color="text.secondary"
                                                         sx={{ whiteSpace: "pre-line" }}
+                                                        component="span" // Prevents <p> inside <p>
                                                     >
                                                         {n.message}
                                                     </Typography>
