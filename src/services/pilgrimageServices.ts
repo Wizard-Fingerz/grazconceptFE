@@ -3,7 +3,7 @@ import api from './api';
 // Get all pilgrimage destinations/packages
 export async function getAllPilgrimages(params?: Record<string, any>) {
   try {
-    const response = await api.get(`/app/pilgrimage-offer`, { params });
+    const response = await api.get(`/app/pilgrimage-offer/`, { params });
     return response.data;
   } catch (error) {
     throw error;
