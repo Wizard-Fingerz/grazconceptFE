@@ -32,3 +32,12 @@ export async function getWalletBanners() {
     throw error;
   }
 }
+
+export async function getMyWalletbalance() {
+  try {
+    const response = await api.get(`/wallet/wallets/my-balance/`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}

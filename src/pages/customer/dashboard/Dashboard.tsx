@@ -40,7 +40,7 @@ import { actionForms } from '../../../components/modals/ActionForms';
 import { submitActionForm } from '../../../services/actionFormService';
 import { toast } from 'react-toastify';
 import { getAddBanners } from '../../../services/studyVisa';
-import { getMyRecentWalletTransactions } from '../../../services/walletService';
+import { getMyRecentWalletTransactions, getMyWalletbalance } from '../../../services/walletService';
 
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import IconButton from "@mui/material/IconButton";
@@ -157,6 +157,48 @@ const actionResultRoutes: Record<string, string> = {
   "Study Visa Offers": "/travel/study-visa/offers",
 };
 
+// Util to compose a default description for a transaction if none is present
+function getTransactionDescription(tx: any) {
+  // If there is a description, use it
+  if (tx.description && tx.description.trim().length > 0) return tx.description;
+
+  // Compose sensible default
+  // fallback for transaction_type display
+  let txType = tx.transaction_type || tx.type;
+  let readableType = "transaction";
+  if (txType) {
+    if (txType === "deposit" || txType === "credit") readableType = "Deposit";
+    else if (txType === "withdrawal" || txType === "debit") readableType = "Withdrawal";
+    else readableType = txType.charAt(0).toUpperCase() + txType.slice(1);
+  }
+
+  // Compose amount with sign
+  let sign = "";
+  if (typeof tx.amount === 'number') sign = tx.amount < 0 ? "-" : "+";
+  else if (typeof tx.amount === 'string' && tx.amount[0] === "-") sign = "-";
+  else sign = "+";
+
+  // Currency
+  const currency = tx.currency || "NGN";
+  // Wallet or user email reference
+  let userBrief = tx.wallet || tx.user || ""; // fallback: show whatever wallet string or user identifier
+  if (typeof userBrief === "string" && userBrief.length > 0) {
+    userBrief = userBrief.replace(/['"]/g, "").replace(/'s Wallet:? ?/, "");
+    // takes email or name part
+  } else {
+    userBrief = "";
+  }
+
+  // Only show user if it exists
+  let userClause = userBrief.length > 0 ? ` for ${userBrief}` : "";
+  // Status
+  let status = tx.status && tx.status !== "successful" ? ` (${tx.status})` : "";
+
+  // Date: optional
+  // Format: e.g. "Deposit of NGN 100.00 for adewale.oladiti@tech-u.edu.ng"
+  return `${readableType} of ${currency} ${Math.abs(Number(tx.amount))}${userClause}${status}`;
+}
+
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -184,6 +226,55 @@ export const Dashboard: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [transactionsError, setTransactionsError] = useState<string | null>(null);
+
+  // Wallet balance state
+  const [walletBalance, setWalletBalance] = useState<{
+    currency?: string,
+    balance?: number
+  }>({
+    currency: user?.wallet?.currency,
+    balance: user?.wallet?.balance
+  });
+  const [walletBalanceLoading, setWalletBalanceLoading] = useState(true);
+  const [walletBalanceError, setWalletBalanceError] = useState<string | null>(null);
+
+  // Fetch wallet balance
+  useEffect(() => {
+    let mounted = true;
+    setWalletBalanceLoading(true);
+    setWalletBalanceError(null);
+    getMyWalletbalance()
+      .then((data: any) => {
+        if (mounted) {
+          if (data && typeof data === "object") {
+            setWalletBalance({
+              currency: data.currency,
+              balance: data.balance
+            });
+          } else {
+            setWalletBalance({
+              currency: undefined,
+              balance: undefined
+            });
+          }
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setWalletBalanceError("Couldn't fetch wallet balance.");
+          setWalletBalance({
+            currency: undefined,
+            balance: undefined
+          });
+        }
+      })
+      .finally(() => {
+        if (mounted) setWalletBalanceLoading(false);
+      });
+    return () => { mounted = false; };
+    // we only fetch on mount
+    // eslint-disable-next-line
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -365,9 +456,22 @@ export const Dashboard: React.FC = () => {
               <Typography variant="h6" sx={{ mt: 3, fontWeight: 700 }}>
                 Travel Wallet
               </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
-              {user?.wallet?.currency} {user?.wallet?.balance}
-              </Typography>
+              <Box sx={{ minHeight: 32, display: 'flex', alignItems: 'center' }}>
+                {walletBalanceLoading ? (
+                  <>
+                    <CircularProgress size={19} />
+                    <Typography sx={{ ml: 1.5 }} color="text.secondary" fontSize="0.93rem">
+                      Fetching balance...
+                    </Typography>
+                  </>
+                ) : walletBalanceError ? (
+                  <Typography color="error" variant="body2">{walletBalanceError}</Typography>
+                ) : (
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
+                    {walletBalance.currency} {walletBalance.balance}
+                  </Typography>
+                )}
+              </Box>
               <Box mt={4}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   Recent Transactions
@@ -399,7 +503,7 @@ export const Dashboard: React.FC = () => {
                         }}
                       >
                         <ListItemText
-                          primary={tx.description}
+                          primary={getTransactionDescription(tx)}
                           secondary={tx.date}
                           sx={{
                             span: { fontSize: '0.97rem', fontWeight: 500 },
@@ -414,9 +518,9 @@ export const Dashboard: React.FC = () => {
                               fontWeight: 600,
                             }}
                           >
-                            {tx.amount < 0 ? "-" : "+"}{tx.currency || (user?.wallet?.currency ?? 'NGN')} {Math.abs(tx.amount)}
+                            {tx.amount < 0 ? "-" : "+"}{tx.currency || (walletBalance.currency ?? 'NGN')} {Math.abs(tx.amount)}
                           </Typography>
-                          {tx.type === "debit" ? (
+                          {tx.type === "debit" || tx.transaction_type === "withdrawal" ? (
                             <Chip label="Debit" size="small" color="error" sx={{ mt: 0.2 }} />
                           ) : (
                             <Chip label="Credit" size="small" color="success" sx={{ mt: 0.2 }} />
