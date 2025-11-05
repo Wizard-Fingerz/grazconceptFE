@@ -17,7 +17,7 @@ export async function submitActionForm(
     "Book Flight": "/app/search-flights/",
     "Reserve Hotel": "/app/hotel-bookings/",
     "Apply for Visa": "/visa/apply/",
-    "Chat with Agent": "/chat/start/",
+    "Chat with Agent": "/support/chat/",
     "Create Savings Plan": "/savings/create/",
     "Apply for Study Loan": "/loans/study/apply/",
     "Study Abroad Loan": "/loans/study-abroad/apply/",

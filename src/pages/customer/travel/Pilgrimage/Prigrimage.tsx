@@ -379,6 +379,10 @@ export const ApplyPilgrimageVisa: React.FC = () => {
         <Button
           variant="contained"
           className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
+          onClick={() => {
+            // Use navigate hook to navigate programmatically
+            navigate("/support/chat");
+        }}
         >
           Chat with Agent
         </Button>

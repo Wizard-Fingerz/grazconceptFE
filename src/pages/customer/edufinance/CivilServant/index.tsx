@@ -18,6 +18,7 @@ import { toast } from "react-toastify";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import FinanceCard from "../../../../components/FinanceCard";
 import { getRecentCivilServantLoanOffers, getLoanAnalyticsSummary } from "../../../../services/edufinanceService";
+import { useNavigate } from "react-router-dom"; // <-- Added import
 
 // --- Application Card ---
 // Enhanced to show all details of an offer
@@ -298,7 +299,7 @@ export const CivilServantLoanPage: React.FC = () => {
     const [tabIndex, setTabIndex] = useState(0);
     const [recentApplications, setRecentApplications] = useState<any[]>([]);
     const [loadingApplications, setLoadingApplications] = useState(true);
- 
+
     // State for offers loaded from API
     const [offers, setOffers] = useState<any[] | null>(null);
     const [offersLoading, setOffersLoading] = useState(true);
@@ -327,6 +328,9 @@ export const CivilServantLoanPage: React.FC = () => {
     const theme = useTheme();
     const isXs = useMediaQuery(theme.breakpoints.down("sm"));
     const [walletLoading] = useState(false);
+
+    // Add navigate using react-router
+    const navigate = useNavigate();
 
     // Utility to extract array of offers from API response, with tolerance for paginated structure
     const extractOffersArray = (resp: any): any[] => {
@@ -608,6 +612,10 @@ export const CivilServantLoanPage: React.FC = () => {
                     className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case"
                     sx={{ mt: { xs: 2, md: 0 } }}
                     fullWidth={isXs}
+                    onClick={() => {
+                        // Use navigate hook to navigate programmatically
+                        navigate("/support/chat");
+                    }}
                 >
                     Chat with Agent
                 </Button>

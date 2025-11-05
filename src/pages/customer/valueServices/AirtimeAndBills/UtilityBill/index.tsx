@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
 import api from "../../../../../services/api";
+import { useNavigate } from "react-router-dom"; // <-- Added import
 
 /**
  * Utility providers
@@ -27,37 +28,37 @@ const utilities: {
   logo: string;
   accent?: string;
 }[] = [
-  {
-    label: "Ikeja Electric",
-    value: "ikeja_electric",
-    logo: "/assets/utilities/ikeja-electric.png",
-    accent: "#9f791d",
-  },
-  {
-    label: "Eko Electric",
-    value: "eko_electric",
-    logo: "/assets/utilities/eko-electric.png",
-    accent: "#009ee3",
-  },
-  {
-    label: "Abuja Electric",
-    value: "abuja_electric",
-    logo: "/assets/utilities/abuja-electric.png",
-    accent: "#7f0081",
-  },
-  {
-    label: "Ibadan Electric",
-    value: "ibadan_electric",
-    logo: "/assets/utilities/ibadan-electric.png",
-    accent: "#17355b",
-  },
-  {
-    label: "Kano Electric",
-    value: "kano_electric",
-    logo: "/assets/utilities/kano-electric.png",
-    accent: "#49a02c",
-  },
-];
+    {
+      label: "Ikeja Electric",
+      value: "ikeja_electric",
+      logo: "/assets/utilities/ikeja-electric.png",
+      accent: "#9f791d",
+    },
+    {
+      label: "Eko Electric",
+      value: "eko_electric",
+      logo: "/assets/utilities/eko-electric.png",
+      accent: "#009ee3",
+    },
+    {
+      label: "Abuja Electric",
+      value: "abuja_electric",
+      logo: "/assets/utilities/abuja-electric.png",
+      accent: "#7f0081",
+    },
+    {
+      label: "Ibadan Electric",
+      value: "ibadan_electric",
+      logo: "/assets/utilities/ibadan-electric.png",
+      accent: "#17355b",
+    },
+    {
+      label: "Kano Electric",
+      value: "kano_electric",
+      logo: "/assets/utilities/kano-electric.png",
+      accent: "#49a02c",
+    },
+  ];
 
 /**
  * Available meter types
@@ -76,6 +77,8 @@ export const PayUtilityBill: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Add navigate using react-router
+  const navigate = useNavigate();
   // Find selected utility details
   const selectedUtility = utilities.find((ut) => ut.value === utility);
 
@@ -101,7 +104,7 @@ export const PayUtilityBill: React.FC = () => {
     } catch (err: any) {
       setErrorMsg(
         err?.response?.data?.detail ||
-          "Failed to process your bill payment. Please try again."
+        "Failed to process your bill payment. Please try again."
       );
     }
     setLoading(false);
@@ -333,6 +336,10 @@ export const PayUtilityBill: React.FC = () => {
         <Button
           variant="contained"
           className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
+          onClick={() => {
+            // Use navigate hook to navigate programmatically
+            navigate("/support/chat");
+          }}
         >
           Chat with Agent
         </Button>

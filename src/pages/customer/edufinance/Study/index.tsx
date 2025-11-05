@@ -499,6 +499,10 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         mt: { xs: 2, md: 0 }
                     }}
                     fullWidth={isXs}
+                    onClick={() => {
+                        // Use navigate hook to navigate programmatically
+                        navigate("/support/chat");
+                    }}
                 >
                     Chat with Agent
                 </Button>

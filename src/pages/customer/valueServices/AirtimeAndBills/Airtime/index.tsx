@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
 import api from "../../../../../services/api";
+import { useNavigate } from "react-router-dom"; // <-- Added import
 
 /**
  * Network providers and logos (public assets assumed to exist)
@@ -52,6 +53,8 @@ export const BuyAirtime: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Add navigate using react-router
+  const navigate = useNavigate();
   // Find selected network details
   const selectedNetwork = networks.find((nt) => nt.value === network);
 
@@ -76,7 +79,7 @@ export const BuyAirtime: React.FC = () => {
     } catch (err: any) {
       setErrorMsg(
         err?.response?.data?.detail ||
-          "Failed to process airtime purchase. Please try again."
+        "Failed to process airtime purchase. Please try again."
       );
     }
     setLoading(false);
@@ -290,7 +293,7 @@ export const BuyAirtime: React.FC = () => {
             lineHeight: 1.1,
           }}
         >
-         
+
           Buy Instant Airtime
         </Typography>
       </CustomerPageHeader>
@@ -302,6 +305,10 @@ export const BuyAirtime: React.FC = () => {
         <Button
           variant="contained"
           className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
+          onClick={() => {
+            // Use navigate hook to navigate programmatically
+            navigate("/support/chat");
+          }}
         >
           Chat with Agent
         </Button>

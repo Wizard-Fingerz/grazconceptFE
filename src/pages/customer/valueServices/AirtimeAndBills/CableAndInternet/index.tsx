@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
 import api from "../../../../../services/api";
+import { useNavigate } from "react-router-dom"; // <-- Added import
 
 /**
  * Cable & Internet Providers
@@ -27,55 +28,55 @@ const cableInternetProviders: {
   logo: string;
   accent?: string;
 }[] = [
-  {
-    label: "DSTV",
-    value: "dstv",
-    logo: "/assets/cable/dstv.png",
-    accent: "#273467",
-  },
-  {
-    label: "GOTV",
-    value: "gotv",
-    logo: "/assets/cable/gotv.png",
-    accent: "#c11119",
-  },
-  {
-    label: "Startimes",
-    value: "startimes",
-    logo: "/assets/cable/startimes.png",
-    accent: "#fd8d22",
-  },
-  {
-    label: "Showmax",
-    value: "showmax",
-    logo: "/assets/cable/showmax.png",
-    accent: "#1A0841",
-  },
-  {
-    label: "Spectranet",
-    value: "spectranet",
-    logo: "/assets/cable/spectranet.png",
-    accent: "#2c2e83",
-  },
-  {
-    label: "Smile",
-    value: "smile",
-    logo: "/assets/cable/smile.png",
-    accent: "#7bc900",
-  },
-  {
-    label: "Swift",
-    value: "swift",
-    logo: "/assets/cable/swift.png",
-    accent: "#f3121b",
-  },
-  {
-    label: "Others",
-    value: "others",
-    logo: "/assets/cable/others.png",
-    accent: "#868686",
-  },
-];
+    {
+      label: "DSTV",
+      value: "dstv",
+      logo: "/assets/cable/dstv.png",
+      accent: "#273467",
+    },
+    {
+      label: "GOTV",
+      value: "gotv",
+      logo: "/assets/cable/gotv.png",
+      accent: "#c11119",
+    },
+    {
+      label: "Startimes",
+      value: "startimes",
+      logo: "/assets/cable/startimes.png",
+      accent: "#fd8d22",
+    },
+    {
+      label: "Showmax",
+      value: "showmax",
+      logo: "/assets/cable/showmax.png",
+      accent: "#1A0841",
+    },
+    {
+      label: "Spectranet",
+      value: "spectranet",
+      logo: "/assets/cable/spectranet.png",
+      accent: "#2c2e83",
+    },
+    {
+      label: "Smile",
+      value: "smile",
+      logo: "/assets/cable/smile.png",
+      accent: "#7bc900",
+    },
+    {
+      label: "Swift",
+      value: "swift",
+      logo: "/assets/cable/swift.png",
+      accent: "#f3121b",
+    },
+    {
+      label: "Others",
+      value: "others",
+      logo: "/assets/cable/others.png",
+      accent: "#868686",
+    },
+  ];
 
 /**
  * Example Bouquets for demonstration.
@@ -135,6 +136,9 @@ export const CableAndInternetRenewal: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Add navigate using react-router
+  const navigate = useNavigate();
 
   // Find selected provider details
   const selectedProvider = cableInternetProviders.find((p) => p.value === provider);
@@ -408,6 +412,10 @@ export const CableAndInternetRenewal: React.FC = () => {
         <Button
           variant="contained"
           className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
+          onClick={() => {
+            // Use navigate hook to navigate programmatically
+            navigate("/support/chat");
+          }}
         >
           Chat with Agent
         </Button>

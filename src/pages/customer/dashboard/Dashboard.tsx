@@ -144,7 +144,7 @@ const actionResultRoutes: Record<string, string> = {
   "Book Flight": "/dashboard/flight-result",
   "Reserve Hotel": "/travel/hotel-reservation",
   "Apply for Visa": "/travel/study-visa",
-  "Chat with Agent": "/customer/dashboard/chat-result",
+  "Chat with Agent": "/support/chat",
   "Create Savings Plan": "/customer/dashboard/savings-result",
   "Apply for Study Loan": "/customer/dashboard/study-loan-result",
   "Study Abroad Loan": "/customer/dashboard/study-abroad-loan-result",

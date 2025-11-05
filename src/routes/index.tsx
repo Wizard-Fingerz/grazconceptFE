@@ -88,6 +88,7 @@ import SupportTicket from "../pages/customer/helpcenter/SupportTicket";
 import KnowledgeBasePage from "../pages/customer/helpcenter/KnowledgeBased";
 import NotificationSettingsPage from "../pages/customer/accountsettings/Notifications";
 import SettingsPage from "../pages/customer/accountsettings/SettingsPage";
+import LiveChatWithAgent from "../pages/customer/helpcenter/LiveChatWithAgent";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -461,7 +462,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "support/chat",
-        element: <CustomerPlaceholderPage title="Live Chat & Email" />,
+        element: <LiveChatWithAgent />,
       },
       {
         path: "support/kb",

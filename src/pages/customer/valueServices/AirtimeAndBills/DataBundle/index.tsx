@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
 import api from "../../../../../services/api";
+import { useNavigate } from "react-router-dom"; // <-- Added import
 
 /**
  * Extended data bundles with category
@@ -45,59 +46,59 @@ const dataProviders: {
     category: PlanCategory;
   }[];
 }[] = [
-  {
-    label: "MTN Data",
-    value: "mtn",
-    logo: "/assets/networks/mtn.png",
-    accent: "#fae300",
-    plans: [
-      { label: "1GB (1 Day)", value: "mtn_1gb_1day", amount: 350, data: "1GB", category: "daily" },
-      { label: "1.5GB (7 Days)", value: "mtn_1.5gb_7days", amount: 500, data: "1.5GB", category: "weekly" },
-      { label: "2GB (30 Days)", value: "mtn_2gb_30days", amount: 1000, data: "2GB", category: "monthly" },
-      { label: "5GB (30 Days)", value: "mtn_5gb_30days", amount: 2400, data: "5GB", category: "monthly" },
-      { label: "24GB (3 Months)", value: "mtn_24gb_3months", amount: 6500, data: "24GB", category: "quarterly" },
-    ],
-  },
-  {
-    label: "Airtel Data",
-    value: "airtel",
-    logo: "/assets/networks/airtel.png",
-    accent: "#ee2737",
-    plans: [
-      { label: "500MB (1 Day)", value: "airtel_500mb_1day", amount: 200, data: "500MB", category: "daily" },
-      { label: "1.5GB (30 Days)", value: "airtel_1.5gb_30days", amount: 1000, data: "1.5GB", category: "monthly" },
-      { label: "3.5GB (30 Days)", value: "airtel_3.5gb_30days", amount: 2000, data: "3.5GB", category: "monthly" },
-      { label: "5GB (30 Days)", value: "airtel_5gb_30days", amount: 2700, data: "5GB", category: "monthly" },
-      { label: "12GB (3 Months)", value: "airtel_12gb_3months", amount: 6000, data: "12GB", category: "quarterly" },
-    ],
-  },
-  {
-    label: "Glo Data",
-    value: "glo",
-    logo: "/assets/networks/glo.png",
-    accent: "#008a13",
-    plans: [
-      { label: "1GB (1 Day)", value: "glo_1gb_1day", amount: 300, data: "1GB", category: "daily" },
-      { label: "2GB (7 Days)", value: "glo_2gb_7days", amount: 500, data: "2GB", category: "weekly" },
-      { label: "4.5GB (30 Days)", value: "glo_4.5gb_30days", amount: 1200, data: "4.5GB", category: "monthly" },
-      { label: "7GB (30 Days)", value: "glo_7gb_30days", amount: 1500, data: "7GB", category: "monthly" },
-      { label: "24GB (3 Months)", value: "glo_24gb_3months", amount: 6000, data: "24GB", category: "quarterly" },
-    ],
-  },
-  {
-    label: "9mobile Data",
-    value: "9mobile",
-    logo: "/assets/networks/9mobile.png",
-    accent: "#36b44a",
-    plans: [
-      { label: "650MB (1 Day)", value: "9mobile_650mb_1day", amount: 200, data: "650MB", category: "daily" },
-      { label: "1.5GB (7 Days)", value: "9mobile_1.5gb_7days", amount: 500, data: "1.5GB", category: "weekly" },
-      { label: "2GB (30 Days)", value: "9mobile_2gb_30days", amount: 1200, data: "2GB", category: "monthly" },
-      { label: "5GB (30 Days)", value: "9mobile_5gb_30days", amount: 2500, data: "5GB", category: "monthly" },
-      { label: "10GB (3 Months)", value: "9mobile_10gb_3months", amount: 5500, data: "10GB", category: "quarterly" },
-    ],
-  },
-];
+    {
+      label: "MTN Data",
+      value: "mtn",
+      logo: "/assets/networks/mtn.png",
+      accent: "#fae300",
+      plans: [
+        { label: "1GB (1 Day)", value: "mtn_1gb_1day", amount: 350, data: "1GB", category: "daily" },
+        { label: "1.5GB (7 Days)", value: "mtn_1.5gb_7days", amount: 500, data: "1.5GB", category: "weekly" },
+        { label: "2GB (30 Days)", value: "mtn_2gb_30days", amount: 1000, data: "2GB", category: "monthly" },
+        { label: "5GB (30 Days)", value: "mtn_5gb_30days", amount: 2400, data: "5GB", category: "monthly" },
+        { label: "24GB (3 Months)", value: "mtn_24gb_3months", amount: 6500, data: "24GB", category: "quarterly" },
+      ],
+    },
+    {
+      label: "Airtel Data",
+      value: "airtel",
+      logo: "/assets/networks/airtel.png",
+      accent: "#ee2737",
+      plans: [
+        { label: "500MB (1 Day)", value: "airtel_500mb_1day", amount: 200, data: "500MB", category: "daily" },
+        { label: "1.5GB (30 Days)", value: "airtel_1.5gb_30days", amount: 1000, data: "1.5GB", category: "monthly" },
+        { label: "3.5GB (30 Days)", value: "airtel_3.5gb_30days", amount: 2000, data: "3.5GB", category: "monthly" },
+        { label: "5GB (30 Days)", value: "airtel_5gb_30days", amount: 2700, data: "5GB", category: "monthly" },
+        { label: "12GB (3 Months)", value: "airtel_12gb_3months", amount: 6000, data: "12GB", category: "quarterly" },
+      ],
+    },
+    {
+      label: "Glo Data",
+      value: "glo",
+      logo: "/assets/networks/glo.png",
+      accent: "#008a13",
+      plans: [
+        { label: "1GB (1 Day)", value: "glo_1gb_1day", amount: 300, data: "1GB", category: "daily" },
+        { label: "2GB (7 Days)", value: "glo_2gb_7days", amount: 500, data: "2GB", category: "weekly" },
+        { label: "4.5GB (30 Days)", value: "glo_4.5gb_30days", amount: 1200, data: "4.5GB", category: "monthly" },
+        { label: "7GB (30 Days)", value: "glo_7gb_30days", amount: 1500, data: "7GB", category: "monthly" },
+        { label: "24GB (3 Months)", value: "glo_24gb_3months", amount: 6000, data: "24GB", category: "quarterly" },
+      ],
+    },
+    {
+      label: "9mobile Data",
+      value: "9mobile",
+      logo: "/assets/networks/9mobile.png",
+      accent: "#36b44a",
+      plans: [
+        { label: "650MB (1 Day)", value: "9mobile_650mb_1day", amount: 200, data: "650MB", category: "daily" },
+        { label: "1.5GB (7 Days)", value: "9mobile_1.5gb_7days", amount: 500, data: "1.5GB", category: "weekly" },
+        { label: "2GB (30 Days)", value: "9mobile_2gb_30days", amount: 1200, data: "2GB", category: "monthly" },
+        { label: "5GB (30 Days)", value: "9mobile_5gb_30days", amount: 2500, data: "5GB", category: "monthly" },
+        { label: "10GB (3 Months)", value: "9mobile_10gb_3months", amount: 5500, data: "10GB", category: "quarterly" },
+      ],
+    },
+  ];
 
 const ALL_CATEGORIES: PlanCategory[] = ["daily", "weekly", "monthly", "quarterly", "others"];
 
@@ -110,6 +111,9 @@ export const DataBundleSubscription: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Add navigate using react-router
+  const navigate = useNavigate();
 
   // Find selected provider
   const selectedProvider = dataProviders.find((p) => p.value === provider);
@@ -124,8 +128,8 @@ export const DataBundleSubscription: React.FC = () => {
   const providerCategories: PlanCategory[] = (
     selectedProvider
       ? [
-          ...new Set(selectedProvider.plans.map(pl => pl.category)),
-        ].filter(cat => ALL_CATEGORIES.includes(cat as PlanCategory)) as PlanCategory[]
+        ...new Set(selectedProvider.plans.map(pl => pl.category)),
+      ].filter(cat => ALL_CATEGORIES.includes(cat as PlanCategory)) as PlanCategory[]
       : ALL_CATEGORIES
   );
 
@@ -167,7 +171,7 @@ export const DataBundleSubscription: React.FC = () => {
     } catch (err: any) {
       setErrorMsg(
         err?.response?.data?.detail ||
-          "Failed to process your data bundle purchase. Please try again."
+        "Failed to process your data bundle purchase. Please try again."
       );
     }
     setLoading(false);
@@ -429,6 +433,10 @@ export const DataBundleSubscription: React.FC = () => {
         <Button
           variant="contained"
           className="bg-[#e8f8fa] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
+          onClick={() => {
+            // Use navigate hook to navigate programmatically
+            navigate("/support/chat");
+          }}
         >
           Chat with Agent
         </Button>
