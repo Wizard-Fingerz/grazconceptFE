@@ -64,23 +64,18 @@ const LiveChatWithAgent: React.FC = () => {
     const [newMessage, setNewMessage] = useState('');
     const [connected, setConnected] = useState(false);
     const [firstSessionListReceived, setFirstSessionListReceived] = useState(false);
-    const [tryingToConnect, setTryingToConnect] = useState(false); // For new alert state
+    const [tryingToConnect, setTryingToConnect] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Only fire .connectToSessionList once on mount
     useEffect(() => {
         setTryingToConnect(true);
         chatServices.connectToSessionList();
-
         return () => {
             chatServices.disconnectAll?.();
         };
-        // We only want to connect once on mount/unmount!
-        // eslint-disable-next-line
     }, []);
 
-    // Setup event listeners (on)/cleanup (off) ONCE on mount/unmount
     useEffect(() => {
         let didUnmount = false;
 
@@ -92,46 +87,64 @@ const LiveChatWithAgent: React.FC = () => {
                 chatServices.listSessions();
             }
         };
-        const handleClose = () => { 
+        const handleClose = () => {
             if (!didUnmount) {
-                setConnected(false); 
-                setTryingToConnect(true); // Try to connect again
-                // setError('WebSocket Connection Error'); // Don't use error, handle visually
+                setConnected(false);
+                setTryingToConnect(true);
             }
         };
-        const handleError = () => { 
+        const handleError = () => {
             if (!didUnmount) {
-                // If not currently connected, show "Trying to connect..." instead of error!
                 if (!connected) {
                     setTryingToConnect(true);
-                    setError(null); // Don't set error
+                    setError(null);
                 }
             }
         };
 
         const handleMessage = (msg: any) => {
-            if (msg.type === "connection_successful") {
+            // Accept 'sessions_list', 'chats', or 'chat' as main session list updates
+            if (msg.type === 'connection_successful') {
                 if (!didUnmount) {
                     setConnected(true);
                     setTryingToConnect(false);
                     setError(null);
-                    // Don't setLoading(false) here for connection only
                 }
             }
 
-            // Only the first 'sessions_list' or 'chats' will clear loading
+            // Accept both 'sessions_list' and 'chats', and also 'chat'
             if (
-                (msg.type === 'sessions_list' || msg.type === 'chats') &&
-                Array.isArray(msg.sessions)
+                ((msg.type === 'sessions_list' || msg.type === 'chats' || msg.type === 'chat') &&
+                 Array.isArray(msg.sessions))
             ) {
                 if (!didUnmount) {
-                    setChatSessions(msg.sessions);
-
-                    // If nothing selected, pick first
-                    if (!selectedChat && msg.sessions.length > 0) {
-                        setSelectedChat(msg.sessions[0]);
+                    // Defensive: ensure session id is string (sometimes backend sends numbers)
+                    // Also, handle possibility that msg.sessions is an array-like object (some APIs send NodeList, etc)
+                    let sessions: any[] = [];
+                    try {
+                        // Try to convert msg.sessions to a true array if not already
+                        sessions = Array.isArray(msg.sessions)
+                            ? msg.sessions
+                            : Array.from(msg.sessions);
+                    } catch (e) {
+                        sessions = [];
                     }
-                    // Only clear loading for the *first* sessionList received to avoid flickering
+                    // Defensive: also filter out empty objects/null
+                    sessions = sessions.filter(Boolean).map((sess: any) => ({
+                        ...sess,
+                        id: String(sess.id),
+                    }));
+
+                    setChatSessions(sessions);
+
+                    // If nothing selected or selectedChat id not in new data, pick first one
+                    const existing = selectedChat && sessions.find((s: any) => s.id === selectedChat.id);
+                    if (!existing && sessions.length > 0) {
+                        setSelectedChat(sessions[0]);
+                    } else if (existing) {
+                        setSelectedChat(sessions.find((s: any) => s.id === selectedChat.id));
+                    }
+
                     if (!firstSessionListReceived) {
                         setLoading(false);
                         setFirstSessionListReceived(true);
@@ -143,12 +156,12 @@ const LiveChatWithAgent: React.FC = () => {
                 setMessages(msg.messages || []);
                 setLoading(false);
             }
-            if (msg.type === "new_message" && selectedChat && msg.message.chat_id === selectedChat.id) {
+            if (msg.type === "new_message" && selectedChat && msg.message && msg.message.chat_id === selectedChat.id) {
                 setMessages(prev => [...prev, msg.message]);
             }
             if (msg.type === "session_updated") {
                 setChatSessions(prev =>
-                    prev.map(sess => sess.id === msg.session.id ? msg.session : sess)
+                    prev.map(sess => sess.id === String(msg.session.id) ? { ...sess, ...msg.session, id: String(msg.session.id) } : sess)
                 );
             }
         };
@@ -158,7 +171,6 @@ const LiveChatWithAgent: React.FC = () => {
         chatServices.on('error', handleError);
         chatServices.on('message', handleMessage);
 
-        // On first mount, set loading, don't touch connected here
         setLoading(true);
         setFirstSessionListReceived(false);
 
@@ -169,13 +181,12 @@ const LiveChatWithAgent: React.FC = () => {
             chatServices.off('error', handleError);
             chatServices.off('message', handleMessage);
         };
-        // We intentionally omit dependencies to avoid rebinding on state: set only on mount/unmount
+        // We intentionally do NOT add selectedChat/firstSessionListReceived as deps:
+        // The handler always refers to the latest value.
         // eslint-disable-next-line
     }, []);
 
-    // Supplementary connected state (poll, but set only on change)
     useEffect(() => {
-        // Use ref to track last readyState and avoid unnecessary sets
         const interval = setInterval(() => {
             // @ts-ignore
             if (chatServices.ws) {
@@ -184,7 +195,6 @@ const LiveChatWithAgent: React.FC = () => {
                     setConnected(true);
                     setTryingToConnect(false);
                 }
-                // If not open and we're marked as connected, update to false
                 else if (
                     // @ts-expect-error: ws may not exist on chatServices type
                     (!chatServices.ws || chatServices.ws.readyState !== 1) && connected
@@ -195,24 +205,20 @@ const LiveChatWithAgent: React.FC = () => {
             }
         }, 1500);
         return () => clearInterval(interval);
-        // eslint-disable-next-line
     }, [connected]);
 
-    // When selectedChat changes and we are connected, fetch its messages
     useEffect(() => {
         if (selectedChat && connected) {
             setMessages([]);
             setLoading(true);
             chatServices.getMessages(selectedChat.id);
         }
-        // eslint-disable-next-line
     }, [selectedChat, connected]);
 
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
-    // Clear error if we become connected (old logic, but not used for websocket err now)
     useEffect(() => {
         if (connected && error) {
             setError(null);
@@ -222,21 +228,18 @@ const LiveChatWithAgent: React.FC = () => {
         }
     }, [connected, error]);
 
-    // If we're trying to connect but socket is open, clear
     useEffect(() => {
         if (connected && tryingToConnect) {
             setTryingToConnect(false);
         }
     }, [connected, tryingToConnect]);
 
-    // Modified "loadChatSessions" to handle websocket reconnect if disconnected:
     const loadChatSessions = () => {
         if (connected && !loading) {
             setLoading(true);
             setFirstSessionListReceived(false);
             chatServices.listSessions();
         } else if (!connected) {
-            // If not connected, try reconnect:
             setTryingToConnect(true);
             setError(null);
             chatServices.connectToSessionList();
@@ -246,7 +249,6 @@ const LiveChatWithAgent: React.FC = () => {
     const handleSendMessage = () => {
         if (!newMessage.trim() || !selectedChat || !connected) return;
         try {
-            // Optimistic UI update
             const msg = {
                 id: `msg-${Date.now()}`,
                 chat_id: selectedChat.id,
@@ -269,24 +271,23 @@ const LiveChatWithAgent: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    const filteredSessions = chatSessions.filter(session =>
-        session.agent_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (session.service_title ?? '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // New: In case all sessions have blank agent_name or service_title, fallback to show them all
+    let filteredSessions = [];
+    const search = searchTerm.trim().toLowerCase();
+    if (!search) {
+        filteredSessions = chatSessions;
+    } else {
+        filteredSessions = chatSessions.filter(session =>
+            (session.agent_name ? session.agent_name.toLowerCase() : '').includes(search) ||
+            (session.service_title ?? '').toLowerCase().includes(search)
+        );
+    }
 
     const stats = {
         total: chatSessions.length,
         active: chatSessions.filter(s => s.status === 'active').length,
         unread: chatSessions.reduce((sum, s) => sum + (s.unread_count || 0), 0),
     };
-
-    // if (loading) {
-    //     return (
-    //         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-    //             <CircularProgress />
-    //         </Box>
-    //     );
-    // }
 
     return (
         <Box sx={{ p: { xs: 1, md: 2 }, height: { md: 'calc(100vh - 100px)' } }}>
@@ -302,7 +303,8 @@ const LiveChatWithAgent: React.FC = () => {
                     variant="outlined"
                     startIcon={<RefreshIcon />}
                     onClick={loadChatSessions}
-                    disabled={loading}
+                    // Enable the button if disconnected, disable only when connected
+                    disabled={connected}
                 >
                     Refresh
                 </Button>
@@ -313,7 +315,6 @@ const LiveChatWithAgent: React.FC = () => {
                     Trying to connect...
                 </Alert>
             )}
-            {/* Keep any real error visible if it's not a connection error */}
             {error && !tryingToConnect && (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
                     {error}
@@ -401,7 +402,11 @@ const LiveChatWithAgent: React.FC = () => {
                             <List>
                                 {filteredSessions.length === 0 && (
                                     <Typography variant="body2" sx={{ p: 2 }} color="text.secondary">
-                                        No chats found.
+                                        {chatSessions.length === 0 && !loading
+                                            ? "No chats found."
+                                            // If chats exist, the filter matched nothing:
+                                            : (searchTerm.trim() ? "No chats matching your search." : "No chats found.")
+                                        }
                                     </Typography>
                                 )}
                                 {filteredSessions.map((session) => (
@@ -428,15 +433,21 @@ const LiveChatWithAgent: React.FC = () => {
                                                 invisible={!session.unread_count}
                                             >
                                                 <Avatar>
-                                                    {session.agent_name?.charAt?.(0) || "A"}
+                                                    {session.agent_name
+                                                        ? session.agent_name.trim().length > 0
+                                                            ? session.agent_name.charAt(0).toUpperCase()
+                                                            : "A"
+                                                        : "A"}
                                                 </Avatar>
                                             </Badge>
                                         </ListItemAvatar>
                                         <ListItemText
                                             primary={
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Typography variant="subtitle2">
-                                                        {session.agent_name}
+                                                    <Typography variant="subtitle2" noWrap sx={{ maxWidth: '180px' }}>
+                                                        {(session.agent_name && session.agent_name.trim().length > 0)
+                                                            ? session.agent_name
+                                                            : 'Agent'}
                                                     </Typography>
                                                     <Chip
                                                         label={session.priority}
@@ -449,7 +460,7 @@ const LiveChatWithAgent: React.FC = () => {
                                             secondary={
                                                 <Box>
                                                     <Typography variant="body2" color="text.secondary" noWrap>
-                                                        {session.service_title}
+                                                        {session.service_title ? session.service_title : ''}
                                                     </Typography>
                                                     <Typography variant="caption" color="text.secondary">
                                                         {session.last_message_at ? (new Date(session.last_message_at).toLocaleString()) : ""}
@@ -487,7 +498,9 @@ const LiveChatWithAgent: React.FC = () => {
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <Box>
                                             <Typography variant="h6">
-                                                {selectedChat.agent_name}
+                                                {(selectedChat.agent_name && selectedChat.agent_name.trim().length > 0)
+                                                    ? selectedChat.agent_name
+                                                    : "Agent"}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
                                                 {selectedChat.service_title || 'Agent'}
