@@ -6,7 +6,8 @@
  * Usage:
  *   import chatServices from './chatServices';
  *   chatServices.connectToSessionList()
- *   chatServices.on('chats', ...)
+ *   chatServices.on('sessions', ...)    // Use this to receive list of sessions (all at once)
+ *   chatServices.on('chat_update', ...)
  *   chatServices.connectToChat(chatId)
  *   chatServices.on('message', ...)
  *   chatServices.sendMessage(chatId, message)
@@ -39,8 +40,7 @@ function currentUserId(): string | null {
 }
 
 // --- Event System ---
-// NOTE: Add distinct "session_list_open" and "chat_open" events so UI can differentiate socket readiness.
-type EventType = 'open' | 'close' | 'error' | 'message' | 'history' | 'chats' | 'chat_update' | 'session_list_open' | 'chat_open';
+type EventType = 'open' | 'close' | 'error' | 'message' | 'history' | 'chats' | 'chat_update' | 'session_list_open' | 'chat_open' | 'sessions_raw' | 'chat_update_raw';
 
 const globalListeners: Record<EventType, Array<(data: any) => void>> = {
   open: [],
@@ -52,9 +52,10 @@ const globalListeners: Record<EventType, Array<(data: any) => void>> = {
   chat_update: [],
   session_list_open: [],
   chat_open: [],
+  sessions_raw: [],
+  chat_update_raw: [],
 };
 
-// Utility event methods
 function on(event: EventType, cb: (data: any) => void) {
   globalListeners[event].push(cb);
 }
@@ -98,7 +99,8 @@ function connectToSessionList(userIdFromCaller?: string | number) {
 
   sessionListSocket.onopen = () => {
     emit('open');
-    emit('session_list_open'); // NEW: Notify specifically that session list ws is open
+    emit('session_list_open');
+    listSessions();
   };
   sessionListSocket.onclose = () => emit('close');
   sessionListSocket.onerror = () => emit('error', { error: 'Session list WebSocket error.' });
@@ -110,12 +112,47 @@ function connectToSessionList(userIdFromCaller?: string | number) {
       emit('error', { error: 'Failed to parse session list message', raw: event.data });
       return;
     }
-    // Log every backend response for session list socket
+    // Always log
     console.log("[SessionList WS] Received from backend:", data);
 
+    // Emit the *raw data* as received from the backend
     if (data.type === 'chats') {
-      emit('chats', data.sessions);
+      emit('sessions_raw', data); // raw, as received from backend
     } else if (data.type === 'chat_update') {
+      emit('chat_update_raw', data); // raw update object from backend
+    }
+
+    if (data.type === 'chats') {
+      // Defensive: ensure array
+      let sessionsArr: any[] = [];
+      if (Array.isArray(data.sessions)) {
+        sessionsArr = data.sessions.filter(Boolean);
+      } else if (data.sessions && typeof data.sessions === "object") {
+        sessionsArr = [data.sessions];
+      } else {
+        sessionsArr = [];
+      }
+      sessionsArr = sessionsArr
+        .filter(Boolean)
+        .map((s: any) =>
+          s && typeof s === "object"
+            ? { ...s, id: String(s.id) }
+            : s
+        );
+
+      // Emit for React consumption (legacy/events API)
+      emit('session_list_open', sessionsArr); // revert to the standard event type 'sessions'
+      console.log('sessions', sessionsArr);
+
+      sessionsArr.forEach(sess => {
+        emit('chats', sess);
+
+
+        console.log('chats', sess);
+      });
+
+    } else if (data.type === 'chat_update') {
+      // Legacy API: Emits just the session object for convenience
       emit('chat_update', data.session);
     } else if (data.error) {
       emit('error', { error: data.error });
@@ -130,7 +167,6 @@ function getChatWsUrl(chatId: string, userId: string) {
 
 function connectToChat(chatId: string, userIdFromCaller?: string | number) {
   if (chatSockets[chatId] && chatSockets[chatId].readyState !== WebSocket.CLOSING && chatSockets[chatId].readyState !== WebSocket.CLOSED) {
-    // Already connected to this chat
     activeChatId = chatId;
     return;
   }
@@ -140,7 +176,6 @@ function connectToChat(chatId: string, userIdFromCaller?: string | number) {
     emit('error', { error: 'No user id for chat connection' });
     return;
   }
-  // Disconnect current activeChat if any
   if (activeChatId && chatSockets[activeChatId]) {
     disconnectChat(activeChatId);
   }
@@ -158,8 +193,7 @@ function connectToChat(chatId: string, userIdFromCaller?: string | number) {
 
   ws.onopen = () => {
     emit('open');
-    emit('chat_open', { chatId }); // NEW: Notify specifically that chat ws is open
-    // Request message history when connected
+    emit('chat_open', { chatId });
     ws.send(JSON.stringify({ command: 'get_messages' }));
   };
   ws.onclose = () => emit('close');
@@ -172,10 +206,13 @@ function connectToChat(chatId: string, userIdFromCaller?: string | number) {
       emit('error', { error: 'Failed to parse chat message', raw: event.data });
       return;
     }
-    // Log every backend response for chat socket
     console.log("[Chat WS] Received from backend (chatId:", chatId + "):", data);
 
-    // Dispatch by backend message type
+    // Optionally: Emit the full event data for consumers
+    if (data.type === 'message' || data.type === 'history' || data.error) {
+      emit('message', data); // Emit raw data for listeners that want full context
+    }
+
     if (data.type === 'message') {
       emit('message', data.message);
     } else if (data.type === 'history') {
@@ -184,8 +221,6 @@ function connectToChat(chatId: string, userIdFromCaller?: string | number) {
       emit('error', { error: data.error });
     }
   };
-
-  // NOTE: The initial fetch of message history is now sent inside onopen above.
 }
 
 function disconnectChat(chatId: string) {
@@ -227,20 +262,48 @@ function getMessages(chatId: string) {
   ws.send(JSON.stringify({ command: 'get_messages' }));
 }
 
+/**
+ * Request the list of sessions from the backend via the session list WebSocket.
+ * Will log out the data being sent, and reconnect if not connected.
+ */
 function listSessions() {
+  console.log("[chatServices.listSessions] Called. sessionListSocket:", sessionListSocket);
+
   if (!sessionListSocket || sessionListSocket.readyState !== WebSocket.OPEN) {
-    emit('error', { error: 'Session list socket not connected' });
+    console.warn('[chatServices.listSessions] Session list socket not connected, attempting to reconnect and will retry...');
+    connectToSessionList();
+    setTimeout(() => {
+      if (sessionListSocket && sessionListSocket.readyState === WebSocket.OPEN) {
+        sessionListSocket.send(JSON.stringify({ command: 'sessions_list' }));
+        console.log("[chatServices.listSessions] (after reconnect) Sent: ", { command: 'sessions_list' });
+      } else {
+        emit('error', { error: 'Session list socket still not connected after reconnect attempt.' });
+      }
+    }, 500);
     return;
   }
-  sessionListSocket.send(JSON.stringify({ command: 'sessions_list' }));
+
+  const message = { command: 'sessions_list' };
+  console.log("[chatServices.listSessions] Sending to backend via sessionListSocket:", message);
+  sessionListSocket.send(JSON.stringify(message));
 }
 
+
+
 // --- API for React/hooks ---
+
+/** 
+ * For event documentation:
+ * - 'sessions': emits the sessions array for legacy consumption
+ * - 'sessions_raw': emits the *original backend response* for WS sessions, e.g. `{type: 'chats', sessions: [...]}` (for debugging or raw view)
+ * - 'chat_update': emits just the updated session (legacy)
+ * - 'chat_update_raw': emits the *original backend response* for WS updates, e.g. `{type: 'chat_update', session: {...}}`
+ * - 'message': emits message only AND also emits full data if you listen for 'message'
+ */
+
 const chatServices = {
-  // Event subscription
   on,
   off,
-  // Connections and commands
   connectToSessionList,
   connectToChat,
   disconnectChat,
@@ -250,6 +313,8 @@ const chatServices = {
   getMessages,
   listSessions,
   getCurrentUserId: currentUserId,
+  globalListeners, // Expose globalListeners for introspection if needed
 };
 
 export default chatServices;
+

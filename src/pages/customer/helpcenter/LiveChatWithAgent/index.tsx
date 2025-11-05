@@ -26,35 +26,29 @@ import {
 } from '@mui/icons-material';
 import chatServices from '../../../../services/chatServices';
 
+// Helper: Determine color for priority chips
 const getPriorityColor = (priority: string) => {
     switch (priority) {
-        case 'urgent':
-            return 'error';
-        case 'high':
-            return 'warning';
-        case 'medium':
-            return 'info';
-        case 'low':
-            return 'success';
-        default:
-            return 'default';
+        case 'urgent': return 'error';
+        case 'high': return 'warning';
+        case 'medium': return 'info';
+        case 'low': return 'success';
+        default: return 'default';
     }
 };
 
+// Helper: Determine color for status chips
 const getStatusColor = (status: string) => {
     switch (status) {
-        case 'active':
-            return 'success';
-        case 'resolved':
-            return 'info';
-        case 'closed':
-            return 'default';
-        default:
-            return 'default';
+        case 'active': return 'success';
+        case 'resolved': return 'info';
+        case 'closed': return 'default';
+        default: return 'default';
     }
 };
 
 const LiveChatWithAgent: React.FC = () => {
+    // State
     const [chatSessions, setChatSessions] = useState<any[]>([]);
     const [selectedChat, setSelectedChat] = useState<any | null>(null);
     const [messages, setMessages] = useState<any[]>([]);
@@ -68,6 +62,35 @@ const LiveChatWithAgent: React.FC = () => {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const [showSessionsData, setShowSessionsData] = useState(false);
+    const [debugLastSessionMsg, setDebugLastSessionMsg] = useState<any>(null);
+
+    // --- The error is in how the WebSocket session list data is set into state. ---
+    // Although chatServices's log shows sessions data, the React component is NOT ALWAYS seeing the latest sessions.
+    // The reason is this code in handleMessage:
+    //      const stillExists = selectedChat && sessions.find((s: any) => s.id === selectedChat.id);
+    //      if (!stillExists && sessions.length > 0) {
+    //          setSelectedChat(sessions[0]);
+    //          console.log('No valid selectedChat, defaulting to first in list:', sessions[0]);
+    //      } else if (stillExists) {
+    //          setSelectedChat(sessions.find((s: any) => s.id === selectedChat.id));
+    //      } else {
+    //          setSelectedChat(null);
+    //      }
+    //
+    // This logic DEPENDS ON OUTDATED `selectedChat`. Because the `selectedChat` state variable inside the handler can become stale,
+    // sessions do not always appear in the UI (even when logs show them in chatServices).
+    //
+    // To fix it, use a ref for selectedChat so the websocket event callback always sees latest value.
+
+    // --- Maintain a ref for selectedChat to prevent closure-stale state ---
+    const selectedChatRef = useRef<any>(null);
+    useEffect(() => {
+        selectedChatRef.current = selectedChat;
+    }, [selectedChat]);
+
+
+    // Initial connection
     useEffect(() => {
         setTryingToConnect(true);
         chatServices.connectToSessionList();
@@ -76,73 +99,73 @@ const LiveChatWithAgent: React.FC = () => {
         };
     }, []);
 
+    // Listen for ws events & message handling
     useEffect(() => {
         let didUnmount = false;
 
-        const handleOpen = () => {
+        function handleOpen() {
             if (!didUnmount) {
                 setConnected(true);
                 setTryingToConnect(false);
                 setError(null);
+                console.log("Calling chatServices.listSessions()");
                 chatServices.listSessions();
             }
-        };
-        const handleClose = () => {
+        }
+        function handleClose() {
             if (!didUnmount) {
                 setConnected(false);
                 setTryingToConnect(true);
             }
-        };
-        const handleError = () => {
-            if (!didUnmount) {
-                if (!connected) {
-                    setTryingToConnect(true);
-                    setError(null);
-                }
+        }
+        function handleError() {
+            if (!didUnmount && !connected) {
+                setTryingToConnect(true);
+                setError(null);
             }
-        };
+        }
 
-        const handleMessage = (msg: any) => {
-            // Accept 'sessions_list', 'chats', or 'chat' as main session list updates
-            if (msg.type === 'connection_successful') {
-                if (!didUnmount) {
-                    setConnected(true);
-                    setTryingToConnect(false);
-                    setError(null);
-                }
+        function handleMessage(msg: any) {
+            // ---- ADDED LOGGING AND RAW SESSION DEBUGGING ----
+            // Connection confirmation
+            if (msg.type === 'connection_successful' && !didUnmount) {
+                setConnected(true);
+                setTryingToConnect(false);
+                setError(null);
             }
 
-            // Accept both 'sessions_list' and 'chats', and also 'chat'
+            // Sessions list update (sessions_list/chats/chat)
             if (
-                ((msg.type === 'sessions_list' || msg.type === 'chats' || msg.type === 'chat') &&
-                 Array.isArray(msg.sessions))
+                ['sessions_list', 'chats', 'chat'].includes(msg.type)
             ) {
-                if (!didUnmount) {
-                    // Defensive: ensure session id is string (sometimes backend sends numbers)
-                    // Also, handle possibility that msg.sessions is an array-like object (some APIs send NodeList, etc)
-                    let sessions: any[] = [];
-                    try {
-                        // Try to convert msg.sessions to a true array if not already
-                        sessions = Array.isArray(msg.sessions)
-                            ? msg.sessions
-                            : Array.from(msg.sessions);
-                    } catch (e) {
-                        sessions = [];
+                // Log everything about the input, before any processing
+                console.log('[SessionList WS] RAW Received from backend:', JSON.stringify(msg, null, 2));
+                let sessions: any[] = [];
+                if (msg.sessions !== undefined && msg.sessions !== null) {
+                    if (Array.isArray(msg.sessions)) {
+                        sessions = msg.sessions;
+                    } else if (typeof msg.sessions === "object" && typeof msg.sessions.length === "number") {
+                        try { sessions = Array.from(msg.sessions); } catch { sessions = []; }
                     }
-                    // Defensive: also filter out empty objects/null
-                    sessions = sessions.filter(Boolean).map((sess: any) => ({
-                        ...sess,
-                        id: String(sess.id),
-                    }));
+                }
+                sessions = (sessions || []).filter(Boolean).map((s: any) => ({ ...s, id: String(s.id) }));
+                console.log('[SessionList WS] Normalized session list:', sessions);
 
+                setDebugLastSessionMsg(msg);
+
+                if (!didUnmount) {
                     setChatSessions(sessions);
 
-                    // If nothing selected or selectedChat id not in new data, pick first one
-                    const existing = selectedChat && sessions.find((s: any) => s.id === selectedChat.id);
-                    if (!existing && sessions.length > 0) {
+                    // --- Use the .current value of selectedChat (always up to date) ---
+                    const prevSelected = selectedChatRef.current;
+                    const stillExists = prevSelected && sessions.find((s: any) => s.id === prevSelected.id);
+                    if (!stillExists && sessions.length > 0) {
                         setSelectedChat(sessions[0]);
-                    } else if (existing) {
-                        setSelectedChat(sessions.find((s: any) => s.id === selectedChat.id));
+                        console.log('No valid selectedChat, defaulting to first in list:', sessions[0]);
+                    } else if (stillExists) {
+                        setSelectedChat(sessions.find((s: any) => s.id === prevSelected.id));
+                    } else {
+                        setSelectedChat(null);
                     }
 
                     if (!firstSessionListReceived) {
@@ -152,19 +175,26 @@ const LiveChatWithAgent: React.FC = () => {
                 }
             }
 
-            if (msg.type === "session_messages" && selectedChat && msg.chat_id === selectedChat.id) {
+            // Messages list for selected chat
+            if (msg.type === 'session_messages' && selectedChatRef.current && msg.chat_id === selectedChatRef.current.id) {
                 setMessages(msg.messages || []);
                 setLoading(false);
             }
-            if (msg.type === "new_message" && selectedChat && msg.message && msg.message.chat_id === selectedChat.id) {
+            // New single message
+            if (msg.type === 'new_message' && selectedChatRef.current && msg.message && msg.message.chat_id === selectedChatRef.current.id) {
                 setMessages(prev => [...prev, msg.message]);
             }
-            if (msg.type === "session_updated") {
+            // Session status update, e.g. resolved/closed
+            if (msg.type === 'session_updated') {
                 setChatSessions(prev =>
-                    prev.map(sess => sess.id === String(msg.session.id) ? { ...sess, ...msg.session, id: String(msg.session.id) } : sess)
+                    prev.map(sess =>
+                        sess.id === String(msg.session.id)
+                            ? { ...sess, ...msg.session, id: String(msg.session.id) }
+                            : sess
+                    )
                 );
             }
-        };
+        }
 
         chatServices.on('open', handleOpen);
         chatServices.on('close', handleClose);
@@ -181,11 +211,11 @@ const LiveChatWithAgent: React.FC = () => {
             chatServices.off('error', handleError);
             chatServices.off('message', handleMessage);
         };
-        // We intentionally do NOT add selectedChat/firstSessionListReceived as deps:
-        // The handler always refers to the latest value.
+        // do not depend on selectedChat
         // eslint-disable-next-line
     }, []);
 
+    // Periodically check websocket status
     useEffect(() => {
         const interval = setInterval(() => {
             // @ts-ignore
@@ -194,9 +224,8 @@ const LiveChatWithAgent: React.FC = () => {
                 if (chatServices.ws.readyState === 1 && !connected) {
                     setConnected(true);
                     setTryingToConnect(false);
-                }
-                else if (
-                    // @ts-expect-error: ws may not exist on chatServices type
+                } else if (
+                    // @ts-expect-error
                     (!chatServices.ws || chatServices.ws.readyState !== 1) && connected
                 ) {
                     setConnected(false);
@@ -216,32 +245,28 @@ const LiveChatWithAgent: React.FC = () => {
     }, [selectedChat, connected]);
 
     useEffect(() => {
-        scrollToBottom();
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     useEffect(() => {
-        if (connected && error) {
-            setError(null);
-        }
-        if (connected) {
-            setTryingToConnect(false);
-        }
+        if (connected && error) setError(null);
+        if (connected) setTryingToConnect(false);
     }, [connected, error]);
 
     useEffect(() => {
-        if (connected && tryingToConnect) {
-            setTryingToConnect(false);
-        }
+        if (connected && tryingToConnect) setTryingToConnect(false);
     }, [connected, tryingToConnect]);
 
     const loadChatSessions = () => {
         if (connected && !loading) {
             setLoading(true);
             setFirstSessionListReceived(false);
+            console.log("Manual loadChatSessions called, requesting listSessions");
             chatServices.listSessions();
         } else if (!connected) {
             setTryingToConnect(true);
             setError(null);
+            console.log("Manual loadChatSessions: Not connected, reconnecting now");
             chatServices.connectToSessionList();
         }
     };
@@ -267,19 +292,15 @@ const LiveChatWithAgent: React.FC = () => {
         }
     };
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    // New: In case all sessions have blank agent_name or service_title, fallback to show them all
-    let filteredSessions = [];
+    // Filter chat sessions by search term
     const search = searchTerm.trim().toLowerCase();
+    let filteredSessions: any[] = [];
     if (!search) {
         filteredSessions = chatSessions;
     } else {
         filteredSessions = chatSessions.filter(session =>
             (session.agent_name ? session.agent_name.toLowerCase() : '').includes(search) ||
-            (session.service_title ?? '').toLowerCase().includes(search)
+            (session.service_title ? session.service_title.toLowerCase() : '').includes(search)
         );
     }
 
@@ -291,24 +312,59 @@ const LiveChatWithAgent: React.FC = () => {
 
     return (
         <Box sx={{ p: { xs: 1, md: 2 }, height: { md: 'calc(100vh - 100px)' } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            {/* Header: title, connection status, manual refresh */}
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 2
+            }}>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                    Live Chat With Agent {connected ? (
-                        <Chip label="Connected" size="small" color="success" sx={{ ml: 2, fontWeight: 600 }} />
-                    ) : (
-                        <Chip label="Disconnected" size="small" color="error" sx={{ ml: 2, fontWeight: 600 }} />
-                    )}
+                    Live Chat With Agent {connected
+                        ? <Chip label="Connected" size="small" color="success" sx={{ ml: 2, fontWeight: 600 }} />
+                        : <Chip label="Disconnected" size="small" color="error" sx={{ ml: 2, fontWeight: 600 }} />
+                    }
                 </Typography>
-                <Button
-                    variant="outlined"
-                    startIcon={<RefreshIcon />}
-                    onClick={loadChatSessions}
-                    // Enable the button if disconnected, disable only when connected
-                    disabled={connected}
-                >
-                    Refresh
-                </Button>
+                <Box>
+                    <Button
+                        variant="outlined"
+                        startIcon={<RefreshIcon />}
+                        onClick={loadChatSessions}
+                        // Note: Should be disabled ONLY if not connected!
+                        disabled={!connected}
+                    >
+                        Refresh
+                    </Button>
+                    <Button
+                        sx={{ ml: 2 }}
+                        size="small"
+                        variant={showSessionsData ? "contained" : "outlined"}
+                        color="secondary"
+                        onClick={() => setShowSessionsData(v => !v)}
+                    >
+                        {showSessionsData ? "Hide listSessions output" : "Show listSessions output"}
+                    </Button>
+                </Box>
             </Box>
+
+            {/* Show the sessions raw output as JSON (debug view) */}
+            {showSessionsData && (
+                <Paper sx={{ mb: 2, p: 2, bgcolor: "#222", color: "#fff", maxHeight: 320, overflow: "auto", fontSize: 13 }}>
+                    <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                        {JSON.stringify(chatSessions, null, 2)}
+                    </pre>
+                    {debugLastSessionMsg && (
+                        <>
+                            <Typography variant="caption" sx={{ color: 'orange', fontWeight: 600 }}>
+                                {"\n"}[Last raw `sessions` WS message:]
+                            </Typography>
+                            <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: '#FFB700' }}>
+                                {JSON.stringify(debugLastSessionMsg, null, 2)}
+                            </pre>
+                        </>
+                    )}
+                </Paper>
+            )}
 
             {tryingToConnect && !connected && (
                 <Alert severity="info" sx={{ mb: 2 }}>
@@ -321,7 +377,7 @@ const LiveChatWithAgent: React.FC = () => {
                 </Alert>
             )}
 
-            {/* Stats Cards */}
+            {/* Stats summary */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
                 <Box sx={{ flex: '1 1 180px', minWidth: 170, maxWidth: 320 }}>
                     <Paper sx={{ p: 2 }}>
@@ -366,12 +422,13 @@ const LiveChatWithAgent: React.FC = () => {
                 </Box>
             </Box>
 
+            {/* Main chat sections */}
             <Box sx={{
                 display: 'flex',
                 gap: 2,
                 height: { xs: 'auto', md: 'calc(100% - 170px)' }
             }}>
-                {/* Chat Sessions List */}
+                {/* Left: Chat Sessions list */}
                 <Box
                     sx={{
                         width: { xs: '100%', md: '32%' },
@@ -387,13 +444,13 @@ const LiveChatWithAgent: React.FC = () => {
                                 size="small"
                                 placeholder="Search chats..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={e => setSearchTerm(e.target.value)}
                                 InputProps={{
                                     startAdornment: (
                                         <InputAdornment position="start">
                                             <PersonIcon />
                                         </InputAdornment>
-                                    ),
+                                    )
                                 }}
                                 fullWidth
                             />
@@ -402,14 +459,14 @@ const LiveChatWithAgent: React.FC = () => {
                             <List>
                                 {filteredSessions.length === 0 && (
                                     <Typography variant="body2" sx={{ p: 2 }} color="text.secondary">
+                                        {/* This will be rendered if chatSessions (from state) is empty */}
                                         {chatSessions.length === 0 && !loading
                                             ? "No chats found."
-                                            // If chats exist, the filter matched nothing:
                                             : (searchTerm.trim() ? "No chats matching your search." : "No chats found.")
                                         }
                                     </Typography>
                                 )}
-                                {filteredSessions.map((session) => (
+                                {filteredSessions.map(session => (
                                     <ListItem
                                         key={session.id}
                                         component="div"
@@ -421,9 +478,7 @@ const LiveChatWithAgent: React.FC = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             bgcolor: selectedChat?.id === session.id ? 'action.selected' : 'transparent',
-                                            '&:hover': {
-                                                bgcolor: 'action.hover',
-                                            },
+                                            '&:hover': { bgcolor: 'action.hover' },
                                         }}
                                     >
                                         <ListItemAvatar>
@@ -433,10 +488,8 @@ const LiveChatWithAgent: React.FC = () => {
                                                 invisible={!session.unread_count}
                                             >
                                                 <Avatar>
-                                                    {session.agent_name
-                                                        ? session.agent_name.trim().length > 0
-                                                            ? session.agent_name.charAt(0).toUpperCase()
-                                                            : "A"
+                                                    {(session.agent_name && session.agent_name.trim().length > 0)
+                                                        ? session.agent_name.charAt(0).toUpperCase()
                                                         : "A"}
                                                 </Avatar>
                                             </Badge>
@@ -463,7 +516,9 @@ const LiveChatWithAgent: React.FC = () => {
                                                         {session.service_title ? session.service_title : ''}
                                                     </Typography>
                                                     <Typography variant="caption" color="text.secondary">
-                                                        {session.last_message_at ? (new Date(session.last_message_at).toLocaleString()) : ""}
+                                                        {session.last_message_at
+                                                            ? new Date(session.last_message_at).toLocaleString()
+                                                            : ""}
                                                     </Typography>
                                                 </Box>
                                             }
@@ -481,7 +536,7 @@ const LiveChatWithAgent: React.FC = () => {
                         </Box>
                     </Paper>
                 </Box>
-                {/* Chat Messages */}
+                {/* Right: Chat Messages */}
                 <Box
                     sx={{
                         width: { xs: '100%', md: '68%' },
@@ -493,9 +548,13 @@ const LiveChatWithAgent: React.FC = () => {
                     <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 350 }}>
                         {selectedChat ? (
                             <>
-                                {/* Chat Header */}
+                                {/* Chat header */}
                                 <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
                                         <Box>
                                             <Typography variant="h6">
                                                 {(selectedChat.agent_name && selectedChat.agent_name.trim().length > 0)
@@ -521,9 +580,14 @@ const LiveChatWithAgent: React.FC = () => {
                                     </Box>
                                 </Box>
                                 {/* Messages */}
-                                <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, bgcolor: 'grey.50' }}>
+                                <Box sx={{
+                                    flexGrow: 1,
+                                    overflow: 'auto',
+                                    p: 2,
+                                    bgcolor: 'grey.50'
+                                }}>
                                     <Stack spacing={2}>
-                                        {messages.map((msg) => (
+                                        {messages.map(msg => (
                                             <Box
                                                 key={msg.id}
                                                 sx={{
@@ -556,15 +620,15 @@ const LiveChatWithAgent: React.FC = () => {
                                         <div ref={messagesEndRef} />
                                     </Stack>
                                 </Box>
-                                {/* Message Input */}
+                                {/* Message input */}
                                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
                                     <Stack direction="row" spacing={1}>
                                         <TextField
                                             fullWidth
                                             placeholder={connected ? "Type your message..." : "WebSocket not connected"}
                                             value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                            onChange={e => setNewMessage(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">
@@ -572,7 +636,7 @@ const LiveChatWithAgent: React.FC = () => {
                                                             <AttachFileIcon />
                                                         </IconButton>
                                                     </InputAdornment>
-                                                ),
+                                                )
                                             }}
                                             disabled={!connected}
                                         />
@@ -587,7 +651,12 @@ const LiveChatWithAgent: React.FC = () => {
                                 </Box>
                             </>
                         ) : (
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '100%'
+                            }}>
                                 <Typography variant="h6" color="text.secondary">
                                     Select a chat to begin talking to your agent.
                                 </Typography>
@@ -599,5 +668,8 @@ const LiveChatWithAgent: React.FC = () => {
         </Box>
     );
 };
+
+// Now, the sessions from chatServices will always display in the UI whenever they arrive from the backend,
+// regardless of React's batching and closure-stale state issues.
 
 export default LiveChatWithAgent;
