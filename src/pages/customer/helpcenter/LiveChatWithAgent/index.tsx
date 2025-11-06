@@ -321,7 +321,8 @@ const LiveChatWithAgent: React.FC = () => {
                     variant="outlined"
                     startIcon={<RefreshIcon />}
                     onClick={chatServices.listSessions}
-                    disabled={!connected}
+                    // Only enable refresh when disconnected
+                    disabled={connected}
                 >
                     Refresh
                 </Button>
