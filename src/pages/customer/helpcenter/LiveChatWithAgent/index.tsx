@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import {
     Box,
     Paper,
@@ -20,6 +20,7 @@ import {
     useTheme,
     Slide,
     CircularProgress,
+    Tooltip
 } from '@mui/material';
 import {
     Send as SendIcon,
@@ -28,8 +29,13 @@ import {
     Person as PersonIcon,
     Chat as ChatIcon,
     ArrowBack as ArrowBackIcon,
+    InsertDriveFile as InsertDriveFileIcon,
+    Close as CloseIcon,
+    Download as DownloadIcon
 } from '@mui/icons-material';
 import chatServices, { subscribeSessions } from '../../../../services/chatServices';
+import { API_BASE_URL } from '../../../../services/api';
+
 
 const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -55,6 +61,20 @@ const makeUniqueMsgKey = (msg: any, idx: number) => {
         : `msg-${msg.id}-${msg.timestamp || ''}-${msg.sender_type || ''}-${msg.sender_id || ''}-${idx}`;
 };
 
+// Helper function: ensure URL is absolute if needed
+const makeAbsoluteUrl = (path?: string | null): string | undefined => {
+    if (!path || typeof path !== 'string' || path === '') return undefined;
+    // Already absolute (http, https, or data:)
+    if (/^(https?:)?\/\//.test(path) || /^data:/.test(path)) return path;
+    // Don't prepend API_BASE_URL if path is missing or not a relative path
+    if (API_BASE_URL && path.startsWith('/')) {
+        // Remove trailing slash from base url for safety
+        const base = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+        return `${base}${path}`;
+    }
+    return path;
+};
+
 const LiveChatWithAgent: React.FC = () => {
     const [chatSessions, setChatSessions] = useState<any[]>([]);
     const [selectedChat, setSelectedChat] = useState<any | null>(null);
@@ -66,6 +86,10 @@ const LiveChatWithAgent: React.FC = () => {
     const [sending, setSending] = useState(false);
     const [connected, setConnected] = useState(false);
     const [showChatPanel, setShowChatPanel] = useState(false);
+
+    // New attachment state
+    const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+    const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null);
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -96,64 +120,6 @@ const LiveChatWithAgent: React.FC = () => {
         };
     }, []);
 
-    //   useEffect(() => {
-    //     if (!selectedChat || !connected) return;
-
-    //     let cancelled = false;
-    //     setMessages([]); // clear previous chat messages
-
-    //     async function ensureChatReadyAndLoad() {
-    //       try {
-    //         // STEP 1: ensure chat websocket connection is ready
-    //         await chatServices.connectToChat(selectedChat.id); // removed 'true', fix type error
-    //         if (cancelled) return;
-
-    //         // STEP 2: request chat history from backend
-    //         const data = await chatServices.getMessages(selectedChat.id);
-    //         let resolvedMessages: React.SetStateAction<any[]> = [];
-
-    //         // Resolve lint errors by explicitly typing messages and safely accessing properties
-    //         type ChatMessage = {
-    //           id: string;
-    //           timestamp: string;
-    //           [key: string]: any;
-    //         };
-
-    //         if (Array.isArray(data)) {
-    //           resolvedMessages = data as ChatMessage[];
-    //         } else if (
-    //           typeof data === "object" &&
-    //           data !== null &&
-    //           Array.isArray((data as { messages?: unknown }).messages)
-    //         ) {
-    //           resolvedMessages = (data as { messages: ChatMessage[] }).messages;
-    //         }
-
-    //         resolvedMessages.sort(
-    //           (a: ChatMessage, b: ChatMessage) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    //         );
-
-    //         if (!cancelled) setMessages(resolvedMessages);
-
-    //         // STEP 3: show chat panel (for mobile)
-    //         if (isMobile) setShowChatPanel(true);
-    //       } catch (err) {
-    //         console.error("⚠️ Failed to load chat messages:", err);
-    //         if (!cancelled) {
-    //           setError("Failed to load messages. Please try again.");
-    //           setMessages([]);
-    //         }
-    //       }
-    //     }
-
-    //     ensureChatReadyAndLoad();
-
-    //     return () => {
-    //       cancelled = true;
-    //     };
-    //   }, [selectedChat, connected, isMobile]);
-
-
     useEffect(() => {
         if (!selectedChat || !connected) return;
 
@@ -168,7 +134,6 @@ const LiveChatWithAgent: React.FC = () => {
         // Step 3: listen for backend 'history' event
         const handleHistory = (msgs: any[]) => {
             if (!Array.isArray(msgs)) return;
-            console.log("📜 Got history for chat", selectedChat.id, msgs);
             setMessages(
                 msgs.sort(
                     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -185,7 +150,6 @@ const LiveChatWithAgent: React.FC = () => {
             chatServices.off('history', handleHistory);
         };
     }, [selectedChat, connected, isMobile]);
-
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -230,14 +194,30 @@ const LiveChatWithAgent: React.FC = () => {
         };
     }, [selectedChat]);
 
+    // Handle file input changes
+    const handleAttachmentChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setAttachmentFile(file);
+        if (file) {
+            setAttachmentPreviewUrl(URL.createObjectURL(file));
+        } else {
+            setAttachmentPreviewUrl(null);
+        }
+    };
+
+    const handleRemoveAttachment = () => {
+        setAttachmentFile(null);
+        setAttachmentPreviewUrl(null);
+    };
+
     // Ensure when sending a message, we do not append the backend-sent message if it's already in state (to avoid duplicates)
     const handleSendMessage = async () => {
-        if (!newMessage.trim() || !selectedChat || !connected || sending) return;
+        if ((!newMessage.trim() && !attachmentFile) || !selectedChat || !connected || sending) return;
         setSending(true);
 
         const tempId = `msg-${Date.now()}-${Math.round(Math.random() * 10000)}`;
         const now = new Date();
-        const tempMsg = {
+        const tempMsg: any = {
             id: tempId,
             chat_id: selectedChat.id,
             sender_id: 101,
@@ -248,18 +228,31 @@ const LiveChatWithAgent: React.FC = () => {
             read: true,
             status: 'pending',
         };
+
+        // Add optimistic attachment preview if present
+        if (attachmentFile) {
+            tempMsg.attachment_name = attachmentFile.name;
+            tempMsg.attachment_url = attachmentPreviewUrl;
+        }
+
         setMessages(prev => [...prev, tempMsg]);
         setNewMessage('');
 
         try {
-            const sentMsg = await chatServices.sendMessage(selectedChat.id, tempMsg.message);
+            let sentMsg: any;
+            // Use single `sendMessage` for both file and non-file case,
+            // since chatServices.sendMessage handles optional attachment param now
+            sentMsg = await chatServices.sendMessage(
+                selectedChat.id,
+                tempMsg.message,
+                attachmentFile ? attachmentFile : undefined
+            );
 
             if (typeof sentMsg === 'object' && sentMsg !== null && 'id' in sentMsg) {
                 setMessages(prev => {
-                    // If temp message exists, replace it. If backend message already exists (by id), don't add it again.
                     const tempIdx = prev.findIndex(m => m.id === tempId);
                     if (prev.some(m => m.id === sentMsg.id)) {
-                        // Backend version already in the message list (probably from websocket), just remove the optimistic msg
+                        // Already present, just remove optimistic pending
                         return prev.filter(m => m.id !== tempId);
                     }
 
@@ -268,7 +261,7 @@ const LiveChatWithAgent: React.FC = () => {
                         newArr[tempIdx] = { ...sentMsg, status: 'sent' };
                         return newArr;
                     }
-                    // Else: not found, add backend message if not already present
+                    // Not found: add new
                     return [...prev, { ...sentMsg, status: 'sent' }];
                 });
             } else {
@@ -279,6 +272,8 @@ const LiveChatWithAgent: React.FC = () => {
                 );
             }
 
+            setAttachmentFile(null);
+            setAttachmentPreviewUrl(null);
             setSending(false);
         } catch (err: any) {
             console.error('Send message error:', err);
@@ -304,6 +299,66 @@ const LiveChatWithAgent: React.FC = () => {
         active: chatSessions.filter(s => s.status === 'active').length,
         unread: chatSessions.reduce((sum, s) => sum + (s.unread_count || 0), 0),
     };
+
+    // Helper to render file preview/download icon for a message with an attachment
+    function renderAttachment(msg: any) {
+        // If we have an attachment_url (for optimistic messages or server-supplied link)
+        if (msg.attachment_url) {
+            const url = makeAbsoluteUrl(msg.attachment_url);
+            const renderFileTypeIcon = (
+                <InsertDriveFileIcon sx={{ mr: 0.5, verticalAlign: 'middle', fontSize: 18 }} />
+            );
+            return (
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
+                    {renderFileTypeIcon}
+                    <Typography
+                        variant="body2"
+                        color="inherit"
+                        component="a"
+                        href={url}
+                        download={msg.attachment_name || 'file'}
+                        target="_blank"
+                        sx={{ textDecoration: 'underline', wordBreak: 'break-all' }}
+                    >
+                        {msg.attachment_name || 'File'}
+                        <DownloadIcon sx={{ fontSize: 16, ml: 0.5, verticalAlign: 'middle' }} />
+                    </Typography>
+                </Stack>
+            );
+        }
+
+        // Fallback: maybe backend returns a link in "attachment" (Message.attachment is a FileField)
+        if (msg.attachment) {
+            let fileUrl: string | undefined = undefined;
+            if (typeof msg.attachment === 'string' && msg.attachment !== '') {
+                fileUrl = msg.attachment;
+            }
+            if (msg.attachment_url) {
+                fileUrl = msg.attachment_url;
+            }
+            const url = makeAbsoluteUrl(fileUrl);
+            if (url) {
+                return (
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
+                        <InsertDriveFileIcon sx={{ mr: 0.5, verticalAlign: 'middle', fontSize: 18 }} />
+                        <Typography
+                            variant="body2"
+                            color="inherit"
+                            component="a"
+                            href={url}
+                            download={msg.attachment_name || 'file'}
+                            target="_blank"
+                            sx={{ textDecoration: 'underline', wordBreak: 'break-all' }}
+                        >
+                            {msg.attachment_name || (typeof msg.attachment === 'string' ? msg.attachment.split('/').pop() : 'Attachment')}
+                            <DownloadIcon sx={{ fontSize: 16, ml: 0.5, verticalAlign: 'middle' }} />
+                        </Typography>
+                    </Stack>
+                );
+            }
+        }
+        return null;
+    }
 
     return (
         <Box sx={{ p: { xs: 1, md: 2 }, height: { md: 'calc(100vh - 100px)' } }}>
@@ -540,6 +595,7 @@ const LiveChatWithAgent: React.FC = () => {
                                                         <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                                                             {msg.message}
                                                         </Typography>
+                                                        {renderAttachment(msg)}
                                                         <Typography variant="caption" sx={{ opacity: 0.6 }}>
                                                             {msg.timestamp
                                                                 ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -553,9 +609,11 @@ const LiveChatWithAgent: React.FC = () => {
                                     </Box>
 
                                     <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                                        <Stack direction="row" spacing={1}>
+                                        <Stack direction="row" spacing={1} alignItems="flex-end">
                                             <TextField
                                                 fullWidth
+                                                multiline
+                                                minRows={1}
                                                 placeholder={connected ? 'Type your message...' : 'WebSocket not connected'}
                                                 value={newMessage}
                                                 onChange={(e) => setNewMessage(e.target.value)}
@@ -563,9 +621,27 @@ const LiveChatWithAgent: React.FC = () => {
                                                 InputProps={{
                                                     endAdornment: (
                                                         <InputAdornment position="end">
-                                                            <IconButton disabled>
-                                                                <AttachFileIcon />
-                                                            </IconButton>
+                                                            <input
+                                                                accept="*"
+                                                                style={{ display: 'none' }}
+                                                                id="chat-attachment-input"
+                                                                type="file"
+                                                                onChange={handleAttachmentChange}
+                                                                disabled={!connected || sending}
+                                                            />
+                                                            <label htmlFor="chat-attachment-input">
+                                                                <Tooltip title="Attach a file">
+                                                                    <span>
+                                                                        <IconButton
+                                                                            component="span"
+                                                                            disabled={!connected || sending}
+                                                                            color={attachmentFile ? "primary" : undefined}
+                                                                        >
+                                                                            <AttachFileIcon />
+                                                                        </IconButton>
+                                                                    </span>
+                                                                </Tooltip>
+                                                            </label>
                                                         </InputAdornment>
                                                     ),
                                                 }}
@@ -574,7 +650,7 @@ const LiveChatWithAgent: React.FC = () => {
                                             <Button
                                                 variant="contained"
                                                 onClick={handleSendMessage}
-                                                disabled={!newMessage.trim() || !connected || sending}
+                                                disabled={(!newMessage.trim() && !attachmentFile) || !connected || sending}
                                                 sx={{ minWidth: 48 }}
                                             >
                                                 {sending ? (
@@ -584,6 +660,21 @@ const LiveChatWithAgent: React.FC = () => {
                                                 )}
                                             </Button>
                                         </Stack>
+
+                                        {/* Attachment Preview */}
+                                        {attachmentFile && (
+                                            <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1, ml: 0.5 }}>
+                                                <InsertDriveFileIcon color="primary" />
+                                                <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
+                                                    {attachmentFile.name}
+                                                </Typography>
+                                                <Tooltip title="Remove file">
+                                                    <IconButton size="small" onClick={handleRemoveAttachment}>
+                                                        <CloseIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Stack>
+                                        )}
                                     </Box>
                                 </>
                             ) : (

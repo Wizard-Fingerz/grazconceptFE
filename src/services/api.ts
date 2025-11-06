@@ -3,7 +3,8 @@ import { showErrorToast, shouldShowErrorToast } from '../utils/errorHandler';
 
 // const API_BASE_URL = 'http://localhost:8002/api/';
 
-const API_BASE_URL = 'https://backend.grazconcept.com.ng/api/';
+// const API_BASE_URL = 'https://backend.grazconcept.com.ng/api/';
+export const API_BASE_URL = 'https://backend.grazconcept.com.ng/api/';
 
 // Get token from localStorage (if available) to set initial Authorization header
 const token = localStorage.getItem('token');

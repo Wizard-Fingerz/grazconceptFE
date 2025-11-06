@@ -7,15 +7,6 @@
 const API_BASE_URL = 'https://backend.grazconcept.com.ng/';
 // const API_BASE_URL = 'http://localhost:8002/';
 
-
-
-function getBaseWsUrl() {
-  const cleaned = API_BASE_URL.replace(/\/+$/, '');
-  const wsScheme = cleaned.startsWith('https') ? 'wss' : 'ws';
-  const urlRest = cleaned.split('://')[1];
-  return `${wsScheme}://${urlRest}`;
-}
-
 // --- Storage helpers ---
 function currentUserId(): string | null {
   try {
@@ -26,6 +17,21 @@ function currentUserId(): string | null {
     if (typeof user === "string" && user) return user;
   } catch {}
   return null;
+}
+
+function getToken(): string | null {
+  try {
+    return localStorage.getItem('token');
+  } catch {
+    return null;
+  }
+}
+
+function getBaseWsUrl() {
+  const cleaned = API_BASE_URL.replace(/\/+$/, '');
+  const wsScheme = cleaned.startsWith('https') ? 'wss' : 'ws';
+  const urlRest = cleaned.split('://')[1];
+  return `${wsScheme}://${urlRest}`;
 }
 
 // --- Event System ---
@@ -268,94 +274,152 @@ function disconnectAll() {
 
 // --- Client commands ---
 /**
- * Send a message within a chat.
- * Implements the backend protocol: sends {command: 'send_message', message: "..."}
- * @param chatId the chat session id
- * @param message the plain text message to send
+ * Send a message (optionally with file attachment) within a chat.
+ * If attachment is present, uploads it via backend REST API then notifies over websocket.
+ * message: the plain text message
+ * attachment: optional File object as selected via input (or undefined/null for no file).
  */
-/**
- * Send a message to a chat via WebSocket and resolve once backend confirms it.
- */
-// function sendMessage(chatId: string, message: string): Promise<any> {
-//   return new Promise((resolve, reject) => {
-//     const ws = chatSockets[chatId];
-//     if (!ws || ws.readyState !== WebSocket.OPEN) {
-//       const error = new Error(`Chat WebSocket not connected for chatId ${chatId}`);
-//       emit('error', { error: error.message });
-//       return reject(error);
-//     }
-
-//     const payload = { command: 'send_message', message };
-//     console.log(`[Chat WS] Sending message to chat ${chatId}:`, payload);
-//     ws.send(JSON.stringify(payload));
-
-//     // Wait for backend confirmation (with timeout)
-//     const timeout = setTimeout(() => {
-//       reject(new Error('Timeout waiting for backend confirmation.'));
-//     }, 5000);
-
-//     const handleMessage = (event: MessageEvent) => {
-//       try {
-//         const data = JSON.parse(event.data);
-//         if (data.type === 'message' && data.message?.message === message) {
-//           console.log('[Chat WS] ✅ Backend confirmed message:', data.message);
-//           clearTimeout(timeout);
-//           ws.removeEventListener('message', handleMessage);
-//           resolve(data.message);
-//         }
-//       } catch (err) {
-//         // ignore parse errors
-//       }
-//     };
-
-//     ws.addEventListener('message', handleMessage);
-//   });
-// }
-
-/**
- * Send a message and wait for backend confirmation, retrying if socket is still connecting.
- */
-function sendMessage(chatId: string, message: string): Promise<any> {
-  return new Promise((resolve, reject) => {
+async function sendMessage(
+  chatId: string,
+  message: string,
+  attachment?: File | null
+): Promise<any> {
+  return new Promise(async (resolve, reject) => {
     let ws = chatSockets[chatId];
 
-    // 1️⃣ If no socket, open one first
+    // 1️⃣ If no socket, open one first (connect synchronously)
     if (!ws) {
       console.warn(`[Chat WS] No socket for ${chatId}, creating new connection...`);
       connectToChat(chatId);
       ws = chatSockets[chatId];
     }
 
-    // 2️⃣ Wait until it's OPEN (with a 2s timeout)
+    // 2️⃣ Wait for socket open, up to 2s
     const waitForOpen = (attempts = 0) => {
       ws = chatSockets[chatId];
-
       if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log(`[Chat WS] ✅ Ready to send message on chat ${chatId}`);
         sendNow();
       } else if (attempts < 20) {
-        // retry every 100ms up to ~2s
         setTimeout(() => waitForOpen(attempts + 1), 100);
       } else {
         reject(new Error(`Timeout waiting for WebSocket to open for chatId ${chatId}`));
       }
     };
 
-    // 3️⃣ Actual send + confirmation listener
-    const sendNow = () => {
-      console.log(`[Chat WS] 🚀 Sending message to chat ${chatId}:`, message);
-      ws!.send(JSON.stringify({ command: 'send_message', message }));
+    // 3️⃣ Send message (and file if present)
+    const sendNow = async () => {
+      // With attachment file: upload it, send attachment info with message.
+      if (attachment instanceof File) {
+        try {
+          // Upload file to backend REST endpoint
+          // Backend expects multipart/form-data: {file, chat_id, message, (user_id optional)}
+          const formData = new FormData();
+          formData.append('file', attachment);
+          formData.append('chat_id', chatId);
+          formData.append('message', message);
+          const userId = currentUserId();
+          if (userId) formData.append('user_id', userId);
 
-      const timeout = setTimeout(() => reject(new Error('Timeout waiting for backend confirmation.')), 5000);
+          // Retrieve token from local storage via helper
+          const token = getToken();
+
+          // Use the REST API BASE_URL directly, not websockets
+          const uploadUrl = `${API_BASE_URL.replace(/\/+$/, '')}/api/chat/messages/upload_attachment/`;
+
+          const fetchOptions: RequestInit = {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+            headers: {}
+          };
+
+          if (token) {
+            (fetchOptions.headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+          }
+
+          const uploadResp = await fetch(uploadUrl, fetchOptions);
+
+          // ① If backend REST fails
+          if (!uploadResp.ok) {
+            const detail = await uploadResp.text().catch(()=>"");
+            reject(new Error('Failed to upload attachment. ' + detail));
+            return;
+          }
+
+          // ② Handle successful REST feedback
+          // If the backend responds with the "full" message object directly after successful upload,
+          // resolve immediately and exit (don't also notify websocket, as attach/upload already sent - dedupe).
+          const uploadResult = await uploadResp.json();
+          // If uploadResult looks like a full message object, resolve directly.
+          if (
+            uploadResult &&
+            typeof uploadResult === "object" &&
+            uploadResult.id &&
+            uploadResult.chat_session &&
+            typeof uploadResult.sender_type === "string" &&
+            typeof uploadResult.message === "string" &&
+            (
+              uploadResult.attachment ||
+              uploadResult.attachment_url
+            ) &&
+            uploadResult.timestamp
+          ) {
+            // Looks like a message object: resolve directly, don't pipe over websocket
+            resolve(uploadResult);
+            return;
+          }
+
+          // Otherwise, fallback: send metadata via WebSocket
+          const wsPayload: Record<string, any> = {
+            command: 'send_message',
+            message: message,
+            attachment: {
+              url: uploadResult.file_url,
+              name: uploadResult.file_name,
+              size: uploadResult.file_size || attachment.size,
+              content_type: uploadResult.file_type || attachment.type,
+              ...(uploadResult || {}),
+            }
+          };
+
+          sendAndAwaitConfirmation(wsPayload, message);
+
+        } catch (err) {
+          reject(err);
+        }
+      } else { // No attachment, regular text only
+        const wsPayload = {
+          command: 'send_message',
+          message,
+        };
+        sendAndAwaitConfirmation(wsPayload, message);
+      }
+    };
+
+    // 4️⃣ Await backend confirmation of message sending
+    const sendAndAwaitConfirmation = (payload: any, origMessage: string) => {
+      try {
+        ws!.send(JSON.stringify(payload));
+      } catch (err) {
+        reject(new Error('Failed to send message over websocket: ' + err));
+        return;
+      }
+
+      const timeout = setTimeout(() => reject(new Error('Timeout waiting for backend confirmation.')), 8000);
 
       const handleMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'message' && data.message?.message === message) {
+
+          // Confirm if backend echoes the sent message, or gives an error
+          if (data.type === 'message' && (data.message?.message === origMessage)) {
             clearTimeout(timeout);
             ws!.removeEventListener('message', handleMessage);
-            console.log('[Chat WS] ✅ Backend confirmed message:', data.message);
             resolve(data.message);
+          } else if (data.error) {
+            clearTimeout(timeout);
+            ws!.removeEventListener('message', handleMessage);
+            reject(new Error(data.error));
           }
         } catch {}
       };
@@ -366,7 +430,6 @@ function sendMessage(chatId: string, message: string): Promise<any> {
     waitForOpen();
   });
 }
-
 
 function getMessages(chatId: string) {
   const ws = chatSockets[chatId];
