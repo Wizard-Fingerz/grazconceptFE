@@ -361,8 +361,17 @@ export const Dashboard: React.FC = () => {
         route = "/support/tickets";
         break;
       case "Chat":
-          route = "/support/chat";
-          break;
+        route = "/support/chat";
+        break;
+      case "Study Abroad Loan":
+        route = "/edufinance/study-abroad-loan";
+        break;
+      case "Civil Servant Loan":
+        route = "/edufinance/civil-servant-loan";
+        break;
+      case "Business loan for travel project":
+        route = "/edufinance/business-loan";
+        break;
       default:
         // fallback to modal for unknown actions (for banners, etc)
         setModalLabel(label);
@@ -621,7 +630,7 @@ export const Dashboard: React.FC = () => {
       >
         {/* Left: More Actions and Suggestions */}
         <Box sx={{ flex: { xs: 'unset', md: 3 }, width: { xs: '100%', md: '75%' }, minWidth: 0 }}>
-          
+
           <Box>
             {/* Suggestions */}
             <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>
@@ -629,20 +638,35 @@ export const Dashboard: React.FC = () => {
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box sx={{ flex: 1 }}>
-                <SuggestionCard title="Study Abroad Loan" />
+                <SuggestionCard
+                  title="Study Abroad Loan"
+                  onClick={() => handleActionClick("Study Abroad Loan")}
+                />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <SuggestionCard title="Business loan for travel project" />
+                <SuggestionCard
+                  title="Civil Servant Loan"
+                  onClick={() => handleActionClick("Civil Servant Loan")}
+                />
+              </Box>
+              {/* <Box sx={{ flex: 1 }}>
+                <SuggestionCard 
+                  title="Car Rentals" 
+                  onClick={() => handleActionClick("Car Rentals")}
+                />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <SuggestionCard title="Car Rentals" />
+                <SuggestionCard 
+                  title="Attractions" 
+                  onClick={() => handleActionClick("Attractions")}
+                />
               </Box>
               <Box sx={{ flex: 1 }}>
-                <SuggestionCard title="Attractions" />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <SuggestionCard title="Airport Taxis" />
-              </Box>
+                <SuggestionCard 
+                  title="Airport Taxis" 
+                  onClick={() => handleActionClick("Airport Taxis")}
+                />
+              </Box> */}
             </Stack>
           </Box>
         </Box>
@@ -670,7 +694,7 @@ export const Dashboard: React.FC = () => {
               Need Help?
             </Typography>
             <Box display="flex" flexDirection="column" gap={2}>
-              <HelpButton text="Chat" onClick={() => handleActionClick("Chat")}/>
+              <HelpButton text="Chat" onClick={() => handleActionClick("Chat")} />
               {/* <HelpButton
                 text="Call"
                 onClick={() => {
@@ -731,7 +755,13 @@ export const Dashboard: React.FC = () => {
   );
 };
 
-const SuggestionCard = ({ title }: { title: string }) => (
+const SuggestionCard = ({
+  title,
+  onClick,
+}: {
+  title: string;
+  onClick?: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+}) => (
   <Card
     sx={{
       borderRadius: 1,
@@ -743,6 +773,7 @@ const SuggestionCard = ({ title }: { title: string }) => (
       '&:hover': { bgcolor: '#fce7f3' },
       transition: 'background 0.2s',
     }}
+    onClick={onClick}
   >
     <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgb(219 39 119)' }}>
       {title}
