@@ -36,7 +36,6 @@ import {
 import chatServices, { subscribeSessions } from '../../../../services/chatServices';
 import { API_BASE_URL } from '../../../../services/api';
 
-
 const getPriorityColor = (priority: string) => {
     switch (priority) {
         case 'urgent': return 'error';
@@ -61,14 +60,10 @@ const makeUniqueMsgKey = (msg: any, idx: number) => {
         : `msg-${msg.id}-${msg.timestamp || ''}-${msg.sender_type || ''}-${msg.sender_id || ''}-${idx}`;
 };
 
-// Helper function: ensure URL is absolute if needed
 const makeAbsoluteUrl = (path?: string | null): string | undefined => {
     if (!path || typeof path !== 'string' || path === '') return undefined;
-    // Already absolute (http, https, or data:)
     if (/^(https?:)?\/\//.test(path) || /^data:/.test(path)) return path;
-    // Don't prepend API_BASE_URL if path is missing or not a relative path
     if (API_BASE_URL && path.startsWith('/')) {
-        // Remove trailing slash from base url for safety
         const base = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
         return `${base}${path}`;
     }
@@ -84,7 +79,21 @@ const LiveChatWithAgent: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
-    const [connected, setConnected] = useState(false);
+
+    // --- NEW: Move 'connected' into here as inferred from session list successfully loaded. ---
+    // We'll use two separate states: one for WebSocket transport and one for app being 'online'.
+    // Fixes "Offline" state on session list load.
+
+    // true if websocket for session list is confirmed open (from events)
+    const [wsConnected, setWsConnected] = useState<boolean>(false);
+
+    // true if session list is loaded from backend (regardless of websocket state)
+    const [sessionListLoaded, setSessionListLoaded] = useState<boolean>(false);
+
+    // App is 'online' if session list loads (even if websocket events have not said open yet)
+    // NOTE: Fallback, if session list loads at all, user should see as Online.
+    const isOnline = wsConnected || sessionListLoaded;
+
     const [showChatPanel, setShowChatPanel] = useState(false);
 
     // New attachment state
@@ -95,43 +104,76 @@ const LiveChatWithAgent: React.FC = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const unsubscribe = subscribeSessions((sessions) => {
-            setChatSessions(sessions);
-            setLoading(false);
-            if (!selectedChat && sessions.length > 0) {
-                setSelectedChat(sessions[0]);
-            }
-        });
-        chatServices.connectToSessionList();
-        chatServices.listSessions();
-        return unsubscribe;
-        // eslint-disable-next-line
-    }, []);
+    // Fix websocket connected state to not block app usage if session list loaded
+    const firstMountRef = useRef(true);
 
     useEffect(() => {
-        const handleOpen = () => setConnected(true);
-        const handleClose = () => setConnected(false);
+        // Always try to connect websocket
+        chatServices.connectToSessionList();
+
+        const handleOpen = () => {
+            setWsConnected(true);
+        };
+        const handleClose = () => {
+            setWsConnected(false);
+            setTimeout(() => {
+                if (firstMountRef.current) {
+                    chatServices.connectToSessionList();
+                }
+            }, 1500);
+        };
         chatServices.on('open', handleOpen);
         chatServices.on('close', handleClose);
+
+        firstMountRef.current = true;
+
         return () => {
+            firstMountRef.current = false;
             chatServices.off('open', handleOpen);
             chatServices.off('close', handleClose);
         };
     }, []);
 
+    // Now: when subscribeSessions triggers (which only happens if we got data from backend),
+    // not only is sessionListLoaded set to true, but for most APIs/chatServers, you're 'online' now.
     useEffect(() => {
-        if (!selectedChat || !connected) return;
+        const unsubscribe = subscribeSessions((sessions) => {
+            setChatSessions(sessions);
+            setLoading(false);
+            setSessionListLoaded(true);
+            if (!selectedChat && sessions.length > 0) {
+                setSelectedChat(sessions[0]);
+            }
+        });
+        // Always request session list after each connect
+        chatServices.listSessions();
+        return unsubscribe;
+        // eslint-disable-next-line
+    }, []);
+
+    // Retry connect if not connected, until session list is loaded.
+    useEffect(() => {
+        let retryTimeout: any;
+        if (!wsConnected && !sessionListLoaded) {
+            retryTimeout = setTimeout(() => {
+                if (!wsConnected && !sessionListLoaded && firstMountRef.current) {
+                    chatServices.connectToSessionList();
+                }
+            }, 2000);
+        }
+        return () => clearTimeout(retryTimeout);
+    }, [wsConnected, sessionListLoaded]);
+
+    // --- End fix ---
+
+    useEffect(() => {
+        if (!selectedChat || !isOnline) return;
 
         setMessages([]); // Clear old messages
 
-        // Step 1: open chat WebSocket for this chatId
         chatServices.connectToChat(selectedChat.id);
-
-        // Step 2: once connected, request message history
         chatServices.getMessages(selectedChat.id);
 
-        // Step 3: listen for backend 'history' event
         const handleHistory = (msgs: any[]) => {
             if (!Array.isArray(msgs)) return;
             setMessages(
@@ -143,13 +185,12 @@ const LiveChatWithAgent: React.FC = () => {
 
         chatServices.on('history', handleHistory);
 
-        // Step 4: show chat panel on mobile
         if (isMobile) setShowChatPanel(true);
 
         return () => {
             chatServices.off('history', handleHistory);
         };
-    }, [selectedChat, connected, isMobile]);
+    }, [selectedChat, isOnline, isMobile]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -162,10 +203,7 @@ const LiveChatWithAgent: React.FC = () => {
         const handleNewMessage = (msg: any) => {
             if (msg.chat_id === selectedChat.id) {
                 setMessages(prev => {
-                    // Already have backend's id in state? Ignore.
                     if (prev.some(m => m.id === msg.id)) return prev;
-
-                    // Try to match against any pending message for this chat with the same message content, sender, & sent very recently
                     const duplicateIdx = prev.findIndex(
                         m =>
                             m.status === 'pending' &&
@@ -174,15 +212,11 @@ const LiveChatWithAgent: React.FC = () => {
                             m.message === msg.message &&
                             Math.abs(new Date(m.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 15000
                     );
-
                     if (duplicateIdx !== -1) {
-                        // Remove the optimistic pending, insert the backend (with sent status), preserving sort order
                         const merged = [...prev];
                         merged[duplicateIdx] = { ...msg, status: 'sent' };
                         return merged;
                     }
-
-                    // General: Only push if not a dupe
                     return [...prev, msg];
                 });
             }
@@ -210,9 +244,9 @@ const LiveChatWithAgent: React.FC = () => {
         setAttachmentPreviewUrl(null);
     };
 
-    // Ensure when sending a message, we do not append the backend-sent message if it's already in state (to avoid duplicates)
     const handleSendMessage = async () => {
-        if ((!newMessage.trim() && !attachmentFile) || !selectedChat || !connected || sending) return;
+        // -- Only block if not online, instead of 'connected'
+        if ((!newMessage.trim() && !attachmentFile) || !selectedChat || !isOnline || sending) return;
         setSending(true);
 
         const tempId = `msg-${Date.now()}-${Math.round(Math.random() * 10000)}`;
@@ -229,7 +263,6 @@ const LiveChatWithAgent: React.FC = () => {
             status: 'pending',
         };
 
-        // Add optimistic attachment preview if present
         if (attachmentFile) {
             tempMsg.attachment_name = attachmentFile.name;
             tempMsg.attachment_url = attachmentPreviewUrl;
@@ -240,8 +273,6 @@ const LiveChatWithAgent: React.FC = () => {
 
         try {
             let sentMsg: any;
-            // Use single `sendMessage` for both file and non-file case,
-            // since chatServices.sendMessage handles optional attachment param now
             sentMsg = await chatServices.sendMessage(
                 selectedChat.id,
                 tempMsg.message,
@@ -252,16 +283,13 @@ const LiveChatWithAgent: React.FC = () => {
                 setMessages(prev => {
                     const tempIdx = prev.findIndex(m => m.id === tempId);
                     if (prev.some(m => m.id === sentMsg.id)) {
-                        // Already present, just remove optimistic pending
                         return prev.filter(m => m.id !== tempId);
                     }
-
                     if (tempIdx !== -1) {
                         const newArr = [...prev];
                         newArr[tempIdx] = { ...sentMsg, status: 'sent' };
                         return newArr;
                     }
-                    // Not found: add new
                     return [...prev, { ...sentMsg, status: 'sent' }];
                 });
             } else {
@@ -300,9 +328,7 @@ const LiveChatWithAgent: React.FC = () => {
         unread: chatSessions.reduce((sum, s) => sum + (s.unread_count || 0), 0),
     };
 
-    // Helper to render file preview/download icon for a message with an attachment
     function renderAttachment(msg: any) {
-        // If we have an attachment_url (for optimistic messages or server-supplied link)
         if (msg.attachment_url) {
             const url = makeAbsoluteUrl(msg.attachment_url);
             const renderFileTypeIcon = (
@@ -326,8 +352,6 @@ const LiveChatWithAgent: React.FC = () => {
                 </Stack>
             );
         }
-
-        // Fallback: maybe backend returns a link in "attachment" (Message.attachment is a FileField)
         if (msg.attachment) {
             let fileUrl: string | undefined = undefined;
             if (typeof msg.attachment === 'string' && msg.attachment !== '') {
@@ -360,21 +384,18 @@ const LiveChatWithAgent: React.FC = () => {
         return null;
     }
 
-    // New: Refresh handler to reconnect websocket if disconnected
+    // Updated: Refresh handler, force reconnect WebSocket and refetch sessions
     const handleRefresh = () => {
-        if (!connected) {
-            chatServices.connectToSessionList(); // Reconnect websocket for session list
-        }
-        chatServices.listSessions(); // Always reload latest sessions
+        chatServices.connectToSessionList();
+        chatServices.listSessions();
     };
 
     return (
         <Box sx={{ p: { xs: 1, md: 2 }, height: { md: 'calc(100vh - 100px)' } }}>
-            {/* Header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
                     Live Chat With Agent{' '}
-                    {connected ? (
+                    {isOnline ? (
                         <Chip label="Online" size="small" color="success" sx={{ ml: 2, fontWeight: 600 }} />
                     ) : (
                         <Chip label="Offline" size="small" color="error" sx={{ ml: 2, fontWeight: 600 }} />
@@ -384,8 +405,6 @@ const LiveChatWithAgent: React.FC = () => {
                     variant="outlined"
                     startIcon={<RefreshIcon />}
                     onClick={handleRefresh}
-                    // Only enable refresh when disconnected
-                    disabled={connected}
                 >
                     Refresh
                 </Button>
@@ -397,7 +416,6 @@ const LiveChatWithAgent: React.FC = () => {
                 </Alert>
             )}
 
-            {/* Stats */}
             {!isMobile && (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
                     <Box sx={{ flex: '1 1 180px', minWidth: 170, maxWidth: 320 }}>
@@ -438,7 +456,6 @@ const LiveChatWithAgent: React.FC = () => {
                 </Box>
             )}
 
-            {/* Layout */}
             <Box
                 sx={{
                     display: 'flex',
@@ -447,7 +464,6 @@ const LiveChatWithAgent: React.FC = () => {
                     flexDirection: isMobile ? 'column' : 'row',
                 }}
             >
-                {/* Sessions List */}
                 <Slide direction="right" in={!isMobile || !showChatPanel} mountOnEnter unmountOnExit>
                     <Box sx={{ width: { xs: '100%', md: '32%' }, display: 'flex', flexDirection: 'column' }}>
                         <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -539,7 +555,6 @@ const LiveChatWithAgent: React.FC = () => {
                     </Box>
                 </Slide>
 
-                {/* Chat Window */}
                 <Slide direction="left" in={!isMobile || showChatPanel} mountOnEnter unmountOnExit>
                     <Box sx={{ width: { xs: '100%', md: '68%' }, display: 'flex', flexDirection: 'column' }}>
                         <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 350 }}>
@@ -622,7 +637,7 @@ const LiveChatWithAgent: React.FC = () => {
                                                 fullWidth
                                                 multiline
                                                 minRows={1}
-                                                placeholder={connected ? 'Type your message...' : 'WebSocket not connected'}
+                                                placeholder={isOnline ? 'Type your message...' : 'Connecting...'}
                                                 value={newMessage}
                                                 onChange={(e) => setNewMessage(e.target.value)}
                                                 onKeyDown={(e) => (e.key === 'Enter' && !e.shiftKey ? (handleSendMessage(), e.preventDefault()) : undefined)}
@@ -635,14 +650,14 @@ const LiveChatWithAgent: React.FC = () => {
                                                                 id="chat-attachment-input"
                                                                 type="file"
                                                                 onChange={handleAttachmentChange}
-                                                                disabled={!connected || sending}
+                                                                disabled={!isOnline || sending}
                                                             />
                                                             <label htmlFor="chat-attachment-input">
                                                                 <Tooltip title="Attach a file">
                                                                     <span>
                                                                         <IconButton
                                                                             component="span"
-                                                                            disabled={!connected || sending}
+                                                                            disabled={!isOnline || sending}
                                                                             color={attachmentFile ? "primary" : undefined}
                                                                         >
                                                                             <AttachFileIcon />
@@ -653,12 +668,12 @@ const LiveChatWithAgent: React.FC = () => {
                                                         </InputAdornment>
                                                     ),
                                                 }}
-                                                disabled={!connected || sending}
+                                                disabled={!isOnline || sending}
                                             />
                                             <Button
                                                 variant="contained"
                                                 onClick={handleSendMessage}
-                                                disabled={(!newMessage.trim() && !attachmentFile) || !connected || sending}
+                                                disabled={(!newMessage.trim() && !attachmentFile) || !isOnline || sending}
                                                 sx={{ minWidth: 48 }}
                                             >
                                                 {sending ? (
@@ -669,7 +684,6 @@ const LiveChatWithAgent: React.FC = () => {
                                             </Button>
                                         </Stack>
 
-                                        {/* Attachment Preview */}
                                         {attachmentFile && (
                                             <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1, ml: 0.5 }}>
                                                 <InsertDriveFileIcon color="primary" />
