@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Card,
@@ -8,10 +8,6 @@ import {
   Button,
   Alert,
   CircularProgress,
-  InputLabel,
-  FormControl,
-  MenuItem,
-  Select,
   Chip,
   Stack,
   List,
@@ -23,8 +19,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
 } from "@mui/material";
+import Autocomplete from "@mui/material/Autocomplete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -35,6 +32,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useNavigate } from "react-router-dom";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { CountrySelect } from "../../../../components/CountrySelect";
+import { fetchJobSkills } from "../../../../services/definitionService";
 
 // Simulate available jobs for the sidebar (could fetch from API)
 const jobList = [
@@ -78,19 +76,8 @@ const allowedFileTypes = [
 
 const maxFileSizeMB = 5;
 
-const skillsList = [
-  "JavaScript",
-  "Python",
-  "Project Management",
-  "Customer Service",
-  "Data Analysis",
-  "Healthcare",
-  "Construction",
-  "Teaching",
-  "Driving",
-  "Warehouse Operations",
-  "Other",
-];
+// Infer Skill Type: If skillTerms = response.results, which are objects with id and term
+type JobSkill = { id: number; term: string; [key: string]: any };
 
 export const SubmitCV: React.FC = () => {
   const [form, setForm] = useState({
@@ -99,7 +86,7 @@ export const SubmitCV: React.FC = () => {
     phone: "",
     country: "",
     job: "",
-    skills: [] as string[],
+    skills: [] as JobSkill[],
     coverLetter: "",
   });
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -108,12 +95,41 @@ export const SubmitCV: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // NEW STATE for job details dialog
+  // Skills from API (will hold array of JobSkill objects)
+  const [jobSkills, setJobSkills] = useState<JobSkill[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState<boolean>(false);
+
+  // State for job details dialog
   const [openJobDialog, setOpenJobDialog] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Fetch job skills for the autocomplete on mount
+  useEffect(() => {
+    let mounted = true;
+    setLoadingSkills(true);
+    fetchJobSkills()
+      .then((response: any) => {
+        if (mounted) {
+          let skillTerms: JobSkill[] = [];
+          // Acceptable response: { results: [ { id, term, ... }, ... ] }
+          if (response && Array.isArray(response.results)) {
+            skillTerms = response.results;
+          }
+          setJobSkills(skillTerms);
+          console.log(skillTerms);
+        }
+      })
+      .catch(() => {
+        setJobSkills([]);
+      })
+      .finally(() => setLoadingSkills(false));
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>
@@ -132,16 +148,27 @@ export const SubmitCV: React.FC = () => {
     }));
   };
 
+  // const handleJobChange = (
+  //   _event: React.SyntheticEvent,
+  //   value: string | null
+  // ) => {
+  //   setForm((prev) => ({
+  //     ...prev,
+  //     job: value ?? "",
+  //   }));
+  // };
+
+  /**
+   * Handle selection and value map for job skills, which are JobSkill objects.
+   * Value is an array of JobSkill, but submission can extract .term from those.
+   */
   const handleSkillsChange = (
-    event: React.ChangeEvent<HTMLInputElement> | { target: { value: unknown } }
+    _event: React.SyntheticEvent<Element, Event>,
+    value: JobSkill[]
   ) => {
-    const value =
-      "target" in event && event.target
-        ? event.target.value
-        : (event as any).value;
     setForm((prev) => ({
       ...prev,
-      skills: typeof value === "string" ? value.split(",") : (value as string[]),
+      skills: value,
     }));
   };
 
@@ -209,7 +236,7 @@ export const SubmitCV: React.FC = () => {
     }, 1800);
   };
 
-  // NEW: Job Details Dialog UI
+  // Job Details Dialog UI
   const handleOpenJobDialog = (job: any) => {
     setSelectedJob(job);
     setOpenJobDialog(true);
@@ -219,7 +246,6 @@ export const SubmitCV: React.FC = () => {
     setSelectedJob(null);
   };
   const handleApplyForJob = () => {
-    // Autofill the job title and country fields
     if (selectedJob) {
       setForm((prev) => ({
         ...prev,
@@ -464,29 +490,60 @@ export const SubmitCV: React.FC = () => {
                     fullWidth
                     placeholder="e.g. Software Engineer, Healthcare Assistant"
                   />
-                  <FormControl fullWidth>
-                    <InputLabel id="skills-label">Skills (select multiple)</InputLabel>
-                    <Select
-                      labelId="skills-label"
-                      multiple
-                      value={form.skills}
-                      onChange={(event) => handleSkillsChange(event)}
-                      renderValue={(selected) => (
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                          {(selected as string[]).map((value) => (
-                            <Chip key={value} label={value} />
-                          ))}
-                        </Box>
-                      )}
-                      label="Skills (select multiple)"
-                    >
-                      {skillsList.map((skill) => (
-                        <MenuItem key={skill} value={skill}>
-                          {skill}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    multiple
+                    id="skills-autocomplete"
+                    options={jobSkills}
+                    value={form.skills}
+                    onChange={handleSkillsChange}
+                    loading={loadingSkills}
+                    disableCloseOnSelect
+                    freeSolo={false}
+                    // --- The fix: ensure each option has a string label ---
+                    getOptionLabel={
+                      (option: JobSkill | string) =>
+                        typeof option === "string"
+                          ? option
+                          : option.term || ""
+                    }
+                    isOptionEqualToValue={(option, value) =>
+                      // If jobs from API always have unique id, compare by id, else by label
+                      (typeof option === "string" || typeof value === "string")
+                        ? option === value
+                        : option.id === value.id
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Skills (select multiple)"
+                        placeholder="Start typing to search skills"
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {loadingSkills ? <CircularProgress color="inherit" size={20} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                    renderTags={(tagValue, getTagProps) =>
+                      tagValue.map((option, index) => (
+                        <Chip
+                          variant="outlined"
+                          color="primary"
+                          label={typeof option === "string" ? option : option.term}
+                          {...getTagProps({ index })}
+                          key={
+                            typeof option === "string"
+                              ? option
+                              : option.id || option.term
+                          }
+                        />
+                      ))
+                    }
+                  />
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
                       Upload CV <span style={{ color: "#d32f2f" }}>*</span>

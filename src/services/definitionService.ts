@@ -28,7 +28,7 @@ export async function fetchGenders() {
 }
 
 
-export async function fetchJobRoles() {
+export async function fetchJobSkills() {
   try {
     const response = await api.get("/definitions/by-table-name/?table_name=job_roles");
     return response.data;
