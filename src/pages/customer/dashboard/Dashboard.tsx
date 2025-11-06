@@ -360,6 +360,9 @@ export const Dashboard: React.FC = () => {
       case "Raise Ticket":
         route = "/support/tickets";
         break;
+      case "Chat":
+          route = "/support/chat";
+          break;
       default:
         // fallback to modal for unknown actions (for banners, etc)
         setModalLabel(label);
@@ -667,8 +670,20 @@ export const Dashboard: React.FC = () => {
               Need Help?
             </Typography>
             <Box display="flex" flexDirection="column" gap={2}>
-              <HelpButton text="Chat" />
-              <HelpButton text="Call" />
+              <HelpButton text="Chat" onClick={() => handleActionClick("Chat")}/>
+              {/* <HelpButton
+                text="Call"
+                onClick={() => {
+                  const phoneNumber = "+234 700 800 8080";
+                  // Copy to clipboard
+                  navigator.clipboard.writeText(phoneNumber);
+                  // You can show a toast/snackbar or an alert
+                  alert(`Phone number ${phoneNumber} copied to clipboard!`);
+                }}
+              />
+              <Typography variant="body2" color="textSecondary" sx={{ ml: 2 }}>
+                +234 700 800 8080
+              </Typography> */}
               <HelpButton text="Raise Ticket" onClick={() => handleActionClick("Raise Ticket")} />
             </Box>
           </Paper>
