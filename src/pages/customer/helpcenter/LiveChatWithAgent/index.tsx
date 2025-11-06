@@ -312,9 +312,9 @@ const LiveChatWithAgent: React.FC = () => {
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
                     Live Chat With Agent{' '}
                     {connected ? (
-                        <Chip label="Connected" size="small" color="success" sx={{ ml: 2, fontWeight: 600 }} />
+                        <Chip label="Online" size="small" color="success" sx={{ ml: 2, fontWeight: 600 }} />
                     ) : (
-                        <Chip label="Disconnected" size="small" color="error" sx={{ ml: 2, fontWeight: 600 }} />
+                        <Chip label="Offline" size="small" color="error" sx={{ ml: 2, fontWeight: 600 }} />
                     )}
                 </Typography>
                 <Button
