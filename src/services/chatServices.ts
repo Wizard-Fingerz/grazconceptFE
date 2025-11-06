@@ -4,8 +4,8 @@
  * Designed for use in React hooks/pages.
  */
 
-// const API_BASE_URL = 'https://backend.grazconcept.com.ng/';
-const API_BASE_URL = 'http://localhost:8002/';
+const API_BASE_URL = 'https://backend.grazconcept.com.ng/';
+// const API_BASE_URL = 'http://localhost:8002/';
 
 
 
