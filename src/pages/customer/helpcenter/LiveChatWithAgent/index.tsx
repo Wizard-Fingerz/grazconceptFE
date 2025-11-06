@@ -19,6 +19,7 @@ import {
   useMediaQuery,
   useTheme,
   Slide,
+  CircularProgress,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -56,8 +57,9 @@ const LiveChatWithAgent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false); // New state for message sending
   const [connected, setConnected] = useState(false);
-  const [showChatPanel, setShowChatPanel] = useState(false); // ✅ new for mobile toggle
+  const [showChatPanel, setShowChatPanel] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -66,7 +68,6 @@ const LiveChatWithAgent: React.FC = () => {
   // Subscribe to chat sessions
   useEffect(() => {
     const unsubscribe = subscribeSessions((sessions) => {
-      console.log('🔵 [subscribeSessions] sessions from service:', sessions);
       setChatSessions(sessions);
       setLoading(false);
       if (!selectedChat && sessions.length > 0) {
@@ -76,7 +77,9 @@ const LiveChatWithAgent: React.FC = () => {
     chatServices.connectToSessionList();
     chatServices.listSessions();
     return unsubscribe;
-  }, [selectedChat]);
+    // NOTE: purposely omitting selectedChat from deps to avoid infinite session overwrite loop.
+    // eslint-disable-next-line
+  }, []);
 
   // Connection events
   useEffect(() => {
@@ -97,16 +100,46 @@ const LiveChatWithAgent: React.FC = () => {
       chatServices.getMessages(selectedChat.id);
       if (isMobile) setShowChatPanel(true);
     }
-  }, [selectedChat, connected]);
+  }, [selectedChat, connected, isMobile]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChat || !connected) return;
-    const msg = {
-      id: `msg-${Date.now()}`,
+  // FIX: Send message to the backend using chatServices.sendMessage and ensure message is pushed only
+  // after confirmation from the backend or using a mechanism to sync new messages.
+
+  // We will listen for new messages from the backend in real-time using an event handler
+  useEffect(() => {
+    if (!selectedChat) return;
+
+    // Handler for new messages from backend (simulate push from websocket or polling)
+    const handleNewMessage = (msg: any) => {
+      // Only append messages for the current chat session
+      if (msg.chat_id === selectedChat.id) {
+        setMessages(prev => {
+          // Avoid duplication by id
+          if (prev.find(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+      }
+    };
+
+    chatServices.on && chatServices.on('message', handleNewMessage);
+
+    return () => {
+      chatServices.off && chatServices.off('message', handleNewMessage);
+    };
+  }, [selectedChat]);
+
+  // Updated send message logic
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedChat || !connected || sending) return;
+    setSending(true);
+
+    const tempId = `msg-${Date.now()}-${Math.round(Math.random() * 10000)}`;
+    const tempMsg = {
+      id: tempId, // temporary id for optimistic UI
       chat_id: selectedChat.id,
       sender_id: 101,
       sender_name: 'You',
@@ -114,10 +147,46 @@ const LiveChatWithAgent: React.FC = () => {
       message: newMessage,
       timestamp: new Date().toISOString(),
       read: true,
+      status: 'pending',
     };
-    setMessages(prev => [...prev, msg]);
-    chatServices.sendMessage(selectedChat.id, newMessage);
+    setMessages(prev => [...prev, tempMsg]);
     setNewMessage('');
+
+    try {
+      // Call the backend and await for the response
+      // If backend returns the saved message (with real id & info), update local messages accordingly
+      const sentMsg = await chatServices.sendMessage(selectedChat.id, tempMsg.message);
+
+      // If chatServices.sendMessage returns the created message object, merge it
+      if (typeof sentMsg === 'object' && sentMsg !== null && 'id' in sentMsg) {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === tempId
+              ? { ...(sentMsg as Record<string, any>), status: 'sent' }
+              : m
+          )
+        );
+      
+      } else {
+        // Fallback: just mark as sent
+        setMessages(prev => prev.map(m =>
+          m.id === tempId ? { ...m, status: 'sent' } : m
+        ));
+      }
+
+      setSending(false);
+    } catch (err: any) {
+      setError("Message failed to send. Please try again.");
+      // Mark last "pending" message as errored
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === tempId
+            ? { ...m, status: 'error' }
+            : m
+        )
+      );
+      setSending(false);
+    }
   };
 
   const filteredSessions = searchTerm
@@ -278,11 +347,12 @@ const LiveChatWithAgent: React.FC = () => {
                             </Box>
                           }
                           secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary" noWrap>
+                            <Box component="span">
+                              <Typography variant="body2" color="text.secondary" noWrap component="span">
                                 {session.service_title || ''}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <br />
+                              <Typography variant="caption" color="text.secondary" component="span">
                                 {session.last_message_at
                                   ? new Date(session.last_message_at).toLocaleString()
                                   : ''}
@@ -340,13 +410,30 @@ const LiveChatWithAgent: React.FC = () => {
                             sx={{
                               p: 2,
                               maxWidth: '75%',
-                              bgcolor: msg.sender_type === 'customer' ? 'primary.main' : 'grey.100',
-                              color: msg.sender_type === 'customer' ? 'white' : 'text.primary',
+                              bgcolor: msg.sender_type === 'customer'
+                                ? (msg.status === 'error' ? 'error.main' : 'primary.main')
+                                : 'grey.100',
+                              color: msg.sender_type === 'customer'
+                                ? (msg.status === 'error' ? 'white' : 'white')
+                                : 'text.primary',
+                              opacity: msg.status === 'pending' ? 0.6 : 1,
+                              border: msg.status === 'error' ? '2px solid #d32f2f' : undefined,
                             }}
                           >
-                            <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                              {msg.sender_type === 'customer' ? 'You' : msg.sender_name}
-                            </Typography>
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
+                                {msg.sender_type === 'customer' ? 'You' : msg.sender_name}
+                              </Typography>
+                              {/* Sending/Delivered/Error indicator */}
+                              {msg.sender_type === 'customer' && msg.status === 'pending' && (
+                                <CircularProgress size={14} sx={{ color: 'white' }} />
+                              )}
+                              {msg.sender_type === 'customer' && msg.status === 'error' && (
+                                <Typography variant="caption" color="error" sx={{ fontWeight: 700 }}>
+                                  Failed
+                                </Typography>
+                              )}
+                            </Stack>
                             <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                               {msg.message}
                             </Typography>
@@ -369,24 +456,29 @@ const LiveChatWithAgent: React.FC = () => {
                         placeholder={connected ? 'Type your message...' : 'WebSocket not connected'}
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => (e.key === 'Enter' && !e.shiftKey ? (handleSendMessage(), e.preventDefault()) : undefined)}
                         InputProps={{
                           endAdornment: (
                             <InputAdornment position="end">
-                              <IconButton>
+                              <IconButton disabled>
                                 <AttachFileIcon />
                               </IconButton>
                             </InputAdornment>
                           ),
                         }}
-                        disabled={!connected}
+                        disabled={!connected || sending}
                       />
                       <Button
                         variant="contained"
                         onClick={handleSendMessage}
-                        disabled={!newMessage.trim() || !connected}
+                        disabled={!newMessage.trim() || !connected || sending}
+                        sx={{ minWidth: 48 }}
                       >
-                        <SendIcon />
+                        {sending ? (
+                          <CircularProgress size={24} sx={{ color: 'white' }} />
+                        ) : (
+                          <SendIcon />
+                        )}
                       </Button>
                     </Stack>
                   </Box>

@@ -264,14 +264,52 @@ function disconnectAll() {
 }
 
 // --- Client commands ---
-function sendMessage(chatId: string, message: string) {
-  const ws = chatSockets[chatId];
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    emit('error', { error: 'Chat WebSocket not connected', chatId });
-    return;
-  }
-  ws.send(JSON.stringify({ command: 'send_message', message }));
+/**
+ * Send a message within a chat.
+ * Implements the backend protocol: sends {command: 'send_message', message: "..."}
+ * @param chatId the chat session id
+ * @param message the plain text message to send
+ */
+/**
+ * Send a message to a chat via WebSocket and resolve once backend confirms it.
+ */
+function sendMessage(chatId: string, message: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const ws = chatSockets[chatId];
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      const error = new Error(`Chat WebSocket not connected for chatId ${chatId}`);
+      emit('error', { error: error.message });
+      return reject(error);
+    }
+
+    const payload = { command: 'send_message', message };
+    console.log(`[Chat WS] Sending message to chat ${chatId}:`, payload);
+    ws.send(JSON.stringify(payload));
+
+    // Wait for backend confirmation (with timeout)
+    const timeout = setTimeout(() => {
+      reject(new Error('Timeout waiting for backend confirmation.'));
+    }, 5000);
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'message' && data.message?.message === message) {
+          console.log('[Chat WS] ✅ Backend confirmed message:', data.message);
+          clearTimeout(timeout);
+          ws.removeEventListener('message', handleMessage);
+          resolve(data.message);
+        }
+      } catch (err) {
+        // ignore parse errors
+      }
+    };
+
+    ws.addEventListener('message', handleMessage);
+  });
 }
+
+
 
 function getMessages(chatId: string) {
   const ws = chatSockets[chatId];
