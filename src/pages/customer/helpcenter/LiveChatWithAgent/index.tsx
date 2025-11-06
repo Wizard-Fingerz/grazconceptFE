@@ -360,6 +360,14 @@ const LiveChatWithAgent: React.FC = () => {
         return null;
     }
 
+    // New: Refresh handler to reconnect websocket if disconnected
+    const handleRefresh = () => {
+        if (!connected) {
+            chatServices.connectToSessionList(); // Reconnect websocket for session list
+        }
+        chatServices.listSessions(); // Always reload latest sessions
+    };
+
     return (
         <Box sx={{ p: { xs: 1, md: 2 }, height: { md: 'calc(100vh - 100px)' } }}>
             {/* Header */}
@@ -375,7 +383,7 @@ const LiveChatWithAgent: React.FC = () => {
                 <Button
                     variant="outlined"
                     startIcon={<RefreshIcon />}
-                    onClick={chatServices.listSessions}
+                    onClick={handleRefresh}
                     // Only enable refresh when disconnected
                     disabled={connected}
                 >
