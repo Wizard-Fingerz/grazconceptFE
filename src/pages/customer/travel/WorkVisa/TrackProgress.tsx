@@ -30,7 +30,6 @@ import {
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import SendIcon from "@mui/icons-material/Send";
-import ReplyIcon from "@mui/icons-material/Reply";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { getMyRecentSudyVisaApplicaton } from "../../../../services/studyVisa";
@@ -38,76 +37,19 @@ import { getMyWorkVisaApplications } from "../../../../services/workVisaService"
 import { getPilgrimageApplications } from "../../../../services/pilgrimageServices";
 import { getAllVacationBookings } from "../../../../services/vacationService";
 
-// Steps, statusDescriptions, types, util functions, and hooks remain unchanged
-
+// Steps
 const WORK_VISA_STEPS = [
-  "Draft",
-  "Application Received",
-  "Pending Documents from Applicant",
-  "Application Submitted to Employer/Agency",
-  "Application on Hold",
-  "Interview/Screening Scheduled",
-  "Offer Letter Received",
-  "Payment/Processing Fee Confirmed",
-  "Work Permit/Approval in Progress",
-  "Visa Application Submitted to Embassy",
-  "Visa Granted",
-  "Visa Denied",
-  "Case Closed",
+  "Draft", "Application Received", "Pending Documents from Applicant", "Application Submitted to Employer/Agency", "Application on Hold", "Interview/Screening Scheduled", "Offer Letter Received", "Payment/Processing Fee Confirmed", "Work Permit/Approval in Progress", "Visa Application Submitted to Embassy", "Visa Granted", "Visa Denied", "Case Closed"
 ];
-
 const VACATION_STEPS = [
-  "Draft",
-  "Application Received",
-  "Pending Documents from Applicant",
-  "Application Submitted to Travel Partner/Embassy",
-  "Application on Hold",
-  "Payment Confirmed",
-  "Visa Application Submitted",
-  "Visa Granted",
-  "Visa Denied",
-  "Flight Booking Confirmed",
-  "Accommodation Reserved",
-  "Trip in Progress",
-  "Trip Completed",
-  "Case Closed",
+  "Draft", "Application Received", "Pending Documents from Applicant", "Application Submitted to Travel Partner/Embassy", "Application on Hold", "Payment Confirmed", "Visa Application Submitted", "Visa Granted", "Visa Denied", "Flight Booking Confirmed", "Accommodation Reserved", "Trip in Progress", "Trip Completed", "Case Closed"
 ];
-
 const STUDY_VISA_STEPS = [
-  "Draft",
-  "Completed",
-  "Approved",
-  "Rejected",
-  "Received Application",
-  "Pending From Student",
-  "Application Submitted to the Institution",
-  "Application on hold, Intake not yet open",
-  "Case Closed",
-  "Rejected By the institution",
-  "Conditional offer Received",
-  "Unconditional Offer received",
-  "Payment Received",
-  "Visa  granted",
-  "Visa Denied",
+  "Draft", "Completed", "Approved", "Rejected", "Received Application", "Pending From Student", "Application Submitted to the Institution", "Application on hold, Intake not yet open", "Case Closed", "Rejected By the institution", "Conditional offer Received", "Unconditional Offer received", "Payment Received", "Visa  granted", "Visa Denied"
 ];
-
 const PILGRIMAGE_STEPS = [
-  "Draft",
-  "Application Received",
-  "Pending Documents from Applicant",
-  "Application Submitted to Embassy/Authority",
-  "Application on Hold",
-  "Payment Confirmed",
-  "Visa Application Submitted",
-  "Visa Granted",
-  "Visa Denied",
-  "Flight & Accommodation Confirmed",
-  "Orientation/Briefing Completed",
-  "Pilgrimage in Progress",
-  "Return Completed",
-  "Case Closed",
+  "Draft", "Application Received", "Pending Documents from Applicant", "Application Submitted to Embassy/Authority", "Application on Hold", "Payment Confirmed", "Visa Application Submitted", "Visa Granted", "Visa Denied", "Flight & Accommodation Confirmed", "Orientation/Briefing Completed", "Pilgrimage in Progress", "Return Completed", "Case Closed"
 ];
-
 
 type ApplicationType = "workVisa" | "studyVisa" | "pilgrimage" | "vacation";
 
@@ -193,14 +135,12 @@ function PaginatedPhrase({
   );
 }
 
-// Chat bubble used in comments
-function ChatBubble({ message, isMe, children, fileUrl, timestamp, onReply }: {
+// Chat bubble used in comments (no reply support)
+function ChatBubble({ message, isMe, fileUrl, timestamp }: {
   message: string;
   isMe: boolean;
-  children?: any;
   fileUrl?: string;
   timestamp?: string;
-  onReply?: () => void;
 }) {
   return (
     <Box sx={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", mb: 1 }}>
@@ -245,35 +185,15 @@ function ChatBubble({ message, isMe, children, fileUrl, timestamp, onReply }: {
             {timestamp ||
               new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </Typography>
-          {onReply && (
-            <Button
-              startIcon={<ReplyIcon fontSize="small" />}
-              size="small"
-              sx={{
-                ml: 0,
-                mt: "-2px",
-                color: "#9e7a27",
-                textTransform: "none",
-                fontSize: 12,
-                padding: "0 4px",
-                minWidth: 0,
-              }}
-              onClick={onReply}
-            >
-              Reply
-            </Button>
-          )}
         </Box>
-        {children}
       </Box>
     </Box>
   );
 }
 
-// Simulate loading/fetching/sending comments + uploading
-// In real app, replace with API calls for per-application thread
+// Simulate loading/fetching/sending comments (flat, no reply)
 function useCommentsForApp(selectedAppId: string | null) {
-  // Each item: {id, message, createdAt, user, fileUrl, parentId}
+  // Each item: {id, text, created_at, sender_type, sender_display, attachment}
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -281,48 +201,73 @@ function useCommentsForApp(selectedAppId: string | null) {
     setLoading(true);
     // Simulate API fetch. In practice, pass selectedAppId to API
     setTimeout(() => {
-      // Hardcode/fake some threaded comments & attachments for demo
+      // Example comments shaped like the serializer (no reply threading)
       setComments(selectedAppId
         ? [
             {
               id: 1,
-              message: "Welcome! Here we discuss your application status.",
-              createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-              user: "Applicant",
-              fileUrl: null,
-              parentId: null,
+              visa_application: selectedAppId,
+              applicant: true,
+              admin: false,
+              text: "Welcome! Here we discuss your application status.",
+              created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+              is_read_by_applicant: true,
+              is_read_by_admin: false,
+              attachment: null,
+              sender_type: "applicant",
+              sender_display: "You",
             },
             {
               id: 2,
-              message: "Can you provide your updated passport scan?",
-              createdAt: new Date(Date.now() - 1000 * 50).toISOString(),
-              user: "Agent",
-              fileUrl: null,
-              parentId: null,
+              visa_application: selectedAppId,
+              applicant: false,
+              admin: true,
+              text: "Can you provide your updated passport scan?",
+              created_at: new Date(Date.now() - 1000 * 50).toISOString(),
+              is_read_by_applicant: true,
+              is_read_by_admin: true,
+              attachment: null,
+              sender_type: "admin",
+              sender_display: "Agent",
             },
             {
               id: 3,
-              message: "Sure, uploading now.",
-              createdAt: new Date(Date.now() - 1000 * 40).toISOString(),
-              user: "Applicant",
-              fileUrl: null,
-              parentId: 2,
+              visa_application: selectedAppId,
+              applicant: true,
+              admin: false,
+              text: "Sure, uploading now.",
+              created_at: new Date(Date.now() - 1000 * 40).toISOString(),
+              is_read_by_applicant: true,
+              is_read_by_admin: true,
+              attachment: null,
+              sender_type: "applicant",
+              sender_display: "You"
             },
             {
               id: 4,
-              message: "Here's the scanned document.",
-              createdAt: new Date(Date.now() - 1000 * 30).toISOString(),
-              user: "Applicant",
-              fileUrl: "/dummy-file.pdf",
-              parentId: 2,
+              visa_application: selectedAppId,
+              applicant: true,
+              admin: false,
+              text: "Here's the scanned document.",
+              created_at: new Date(Date.now() - 1000 * 30).toISOString(),
+              is_read_by_applicant: true,
+              is_read_by_admin: true,
+              attachment: "/dummy-file.pdf",
+              sender_type: "applicant",
+              sender_display: "You",
             },
             {
               id: 5,
-              message: "Thank you. We will update your application.",
-              createdAt: new Date(Date.now() - 1000 * 15).toISOString(),
-              user: "Agent",
-              fileUrl: null,
-              parentId: 2,
+              visa_application: selectedAppId,
+              applicant: false,
+              admin: true,
+              text: "Thank you. We will update your application.",
+              created_at: new Date(Date.now() - 1000 * 15).toISOString(),
+              is_read_by_applicant: true,
+              is_read_by_admin: true,
+              attachment: null,
+              sender_type: "admin",
+              sender_display: "Agent",
             },
           ]
         : []
@@ -349,51 +294,19 @@ function useCommentsForApp(selectedAppId: string | null) {
   };
 }
 
-// Helper: nested threaded view
-function ThreadedComments({ comments, onReply }: { comments: any[], onReply: (parentId: number | null, mention?: string) => void }) {
-  // Find root comments
-  const roots = comments.filter((c) => !c.parentId);
-  function getReplies(id: number) {
-    return comments.filter((c) => c.parentId === id);
-  }
-
+// Flat comments list (no threading, no reply)
+function CommentsList({ comments }: { comments: any[] }) {
   return (
     <Box>
-      {roots.map((com) => (
-        <CommentThreadNode key={com.id} comment={com} replies={getReplies(com.id)} onReply={onReply} allReplies={getReplies} comments={comments} />
+      {comments.map((com) => (
+        <ChatBubble
+          key={com.id}
+          message={com.text}
+          isMe={com.sender_type === "applicant"}
+          fileUrl={com.attachment}
+          timestamp={new Date(com.created_at).toLocaleString()}
+        />
       ))}
-    </Box>
-  );
-}
-
-function CommentThreadNode({ comment, replies, onReply, allReplies, comments, depth = 0 }: {
-  comment: any, replies: any[], onReply: (parentId: number | null, mention?: string) => void, allReplies: (id: number) => any[], comments: any[], depth?: number
-}) {
-  return (
-    <Box sx={{ ml: depth ? 4 : 0, mt: depth ? 1 : 0 }}>
-      <ChatBubble
-        message={comment.message}
-        isMe={comment.user === "Applicant"}
-        fileUrl={comment.fileUrl}
-        timestamp={new Date(comment.createdAt).toLocaleString()}
-        onReply={() => onReply(comment.id, comment.user === "Applicant" ? undefined : comment.user)}
-      >
-        {replies.length > 0 && (
-          <Box sx={{ mt: 0.8 }}>
-            {replies.map((reply) => (
-              <CommentThreadNode
-                key={reply.id}
-                comment={reply}
-                replies={allReplies(reply.id)}
-                onReply={onReply}
-                allReplies={allReplies}
-                comments={comments}
-                depth={depth + 1}
-              />
-            ))}
-          </Box>
-        )}
-      </ChatBubble>
     </Box>
   );
 }
@@ -419,7 +332,6 @@ export const TrackProgress: React.FC = () => {
   const [newComment, setNewComment] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
-  const [replyTo, setReplyTo] = useState<{ parentId: number | null; mention?: string } | null>(null);
 
   // Effect to fetch all applications
   useEffect(() => {
@@ -497,7 +409,7 @@ export const TrackProgress: React.FC = () => {
             job: offer.job_title || "-",
             organization: org.name || "-",
             status: status,
-            currentStep: 0, // No need for currentStep in this chat-only UI
+            currentStep: 0,
             appliedAt: item.submitted_at || item.created_at,
             steps: WORK_VISA_STEPS,
             type: "workVisa" as ApplicationType,
@@ -560,16 +472,10 @@ export const TrackProgress: React.FC = () => {
   const applications = getApplicationsForTab(tab);
   const selectedApp = applications.find((app) => String(app.id) === selectedId);
 
-  // Comments hook for current app
+  // Comments hook for current app (flat, no reply)
   const { comments, loading: loadingComments, addComment } = useCommentsForApp(selectedApp ? selectedApp.id : null);
 
-  // Reply logic
-  function handleReply(parentId: number | null, mention?: string) {
-    setReplyTo({ parentId, mention });
-    setNewComment(mention ? `@${mention} ` : "");
-  }
-
-  // Comment send
+  // Comment send (flat, no reply)
   async function handleSendComment(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!newComment.trim() && !uploadFile) return;
@@ -579,16 +485,20 @@ export const TrackProgress: React.FC = () => {
     setTimeout(() => {
       const fileUrl = uploadFile ? `/fake-uploads/${uploadFile.name}` : null;
       addComment({
-        message: newComment.trim() || (uploadFile ? uploadFile.name : ""),
-        createdAt: new Date().toISOString(),
-        user: "Applicant",
-        fileUrl,
-        parentId: replyTo?.parentId ?? null,
+        text: newComment.trim() || (uploadFile ? uploadFile.name : ""),
+        created_at: new Date().toISOString(),
+        sender_type: "applicant",
+        sender_display: "You",
+        attachment: fileUrl,
+        applicant: true,
+        admin: false,
+        visa_application: selectedApp ? selectedApp.id : null,
+        is_read_by_applicant: true,
+        is_read_by_admin: false,
       });
       setSending(false);
       setNewComment("");
       setUploadFile(null);
-      setReplyTo(null);
     }, 800);
   }
 
@@ -599,17 +509,15 @@ export const TrackProgress: React.FC = () => {
     if (file) setUploadFile(file);
   }
 
-  // Helper: string-safe render for possibly-object values
+  // Helper for maybe-object text rendering
   function renderMaybeObject(val: any, opts?: { phraseMax?: number }) {
     if (val == null) return "-";
     let display =
       typeof val === "object"
         ? val.label || val.name || val.term || JSON.stringify(val)
         : val;
-
     if (typeof display !== "string") display = `${display}`;
     const phraseMax = opts?.phraseMax ?? 16;
-
     return (
       <PaginatedPhrase
         phrase={display}
@@ -823,7 +731,7 @@ export const TrackProgress: React.FC = () => {
                         No comments yet. Start the conversation!
                       </Typography>
                     ) : (
-                      <ThreadedComments comments={comments} onReply={handleReply} />
+                      <CommentsList comments={comments} />
                     )}
                   </Box>
 
@@ -861,11 +769,7 @@ export const TrackProgress: React.FC = () => {
                       <TextField
                         sx={{ flex: 1, minWidth: 120 }}
                         size="small"
-                        placeholder={
-                          replyTo && replyTo.mention
-                            ? `Reply to @${replyTo.mention}...`
-                            : "Type your comment"
-                        }
+                        placeholder="Type your comment"
                         variant="outlined"
                         value={newComment}
                         onChange={e => setNewComment(e.target.value)}
@@ -889,7 +793,6 @@ export const TrackProgress: React.FC = () => {
                         }}
                         disabled={sending}
                         inputProps={{ maxLength: 1000 }}
-                        autoFocus={!!replyTo}
                       />
                       {uploadFile && (
                         <Button
@@ -908,17 +811,6 @@ export const TrackProgress: React.FC = () => {
                   </form>
                   {sending && (
                     <LinearProgress color="warning" sx={{ mt: 1, borderRadius: 1 }} />
-                  )}
-                  {replyTo && (
-                    <Box sx={{ pt: 0.5 }}>
-                      <Button
-                        size="small"
-                        onClick={() => setReplyTo(null)}
-                        sx={{ color: "#755900", textTransform: "none", fontSize: 12 }}
-                      >
-                        Cancel reply
-                      </Button>
-                    </Box>
                   )}
                 </CardContent>
               </Card>
