@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Card,
@@ -21,8 +21,17 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Avatar,
+  TextField,
+  InputAdornment,
+  Paper,
+  LinearProgress,
 } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import SendIcon from "@mui/icons-material/Send";
+import ReplyIcon from "@mui/icons-material/Reply";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { getMyRecentSudyVisaApplicaton } from "../../../../services/studyVisa";
 import { getMyWorkVisaApplications } from "../../../../services/workVisaService";
@@ -99,47 +108,6 @@ const PILGRIMAGE_STEPS = [
   "Case Closed",
 ];
 
-const statusDescriptions: Record<string, string> = {
-  // ... unchanged ...
-  "Draft": "Your application is in draft mode. Please review and submit.",
-  "Application Received": "Your application has been received and is being reviewed.",
-  "Pending Documents from Applicant": "We require additional documents from you to proceed.",
-  "Application Submitted to Employer/Agency": "Your application has been submitted to the employer or agency for further processing.",
-  "Application Submitted to Travel Partner/Embassy": "Your application has been sent to our travel partner or relevant embassy.",
-  "Application Submitted to Embassy/Authority": "Your application has been submitted to the respective authority.",
-  "Application Submitted to the Institution": "Your application has been submitted to the institution.",
-  "Application on Hold": "Your application is currently on hold. Please check your email for next steps.",
-  "Payment/Processing Fee Confirmed": "Your payment or processing fee has been received and confirmed.",
-  "Payment Confirmed": "Your payment has been received and confirmed.",
-  "Visa Application Submitted to Embassy": "Visa application has been formally submitted to the embassy.",
-  "Visa Application Submitted": "Your visa application has been submitted.",
-  "Interview/Screening Scheduled": "Your interview/screening has been scheduled. Please check your email for details.",
-  "Offer Letter Received": "Congratulations, you have received an offer letter.",
-  "Work Permit/Approval in Progress": "Your work permit or approval is being processed by authorities.",
-  "Visa Granted": "Congratulations! Your visa has been granted.",
-  "Visa  granted": "Congratulations! Your visa has been granted.",
-  "Visa Approved": "Congratulations! Your visa has been approved.",
-  "Visa Denied": "Unfortunately, your visa application has been denied.",
-  "Rejected": "Unfortunately, your application was rejected.",
-  "Rejected By the institution": "Unfortunately, your application was rejected by the institution.",
-  "Completed": "Congratulations! The process is complete.",
-  "Case Closed": "Your case has been closed.",
-  "Conditional offer Received": "You have received a conditional offer.",
-  "Unconditional Offer received": "You have received an unconditional offer.",
-  "Payment Received": "Your payment has been received.",
-  "Flight Booking Confirmed": "Your flight has been booked and confirmed.",
-  "Accommodation Reserved": "Your accommodation has been reserved.",
-  "Trip in Progress": "Your trip is currently in progress.",
-  "Trip Completed": "Your vacation is complete. Thank you for booking with us!",
-  "Flight & Accommodation Confirmed": "Both your flight and accommodation have been confirmed.",
-  "Orientation/Briefing Completed": "You have completed pre-pilgrimage orientation.",
-  "Pilgrimage in Progress": "Your pilgrimage is currently in progress.",
-  "Return Completed": "Your pilgrimage return has been completed. Thank you.",
-  "KINDLY COMPLETE YOUR APPLICATION": "Please complete your application to proceed.",
-  "Received Application": "We have received your application.",
-  "Pending From Student": "Pending action from student. Please check requests or update your application.",
-  "Application on hold, Intake not yet open": "Application is on hold; intake has not yet opened.",
-};
 
 type ApplicationType = "workVisa" | "studyVisa" | "pilgrimage" | "vacation";
 
@@ -225,140 +193,210 @@ function PaginatedPhrase({
   );
 }
 
-// NEW: Utility to find the furthest reached step in steps matching the current status or closest match
-function findCurrentStepIndex(status: string, steps: string[]): number {
-  if (!status || typeof status !== "string") {
-    if (typeof status === "object" && status != null) {
-      const possible = (status as Record<string, unknown>);
-      status =
-        (typeof possible.label === "string" && possible.label) ||
-        (typeof possible.term === "string" && possible.term) ||
-        (typeof possible.name === "string" && possible.name) ||
-        JSON.stringify(status);
-    } else {
-      status = `${status}`;
-    }
-  }
-
-  // Simple/exact
-  let idx = steps.findIndex(
-    (s) => s.toLowerCase() === status.toLowerCase()
-  );
-  if (idx !== -1) return idx;
-
-  // Try contains status (for fuzzy status matching)
-  idx = steps.findIndex(
-    (s) =>
-      status.toLowerCase().includes(s.toLowerCase()) ||
-      s.toLowerCase().includes(status.toLowerCase())
-  );
-  if (idx !== -1) return idx;
-
-  // Try normalized (ignore spaces)
-  idx = steps.findIndex(
-    (s) =>
-      s.replace(/\s+/g, "").toLowerCase() ===
-      status.replace(/\s+/g, "").toLowerCase()
-  );
-  if (idx !== -1) return idx;
-  return 0;
-}
-
-// Flexbox-based responsive cards grid, highlight the status of the selected application
-const StatusGrid: React.FC<{
-  steps: string[];
-  activeStepIdx: number | null;
-  statusDescriptions: Record<string, string>;
-}> = ({ steps, activeStepIdx, statusDescriptions }) => {
+// Chat bubble used in comments
+function ChatBubble({ message, isMe, children, fileUrl, timestamp, onReply }: {
+  message: string;
+  isMe: boolean;
+  children?: any;
+  fileUrl?: string;
+  timestamp?: string;
+  onReply?: () => void;
+}) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 8,
-        mb: 2,
-        mt: 2,
-      }}
-    >
-      {steps.map((step, idx) => {
-        const isActive = activeStepIdx === idx;
-        const isCompleted = activeStepIdx != null && activeStepIdx > idx;
-        return (
-          <Box
-            key={step}
-            sx={{
-              flex: '1 1 320px',
-              minWidth: { xs: '100%', sm: '48%', md: '31%' },
-              maxWidth: { xs: '100%', sm: '48%', md: '32%' },
-              boxSizing: 'border-box',
-              display: 'flex',
-            }}
-          >
-            <Card
-              elevation={isActive ? 5 : 1}
+    <Box sx={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", mb: 1 }}>
+      <Avatar sx={{ bgcolor: isMe ? "#ffe3aa" : "#ccc", width: 32, height: 32 }}>
+        {isMe ? "You" : "A"}
+      </Avatar>
+      <Box sx={{ mx: 1.5, flex: 1 }}>
+        <Paper
+          sx={{
+            p: 1.5,
+            bgcolor: isMe ? "#fdf6e5" : "#f5f5f5",
+            color: "#222",
+            borderRadius: isMe
+              ? "14px 0 14px 14px"
+              : "0 14px 14px 14px",
+            boxShadow: 0,
+            minWidth: 80,
+            maxWidth: 420,
+            display: "inline-block",
+            wordBreak: "break-word",
+            mb: 0.2,
+          }}
+        >
+          <span>{message}</span>
+          {fileUrl && (
+            <Box sx={{ mt: 0.5 }}>
+              <Button
+                href={fileUrl}
+                size="small"
+                sx={{ textTransform: "none" }}
+                startIcon={<AttachFileIcon />}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Attached File
+              </Button>
+            </Box>
+          )}
+        </Paper>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.2 }}>
+          <Typography variant="caption" color="text.secondary">
+            {timestamp ||
+              new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </Typography>
+          {onReply && (
+            <Button
+              startIcon={<ReplyIcon fontSize="small" />}
+              size="small"
               sx={{
-                width: '100%',
-                borderLeft: isActive
-                  ? '4px solid #f5c062'
-                  : isCompleted
-                  ? '4px solid #409944'
-                  : '4px solid #ececec',
-                backgroundColor: isActive
-                  ? '#fffbe7'
-                  : isCompleted
-                  ? '#eaf7ed'
-                  : '#f6f6f7',
-                mb: 0.5,
-                px: 2,
-                py: 1.5,
-                transition: "background .2s, border .2s",
-                boxShadow: isActive ? "0 0 10px #ffe08066" : undefined,
-                position: "relative"
+                ml: 0,
+                mt: "-2px",
+                color: "#9e7a27",
+                textTransform: "none",
+                fontSize: 12,
+                padding: "0 4px",
+                minWidth: 0,
               }}
+              onClick={onReply}
             >
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Chip
-                  label={idx + 1}
-                  color={
-                    isActive
-                      ? "warning"
-                      : isCompleted
-                      ? "success"
-                      : "default"
-                  }
-                  size="small"
-                  sx={{
-                    fontWeight: isActive ? 800 : 400,
-                    minWidth: 26,
-                    background: isActive
-                      ? "#fae1a0"
-                      : isCompleted
-                      ? "#e2eed6"
-                      : "#e6e4e0",
-                    color: isActive
-                      ? "#b78910"
-                      : isCompleted
-                      ? "#388e3c"
-                      : "#b1a6a6",
-                  }}
-                />
-                <PaginatedPhrase phrase={step} maxLength={22} sx={{ fontWeight: isActive ? 700 : 500, color: isActive ? "#c17b0b" : (isCompleted ? "#388e3c" : "#5d5b5b") }} />
-                {isActive && (
-                  <Tooltip title="Current Status">
-                    <InfoOutlinedIcon sx={{ color: "#faad3d" }} fontSize="small" />
-                  </Tooltip>
-                )}
-              </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ ml: 5, mt: 0.5 }}>
-                {statusDescriptions[step as keyof typeof statusDescriptions] ?? ""}
-              </Typography>
-            </Card>
-          </Box>
-        );
-      })}
+              Reply
+            </Button>
+          )}
+        </Box>
+        {children}
+      </Box>
     </Box>
   );
-};
+}
+
+// Simulate loading/fetching/sending comments + uploading
+// In real app, replace with API calls for per-application thread
+function useCommentsForApp(selectedAppId: string | null) {
+  // Each item: {id, message, createdAt, user, fileUrl, parentId}
+  const [comments, setComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    // Simulate API fetch. In practice, pass selectedAppId to API
+    setTimeout(() => {
+      // Hardcode/fake some threaded comments & attachments for demo
+      setComments(selectedAppId
+        ? [
+            {
+              id: 1,
+              message: "Welcome! Here we discuss your application status.",
+              createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+              user: "Applicant",
+              fileUrl: null,
+              parentId: null,
+            },
+            {
+              id: 2,
+              message: "Can you provide your updated passport scan?",
+              createdAt: new Date(Date.now() - 1000 * 50).toISOString(),
+              user: "Agent",
+              fileUrl: null,
+              parentId: null,
+            },
+            {
+              id: 3,
+              message: "Sure, uploading now.",
+              createdAt: new Date(Date.now() - 1000 * 40).toISOString(),
+              user: "Applicant",
+              fileUrl: null,
+              parentId: 2,
+            },
+            {
+              id: 4,
+              message: "Here's the scanned document.",
+              createdAt: new Date(Date.now() - 1000 * 30).toISOString(),
+              user: "Applicant",
+              fileUrl: "/dummy-file.pdf",
+              parentId: 2,
+            },
+            {
+              id: 5,
+              message: "Thank you. We will update your application.",
+              createdAt: new Date(Date.now() - 1000 * 15).toISOString(),
+              user: "Agent",
+              fileUrl: null,
+              parentId: 2,
+            },
+          ]
+        : []
+      );
+      setLoading(false);
+    }, 500);
+    // Reset on change
+    return () => {};
+  }, [selectedAppId]);
+
+  function addComment(comment: any) {
+    setComments((prev) =>
+      [
+        ...prev,
+        { ...comment, id: prev.length ? Math.max(...prev.map((c) => c.id)) + 1 : 1 }
+      ]
+    );
+  }
+
+  return {
+    comments,
+    loading,
+    addComment,
+  };
+}
+
+// Helper: nested threaded view
+function ThreadedComments({ comments, onReply }: { comments: any[], onReply: (parentId: number | null, mention?: string) => void }) {
+  // Find root comments
+  const roots = comments.filter((c) => !c.parentId);
+  function getReplies(id: number) {
+    return comments.filter((c) => c.parentId === id);
+  }
+
+  return (
+    <Box>
+      {roots.map((com) => (
+        <CommentThreadNode key={com.id} comment={com} replies={getReplies(com.id)} onReply={onReply} allReplies={getReplies} comments={comments} />
+      ))}
+    </Box>
+  );
+}
+
+function CommentThreadNode({ comment, replies, onReply, allReplies, comments, depth = 0 }: {
+  comment: any, replies: any[], onReply: (parentId: number | null, mention?: string) => void, allReplies: (id: number) => any[], comments: any[], depth?: number
+}) {
+  return (
+    <Box sx={{ ml: depth ? 4 : 0, mt: depth ? 1 : 0 }}>
+      <ChatBubble
+        message={comment.message}
+        isMe={comment.user === "Applicant"}
+        fileUrl={comment.fileUrl}
+        timestamp={new Date(comment.createdAt).toLocaleString()}
+        onReply={() => onReply(comment.id, comment.user === "Applicant" ? undefined : comment.user)}
+      >
+        {replies.length > 0 && (
+          <Box sx={{ mt: 0.8 }}>
+            {replies.map((reply) => (
+              <CommentThreadNode
+                key={reply.id}
+                comment={reply}
+                replies={allReplies(reply.id)}
+                onReply={onReply}
+                allReplies={allReplies}
+                comments={comments}
+                depth={depth + 1}
+              />
+            ))}
+          </Box>
+        )}
+      </ChatBubble>
+    </Box>
+  );
+}
 
 export const TrackProgress: React.FC = () => {
   // Tab selection
@@ -376,6 +414,12 @@ export const TrackProgress: React.FC = () => {
 
   // for currently displayed application
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Chat add state
+  const [newComment, setNewComment] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [sending, setSending] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ parentId: number | null; mention?: string } | null>(null);
 
   // Effect to fetch all applications
   useEffect(() => {
@@ -447,15 +491,13 @@ export const TrackProgress: React.FC = () => {
           const status = extractStatusTextWork(item.status);
           return {
             id: String(item.id),
-            country:
-              typeof offer.country === "object"
-                ? offer.country?.label || offer.country?.name || JSON.stringify(offer.country)
-                : offer.country || "-",
+            country: typeof offer.country === "object"
+              ? offer.country?.label || offer.country?.name || JSON.stringify(offer.country)
+              : offer.country || "-",
             job: offer.job_title || "-",
             organization: org.name || "-",
             status: status,
-            // ---- critical correction spot: use findCurrentStepIndex always, not item's field ----
-            currentStep: findCurrentStepIndex(status, WORK_VISA_STEPS),
+            currentStep: 0, // No need for currentStep in this chat-only UI
             appliedAt: item.submitted_at || item.created_at,
             steps: WORK_VISA_STEPS,
             type: "workVisa" as ApplicationType,
@@ -471,7 +513,7 @@ export const TrackProgress: React.FC = () => {
             job: item.course_of_study_name || "-",
             organization: item.institution_name || "-",
             status: status,
-            currentStep: findCurrentStepIndex(status, STUDY_VISA_STEPS),
+            currentStep: 0,
             appliedAt: item.application_date || item.created_at || item.applied_at,
             steps: STUDY_VISA_STEPS,
             type: "studyVisa" as ApplicationType,
@@ -487,7 +529,7 @@ export const TrackProgress: React.FC = () => {
             job: item.offer_title || "-",
             organization: "-",
             status: status,
-            currentStep: findCurrentStepIndex(status, PILGRIMAGE_STEPS),
+            currentStep: 0,
             appliedAt: item.created_at || item.preferred_travel_date || item.application_date,
             steps: PILGRIMAGE_STEPS,
             type: "pilgrimage" as ApplicationType,
@@ -503,7 +545,7 @@ export const TrackProgress: React.FC = () => {
             job: item.package?.title || "-",
             organization: item.package?.organization || "-",
             status: status,
-            currentStep: findCurrentStepIndex(status, VACATION_STEPS),
+            currentStep: 0,
             appliedAt: item.created_at || item.applied_at,
             steps: VACATION_STEPS,
             type: "vacation" as ApplicationType,
@@ -517,6 +559,45 @@ export const TrackProgress: React.FC = () => {
 
   const applications = getApplicationsForTab(tab);
   const selectedApp = applications.find((app) => String(app.id) === selectedId);
+
+  // Comments hook for current app
+  const { comments, loading: loadingComments, addComment } = useCommentsForApp(selectedApp ? selectedApp.id : null);
+
+  // Reply logic
+  function handleReply(parentId: number | null, mention?: string) {
+    setReplyTo({ parentId, mention });
+    setNewComment(mention ? `@${mention} ` : "");
+  }
+
+  // Comment send
+  async function handleSendComment(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!newComment.trim() && !uploadFile) return;
+    setSending(true);
+
+    // Simulate file upload and add to comments
+    setTimeout(() => {
+      const fileUrl = uploadFile ? `/fake-uploads/${uploadFile.name}` : null;
+      addComment({
+        message: newComment.trim() || (uploadFile ? uploadFile.name : ""),
+        createdAt: new Date().toISOString(),
+        user: "Applicant",
+        fileUrl,
+        parentId: replyTo?.parentId ?? null,
+      });
+      setSending(false);
+      setNewComment("");
+      setUploadFile(null);
+      setReplyTo(null);
+    }, 800);
+  }
+
+  // File input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) setUploadFile(file);
+  }
 
   // Helper: string-safe render for possibly-object values
   function renderMaybeObject(val: any, opts?: { phraseMax?: number }) {
@@ -536,29 +617,6 @@ export const TrackProgress: React.FC = () => {
       />
     );
   }
-
-  // Get the steps/status list for the current selected tab
-  function getCurrentCategorySteps(tab: ApplicationType): string[] {
-    switch (tab) {
-      case "workVisa":
-        return WORK_VISA_STEPS;
-      case "studyVisa":
-        return STUDY_VISA_STEPS;
-      case "pilgrimage":
-        return PILGRIMAGE_STEPS;
-      case "vacation":
-        return VACATION_STEPS;
-      default:
-        return [];
-    }
-  }
-
-  // Use the computed correct currentStep for selected application
-  const currentCategorySteps = getCurrentCategorySteps(tab);
-  const activeStepIdx =
-    selectedApp && Array.isArray(selectedApp.steps)
-      ? selectedApp.currentStep
-      : null;
 
   return (
     <Box
@@ -650,21 +708,11 @@ export const TrackProgress: React.FC = () => {
                                   label={
                                     renderMaybeObject(app.status)
                                   }
-                                  color={
-                                    app.currentStep === app.steps.length - 1
-                                      ? "success"
-                                      : "default"
-                                  }
+                                  color="default"
                                   sx={{
                                     fontWeight: 500,
-                                    bgcolor:
-                                      app.currentStep === app.steps.length - 1
-                                        ? "#e6f4ea"
-                                        : "#f5ebe1",
-                                    color:
-                                      app.currentStep === app.steps.length - 1
-                                        ? "#388e3c"
-                                        : "#7c5a2e",
+                                    bgcolor: "#f5ebe1",
+                                    color: "#7c5a2e",
                                   }}
                                 />
                               </Stack>
@@ -698,31 +746,45 @@ export const TrackProgress: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Progress Details */}
+        {/* Comments/Chat Card for Application */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          {loading ? (
-            <Card className="rounded-2xl shadow-md">
-              <CardContent>
-                <Box sx={{ py: 4, width: "100%", textAlign: "center" }}>
-                  <CircularProgress size={32} />
-                </Box>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="rounded-2xl shadow-md"
-              sx={{
-                overflow: "visible",
-                px: { xs: 1, md: 2 },
-                maxWidth: "100%",
-              }}
-            >
-              <CardContent>
-                {/* 
-                  If an application is selected, show app details
-                */}
-                {selectedApp ? (
-                  <>
+          {
+            !selectedApp ? (
+              <Card className="rounded-2xl shadow-md">
+                <CardContent>
+                  <Box sx={{ py: 4, width: "100%", textAlign: "center" }}>
+                    <Typography variant="body1" color="text.secondary">
+                      Select an application to view and post comments.
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card
+                className="rounded-2xl shadow-md"
+                sx={{
+                  overflow: "visible",
+                  px: { xs: 1, md: 2 },
+                  maxWidth: "100%",
+                  minHeight: 500,
+                  display: "flex",
+                  flexDirection: "column",
+                  height: { md: 600, xs: 'auto' },
+                  transition: "background .3s, border .2s, box-shadow .3s"
+                }}
+              >
+                <CardContent
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                    p: { xs: 1, md: 2 },
+                  }}
+                >
+                  {/* Header */}
+                  <Box>
                     <Typography variant="h6" className="font-bold mb-2">
+                      Comments on{" "}
                       {renderMaybeObject(selectedApp.job, { phraseMax: 24 })}{" "}
                       {selectedApp.organization && selectedApp.organization !== "-" ? (
                         <>
@@ -737,96 +799,131 @@ export const TrackProgress: React.FC = () => {
                         ? new Date(selectedApp.appliedAt).toLocaleDateString()
                         : "-"}
                     </Typography>
-                  </>
-                ) : (
-                  <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                    Select an application to view its progress.
-                  </Typography>
-                )}
-
-                {/* Show all statuses for the active category, with activeStepIdx highlighted */}
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="subtitle1" className="font-semibold mb-2" sx={{ mb: 2 }}>
-                    {TABS.find((t) => t.key === tab)?.label} Statuses
-                  </Typography>
-                  <StatusGrid
-                    steps={currentCategorySteps}
-                    activeStepIdx={activeStepIdx}
-                    statusDescriptions={statusDescriptions}
-                  />
-                </Box>
-
-                {/* Show current status description as an alert if an app is selected */}
-                {selectedApp && (
-                  <Box sx={{ mt: 3 }}>
-                    <Alert
-                      severity={
-                        selectedApp.currentStep === selectedApp.steps.length - 1
-                          ? "success"
-                          : "info"
-                      }
-                    >
-                      {
-                        (() => {
-                          // Show the correct description for the status of the selected application
-                          let statusValue = selectedApp.status;
-                          let statusString =
-                            typeof statusValue === "string"
-                              ? statusValue
-                              : (
-                                  statusValue && (statusValue.label || statusValue.name || statusValue.term)
-                                    ? statusValue.label || statusValue.name || statusValue.term
-                                    : JSON.stringify(statusValue)
-                                );
-                          // Try to map to a normalized step if possible for more accurate lookup
-                          let currentStepIndex = findCurrentStepIndex(statusString, selectedApp.steps);
-                          let stepKey = selectedApp.steps[currentStepIndex] || statusString;
-                          let description =
-                            statusDescriptions[stepKey as keyof typeof statusDescriptions] ||
-                            statusDescriptions[statusString as keyof typeof statusDescriptions];
-                          if (description) return description;
-                          return renderMaybeObject(selectedApp.status);
-                        })()
-                      }
-                    </Alert>
                   </Box>
-                )}
 
-                {/* Show "Schedule Interview" button only for relevant steps for Work/Study Visa */}
-                {selectedApp && ["workVisa", "studyVisa"].includes(selectedApp.type) &&
-                  (
-                    (selectedApp.type === "workVisa" &&
-                      selectedApp.currentStep === WORK_VISA_STEPS.indexOf('Interview/Screening Scheduled')
-                    )
-                    ||
-                    (selectedApp.type === "studyVisa" &&
-                      selectedApp.currentStep === STUDY_VISA_STEPS.indexOf('Interview/Screening Scheduled')
-                    ))
-                  && (
+                  {/* Chat Window */}
+                  <Box
+                    sx={{
+                      flex: 1,
+                      borderRadius: 2,
+                      overflowY: "auto",
+                      bgcolor: "#fafafb",
+                      py: 2,
+                      px: { xs: 0, md: 1.5 },
+                      mt: 1,
+                      mb: 2,
+                    }}
+                  >
+                    {loadingComments ? (
+                      <Box sx={{ textAlign: "center", my: 4 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : comments.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ m: 4, textAlign: "center" }}>
+                        No comments yet. Start the conversation!
+                      </Typography>
+                    ) : (
+                      <ThreadedComments comments={comments} onReply={handleReply} />
+                    )}
+                  </Box>
+
+                  {/* Upload and Add Comment bar */}
+                  <form style={{ width: "100%" }} onSubmit={handleSendComment} autoComplete="off">
                     <Box
                       sx={{
-                        mt: 4,
                         display: "flex",
-                        justifyContent: "flex-end",
+                        gap: 1,
+                        alignItems: "flex-end",
+                        bgcolor: "#fcf6ee",
+                        borderRadius: 2,
+                        px: 1.5,
+                        py: 1,
+                        boxShadow: '0 1px 2px #eae5de29',
+                        flexWrap: "wrap"
                       }}
                     >
-                      <Button
-                        variant="contained"
-                        className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case"
-                        href={
-                          selectedApp.type === "workVisa"
-                            ? "/travel/work-visa/schedule-interview"
-                            : "/travel/study-visa/schedule-interview"
-                        }
+                      <input
+                        type="file"
+                        style={{ display: "none" }}
+                        ref={fileInputRef}
+                        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                        onChange={handleFileChange}
+                      />
+                      <IconButton
+                        aria-label="Attach document"
+                        onClick={() => fileInputRef.current?.click()}
+                        sx={{ color: uploadFile ? "#906100" : "#c4b79f" }}
+                        size="large"
+                        disabled={sending}
                       >
-                        Schedule Interview
+                        <AttachFileIcon />
+                      </IconButton>
+                      <TextField
+                        sx={{ flex: 1, minWidth: 120 }}
+                        size="small"
+                        placeholder={
+                          replyTo && replyTo.mention
+                            ? `Reply to @${replyTo.mention}...`
+                            : "Type your comment"
+                        }
+                        variant="outlined"
+                        value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        multiline
+                        minRows={1}
+                        maxRows={3}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                type="submit"
+                                color="primary"
+                                size="small"
+                                disabled={sending || (!newComment.trim() && !uploadFile)}
+                                aria-label="Send"
+                              >
+                                <SendIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                        disabled={sending}
+                        inputProps={{ maxLength: 1000 }}
+                        autoFocus={!!replyTo}
+                      />
+                      {uploadFile && (
+                        <Button
+                          size="small"
+                          color="primary"
+                          startIcon={<CloudUploadIcon />}
+                          sx={{ minWidth: 0, ml: 1, fontSize: 12 }}
+                          onClick={() => setUploadFile(null)}
+                          disabled={sending}
+                        >
+                          {uploadFile.name}
+                          <span style={{ marginLeft: 6, fontWeight: 400, color: "#e65733" }}>×</span>
+                        </Button>
+                      )}
+                    </Box>
+                  </form>
+                  {sending && (
+                    <LinearProgress color="warning" sx={{ mt: 1, borderRadius: 1 }} />
+                  )}
+                  {replyTo && (
+                    <Box sx={{ pt: 0.5 }}>
+                      <Button
+                        size="small"
+                        onClick={() => setReplyTo(null)}
+                        sx={{ color: "#755900", textTransform: "none", fontSize: 12 }}
+                      >
+                        Cancel reply
                       </Button>
                     </Box>
                   )}
-
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )
+          }
         </Box>
       </Box>
     </Box>
