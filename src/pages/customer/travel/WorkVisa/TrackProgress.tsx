@@ -4,9 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Stepper,
-  Step,
-  StepLabel,
   Button,
   Alert,
   List,
@@ -32,49 +29,116 @@ import { getMyWorkVisaApplications } from "../../../../services/workVisaService"
 import { getPilgrimageApplications } from "../../../../services/pilgrimageServices";
 import { getAllVacationBookings } from "../../../../services/vacationService";
 
-const VISA_STEPS = [
-  "Application Submitted",
-  "CV/Document Review",
-  "Interview Scheduled",
-  "Interview Completed",
-  "Visa Processing",
-  "Visa Approved",
-];
+// Steps, statusDescriptions, types, util functions, and hooks remain unchanged
 
-const PILGRIMAGE_STEPS = [
-  "Application Submitted",
-  "Payment Pending",
-  "Payment Confirmed",
-  "Document Review",
-  "Pilgrimage Booked",
-  "Completed",
+const WORK_VISA_STEPS = [
+  "Draft",
+  "Application Received",
+  "Pending Documents from Applicant",
+  "Application Submitted to Employer/Agency",
+  "Application on Hold",
+  "Interview/Screening Scheduled",
+  "Offer Letter Received",
+  "Payment/Processing Fee Confirmed",
+  "Work Permit/Approval in Progress",
+  "Visa Application Submitted to Embassy",
+  "Visa Granted",
+  "Visa Denied",
+  "Case Closed",
 ];
 
 const VACATION_STEPS = [
-  "Booking Submitted",
-  "Payment Pending",
+  "Draft",
+  "Application Received",
+  "Pending Documents from Applicant",
+  "Application Submitted to Travel Partner/Embassy",
+  "Application on Hold",
   "Payment Confirmed",
-  "Trip Scheduled",
+  "Visa Application Submitted",
+  "Visa Granted",
+  "Visa Denied",
+  "Flight Booking Confirmed",
+  "Accommodation Reserved",
+  "Trip in Progress",
   "Trip Completed",
+  "Case Closed",
+];
+
+const STUDY_VISA_STEPS = [
+  "Draft",
+  "Completed",
+  "Approved",
+  "Rejected",
+  "Received Application",
+  "Pending From Student",
+  "Application Submitted to the Institution",
+  "Application on hold, Intake not yet open",
+  "Case Closed",
+  "Rejected By the institution",
+  "Conditional offer Received",
+  "Unconditional Offer received",
+  "Payment Received",
+  "Visa  granted",
+  "Visa Denied",
+];
+
+const PILGRIMAGE_STEPS = [
+  "Draft",
+  "Application Received",
+  "Pending Documents from Applicant",
+  "Application Submitted to Embassy/Authority",
+  "Application on Hold",
+  "Payment Confirmed",
+  "Visa Application Submitted",
+  "Visa Granted",
+  "Visa Denied",
+  "Flight & Accommodation Confirmed",
+  "Orientation/Briefing Completed",
+  "Pilgrimage in Progress",
+  "Return Completed",
+  "Case Closed",
 ];
 
 const statusDescriptions: Record<string, string> = {
-  "Application Submitted": "Your application has been received and is under review.",
-  "CV/Document Review": "Our team is reviewing your CV and supporting documents.",
-  "Interview Scheduled": "Your interview has been scheduled. Please check your email for details.",
-  "Interview Completed": "You have completed your interview. Awaiting next steps.",
-  "Visa Processing": "Your visa application is being processed by the authorities.",
-  "Visa Approved": "Congratulations! Your visa has been approved.",
-  "Payment Pending": "Your payment is pending. Please complete payment to proceed.",
+  // ... unchanged ...
+  "Draft": "Your application is in draft mode. Please review and submit.",
+  "Application Received": "Your application has been received and is being reviewed.",
+  "Pending Documents from Applicant": "We require additional documents from you to proceed.",
+  "Application Submitted to Employer/Agency": "Your application has been submitted to the employer or agency for further processing.",
+  "Application Submitted to Travel Partner/Embassy": "Your application has been sent to our travel partner or relevant embassy.",
+  "Application Submitted to Embassy/Authority": "Your application has been submitted to the respective authority.",
+  "Application Submitted to the Institution": "Your application has been submitted to the institution.",
+  "Application on Hold": "Your application is currently on hold. Please check your email for next steps.",
+  "Payment/Processing Fee Confirmed": "Your payment or processing fee has been received and confirmed.",
   "Payment Confirmed": "Your payment has been received and confirmed.",
-  "Document Review": "Your documents are under review.",
-  "Pilgrimage Booked": "Your pilgrimage has been booked. Details will be sent by email.",
-  "Completed": "Congratulations! Your pilgrimage journey is complete.",
-  "Booking Submitted": "Your vacation booking has been received.",
-  "Trip Scheduled": "Your trip has been scheduled. Check your email for itinerary.",
+  "Visa Application Submitted to Embassy": "Visa application has been formally submitted to the embassy.",
+  "Visa Application Submitted": "Your visa application has been submitted.",
+  "Interview/Screening Scheduled": "Your interview/screening has been scheduled. Please check your email for details.",
+  "Offer Letter Received": "Congratulations, you have received an offer letter.",
+  "Work Permit/Approval in Progress": "Your work permit or approval is being processed by authorities.",
+  "Visa Granted": "Congratulations! Your visa has been granted.",
+  "Visa  granted": "Congratulations! Your visa has been granted.",
+  "Visa Approved": "Congratulations! Your visa has been approved.",
+  "Visa Denied": "Unfortunately, your visa application has been denied.",
+  "Rejected": "Unfortunately, your application was rejected.",
+  "Rejected By the institution": "Unfortunately, your application was rejected by the institution.",
+  "Completed": "Congratulations! The process is complete.",
+  "Case Closed": "Your case has been closed.",
+  "Conditional offer Received": "You have received a conditional offer.",
+  "Unconditional Offer received": "You have received an unconditional offer.",
+  "Payment Received": "Your payment has been received.",
+  "Flight Booking Confirmed": "Your flight has been booked and confirmed.",
+  "Accommodation Reserved": "Your accommodation has been reserved.",
+  "Trip in Progress": "Your trip is currently in progress.",
   "Trip Completed": "Your vacation is complete. Thank you for booking with us!",
+  "Flight & Accommodation Confirmed": "Both your flight and accommodation have been confirmed.",
+  "Orientation/Briefing Completed": "You have completed pre-pilgrimage orientation.",
+  "Pilgrimage in Progress": "Your pilgrimage is currently in progress.",
+  "Return Completed": "Your pilgrimage return has been completed. Thank you.",
   "KINDLY COMPLETE YOUR APPLICATION": "Please complete your application to proceed.",
-  "Draft": "Your application is in draft mode. Please review and submit."
+  "Received Application": "We have received your application.",
+  "Pending From Student": "Pending action from student. Please check requests or update your application.",
+  "Application on hold, Intake not yet open": "Application is on hold; intake has not yet opened.",
 };
 
 type ApplicationType = "workVisa" | "studyVisa" | "pilgrimage" | "vacation";
@@ -89,9 +153,8 @@ const TABS: {
   { key: "vacation", label: "Vacation" },
 ];
 
-// Helper for safe status text extraction
 function extractStatusTextWork(status: any) {
-  if (status == null) return "Application Submitted";
+  if (status == null) return "Draft";
   if (typeof status === "string") return status;
   if (typeof status === "object") {
     if (status.term) return status.term;
@@ -102,14 +165,11 @@ function extractStatusTextWork(status: any) {
   return String(status);
 }
 function extractStatusTextStudy(item: any) {
-  return item.status_name
-    ? item.status_name
-    : typeof item.status === "string"
-      ? item.status
-      : "Application Submitted";
+  if (item.status_name) return item.status_name;
+  if (typeof item.status === "string") return item.status;
+  return "Draft";
 }
 
-// New: Helper to paginate or truncate long phrases/words and show full phrase on toolkit (tooltip/dialog)
 function PaginatedPhrase({
   phrase,
   maxLength = 16,
@@ -124,16 +184,12 @@ function PaginatedPhrase({
   const [open, setOpen] = useState(false);
   if (typeof phrase !== "string") phrase = `${phrase}`;
 
-  // Remove leading/trailing, handle objects
   let trimmed = phrase?.trim() ?? "";
-  // Show first maxLength chars, then ellipsis if too long
   const isOverflow = trimmed.length > maxLength;
   const shortText = isOverflow
     ? trimmed.slice(0, maxLength) + "…"
     : trimmed;
 
-  // Render as span with ellipsis and Dialog on click for full phrase
-  // Tooltip for accessibility if small phrase
   return (
     <span style={{ display: "inline-flex", alignItems: "center", ...sx }}>
       {isOverflow ? (
@@ -169,6 +225,141 @@ function PaginatedPhrase({
   );
 }
 
+// NEW: Utility to find the furthest reached step in steps matching the current status or closest match
+function findCurrentStepIndex(status: string, steps: string[]): number {
+  if (!status || typeof status !== "string") {
+    if (typeof status === "object" && status != null) {
+      const possible = (status as Record<string, unknown>);
+      status =
+        (typeof possible.label === "string" && possible.label) ||
+        (typeof possible.term === "string" && possible.term) ||
+        (typeof possible.name === "string" && possible.name) ||
+        JSON.stringify(status);
+    } else {
+      status = `${status}`;
+    }
+  }
+
+  // Simple/exact
+  let idx = steps.findIndex(
+    (s) => s.toLowerCase() === status.toLowerCase()
+  );
+  if (idx !== -1) return idx;
+
+  // Try contains status (for fuzzy status matching)
+  idx = steps.findIndex(
+    (s) =>
+      status.toLowerCase().includes(s.toLowerCase()) ||
+      s.toLowerCase().includes(status.toLowerCase())
+  );
+  if (idx !== -1) return idx;
+
+  // Try normalized (ignore spaces)
+  idx = steps.findIndex(
+    (s) =>
+      s.replace(/\s+/g, "").toLowerCase() ===
+      status.replace(/\s+/g, "").toLowerCase()
+  );
+  if (idx !== -1) return idx;
+  return 0;
+}
+
+// Flexbox-based responsive cards grid, highlight the status of the selected application
+const StatusGrid: React.FC<{
+  steps: string[];
+  activeStepIdx: number | null;
+  statusDescriptions: Record<string, string>;
+}> = ({ steps, activeStepIdx, statusDescriptions }) => {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 8,
+        mb: 2,
+        mt: 2,
+      }}
+    >
+      {steps.map((step, idx) => {
+        const isActive = activeStepIdx === idx;
+        const isCompleted = activeStepIdx != null && activeStepIdx > idx;
+        return (
+          <Box
+            key={step}
+            sx={{
+              flex: '1 1 320px',
+              minWidth: { xs: '100%', sm: '48%', md: '31%' },
+              maxWidth: { xs: '100%', sm: '48%', md: '32%' },
+              boxSizing: 'border-box',
+              display: 'flex',
+            }}
+          >
+            <Card
+              elevation={isActive ? 5 : 1}
+              sx={{
+                width: '100%',
+                borderLeft: isActive
+                  ? '4px solid #f5c062'
+                  : isCompleted
+                  ? '4px solid #409944'
+                  : '4px solid #ececec',
+                backgroundColor: isActive
+                  ? '#fffbe7'
+                  : isCompleted
+                  ? '#eaf7ed'
+                  : '#f6f6f7',
+                mb: 0.5,
+                px: 2,
+                py: 1.5,
+                transition: "background .2s, border .2s",
+                boxShadow: isActive ? "0 0 10px #ffe08066" : undefined,
+                position: "relative"
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Chip
+                  label={idx + 1}
+                  color={
+                    isActive
+                      ? "warning"
+                      : isCompleted
+                      ? "success"
+                      : "default"
+                  }
+                  size="small"
+                  sx={{
+                    fontWeight: isActive ? 800 : 400,
+                    minWidth: 26,
+                    background: isActive
+                      ? "#fae1a0"
+                      : isCompleted
+                      ? "#e2eed6"
+                      : "#e6e4e0",
+                    color: isActive
+                      ? "#b78910"
+                      : isCompleted
+                      ? "#388e3c"
+                      : "#b1a6a6",
+                  }}
+                />
+                <PaginatedPhrase phrase={step} maxLength={22} sx={{ fontWeight: isActive ? 700 : 500, color: isActive ? "#c17b0b" : (isCompleted ? "#388e3c" : "#5d5b5b") }} />
+                {isActive && (
+                  <Tooltip title="Current Status">
+                    <InfoOutlinedIcon sx={{ color: "#faad3d" }} fontSize="small" />
+                  </Tooltip>
+                )}
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ ml: 5, mt: 0.5 }}>
+                {statusDescriptions[step as keyof typeof statusDescriptions] ?? ""}
+              </Typography>
+            </Card>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+};
+
 export const TrackProgress: React.FC = () => {
   // Tab selection
   const [tab, setTab] = useState<ApplicationType>("workVisa");
@@ -201,7 +392,6 @@ export const TrackProgress: React.FC = () => {
       .then((results) => {
         if (!mounted) return;
 
-        // Defensive: results[0] is for workVisa, [1] is for studyVisa, [2] is for pilgrimage, [3] is for vacation
         const getList = (idx: number) =>
           (results[idx].status === "fulfilled" &&
             Array.isArray((results[idx] as PromiseFulfilledResult<any>).value.results)
@@ -252,88 +442,77 @@ export const TrackProgress: React.FC = () => {
     switch (tab) {
       case "workVisa":
         return workVisa.map((item) => {
-          // item.offer (object), item.status (object), etc.
           const offer = item.offer || {};
           const org = offer.organization || {};
+          const status = extractStatusTextWork(item.status);
           return {
             id: String(item.id),
             country:
               typeof offer.country === "object"
                 ? offer.country?.label || offer.country?.name || JSON.stringify(offer.country)
                 : offer.country || "-",
-            job:
-              offer.job_title || "-",
-            organization:
-              org.name || "-",
-            status: extractStatusTextWork(item.status),
-            currentStep: getStepFromStatus(extractStatusTextWork(item.status), VISA_STEPS),
+            job: offer.job_title || "-",
+            organization: org.name || "-",
+            status: status,
+            // ---- critical correction spot: use findCurrentStepIndex always, not item's field ----
+            currentStep: findCurrentStepIndex(status, WORK_VISA_STEPS),
             appliedAt: item.submitted_at || item.created_at,
-            steps: VISA_STEPS,
+            steps: WORK_VISA_STEPS,
             type: "workVisa" as ApplicationType,
           };
         });
 
       case "studyVisa":
         return studyVisa.map((item) => {
+          const status = extractStatusTextStudy(item);
           return {
             id: String(item.id),
             country: item.destination_country || item.country || "-",
-            job: item.course_of_study_name || "-", // was offer.school_name
+            job: item.course_of_study_name || "-",
             organization: item.institution_name || "-",
-            status: extractStatusTextStudy(item),
-            currentStep: getStepFromStatus(extractStatusTextStudy(item), VISA_STEPS),
+            status: status,
+            currentStep: findCurrentStepIndex(status, STUDY_VISA_STEPS),
             appliedAt: item.application_date || item.created_at || item.applied_at,
-            steps: VISA_STEPS,
+            steps: STUDY_VISA_STEPS,
             type: "studyVisa" as ApplicationType,
           };
         });
 
       case "pilgrimage":
-        return pilgrimage.map((item) => ({
-          id: String(item.id),
-          country: item.destination || "-", // from sample, "destination"
-          job: item.offer_title || "-", // "offer_title" from API
-          organization: "-", // No org in sample
-          status: "Application Submitted",
-          currentStep: getStepFromStatus("Application Submitted", PILGRIMAGE_STEPS),
-          appliedAt: item.created_at || item.preferred_travel_date || item.application_date,
-          steps: PILGRIMAGE_STEPS,
-          type: "pilgrimage" as ApplicationType,
-        }));
+        return pilgrimage.map((item) => {
+          const status = item.status_name || item.status || "Draft";
+          return {
+            id: String(item.id),
+            country: item.destination || "-",
+            job: item.offer_title || "-",
+            organization: "-",
+            status: status,
+            currentStep: findCurrentStepIndex(status, PILGRIMAGE_STEPS),
+            appliedAt: item.created_at || item.preferred_travel_date || item.application_date,
+            steps: PILGRIMAGE_STEPS,
+            type: "pilgrimage" as ApplicationType,
+          };
+        });
 
       case "vacation":
-        return vacation.map((item) => ({
-          id: String(item.id),
-          country: item.country || "-",
-          job: item.package?.title || "-",
-          organization: item.package?.organization || "-",
-          status: item.status_name || item.status || "Booking Submitted",
-          currentStep: getStepFromStatus(item.status_name || item.status, VACATION_STEPS),
-          appliedAt: item.created_at || item.applied_at,
-          steps: VACATION_STEPS,
-          type: "vacation" as ApplicationType,
-        }));
+        return vacation.map((item) => {
+          const status = item.status_name || item.status || "Draft";
+          return {
+            id: String(item.id),
+            country: item.country || "-",
+            job: item.package?.title || "-",
+            organization: item.package?.organization || "-",
+            status: status,
+            currentStep: findCurrentStepIndex(status, VACATION_STEPS),
+            appliedAt: item.created_at || item.applied_at,
+            steps: VACATION_STEPS,
+            type: "vacation" as ApplicationType,
+          };
+        });
 
       default:
         return [];
     }
-  }
-
-  function getStepFromStatus(status: string, steps: string[]): number {
-    // Accept string, number, or object and try to map status string to a step index, fallback 0
-    let statusVal = status;
-    if (typeof status === "object" && status !== null) {
-      // Safely access label/term/name with optional chaining and type assertions
-      if ((status as any)?.label !== undefined) statusVal = (status as any).label;
-      else if ((status as any)?.term !== undefined) statusVal = (status as any).term;
-      else if ((status as any)?.name !== undefined) statusVal = (status as any).name;
-      else statusVal = JSON.stringify(status);
-    }
-    statusVal = statusVal === null || statusVal === undefined ? "" : statusVal;
-    const idx = steps.findIndex(
-      (s) => s.toLowerCase() === String(statusVal || "").toLowerCase()
-    );
-    return idx === -1 ? 0 : idx;
   }
 
   const applications = getApplicationsForTab(tab);
@@ -342,9 +521,10 @@ export const TrackProgress: React.FC = () => {
   // Helper: string-safe render for possibly-object values
   function renderMaybeObject(val: any, opts?: { phraseMax?: number }) {
     if (val == null) return "-";
-    let display = (typeof val === "object")
-      ? (val.label || val.name || val.term || JSON.stringify(val))
-      : val;
+    let display =
+      typeof val === "object"
+        ? val.label || val.name || val.term || JSON.stringify(val)
+        : val;
 
     if (typeof display !== "string") display = `${display}`;
     const phraseMax = opts?.phraseMax ?? 16;
@@ -356,6 +536,29 @@ export const TrackProgress: React.FC = () => {
       />
     );
   }
+
+  // Get the steps/status list for the current selected tab
+  function getCurrentCategorySteps(tab: ApplicationType): string[] {
+    switch (tab) {
+      case "workVisa":
+        return WORK_VISA_STEPS;
+      case "studyVisa":
+        return STUDY_VISA_STEPS;
+      case "pilgrimage":
+        return PILGRIMAGE_STEPS;
+      case "vacation":
+        return VACATION_STEPS;
+      default:
+        return [];
+    }
+  }
+
+  // Use the computed correct currentStep for selected application
+  const currentCategorySteps = getCurrentCategorySteps(tab);
+  const activeStepIdx =
+    selectedApp && Array.isArray(selectedApp.steps)
+      ? selectedApp.currentStep
+      : null;
 
   return (
     <Box
@@ -505,64 +708,101 @@ export const TrackProgress: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          ) : selectedApp ? (
-            <Card className="rounded-2xl shadow-md">
+          ) : (
+            <Card className="rounded-2xl shadow-md"
+              sx={{
+                overflow: "visible",
+                px: { xs: 1, md: 2 },
+                maxWidth: "100%",
+              }}
+            >
               <CardContent>
-                <Typography variant="h6" className="font-bold mb-2">
-                  {renderMaybeObject(selectedApp.job, { phraseMax: 24 })}{" "}
-                  {selectedApp.organization && selectedApp.organization !== "-" ? (
-                    <>
-                      at{" "}
-                      {renderMaybeObject(selectedApp.organization, { phraseMax: 24 })}
-                    </>
-                  ) : ""}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {renderMaybeObject(selectedApp.country, { phraseMax: 20 })} &middot; Applied:{" "}
-                  {selectedApp.appliedAt
-                    ? new Date(selectedApp.appliedAt).toLocaleDateString()
-                    : "-"}
-                </Typography>
-                <Stepper
-                  activeStep={selectedApp.currentStep}
-                  alternativeLabel
-                  sx={{ mb: 2 }}
-                >
-                  {selectedApp.steps.map((label: string, idx: number) => (
-                    <Step key={typeof label === "string" ? label : idx} completed={idx < selectedApp.currentStep}>
-                      <StepLabel>
-                        {renderMaybeObject(label, { phraseMax: 26 })}
-                      </StepLabel>
-                    </Step>
-                  ))}
-                </Stepper>
-                <Box sx={{ mt: 3 }}>
-                  <Alert
-                    severity={
-                      selectedApp.currentStep === selectedApp.steps.length - 1
-                        ? "success"
-                        : "info"
-                    }
-                  >
-                    {
-                      (() => {
-                        const currentStep = selectedApp.steps[selectedApp.currentStep];
-                        const stepKey =
-                          typeof currentStep === "string"
-                            ? currentStep
-                            : renderMaybeObject(currentStep, { phraseMax: 26 }) as string;
+                {/* 
+                  If an application is selected, show app details
+                */}
+                {selectedApp ? (
+                  <>
+                    <Typography variant="h6" className="font-bold mb-2">
+                      {renderMaybeObject(selectedApp.job, { phraseMax: 24 })}{" "}
+                      {selectedApp.organization && selectedApp.organization !== "-" ? (
+                        <>
+                          at{" "}
+                          {renderMaybeObject(selectedApp.organization, { phraseMax: 24 })}
+                        </>
+                      ) : ""}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {renderMaybeObject(selectedApp.country, { phraseMax: 20 })} &middot; Applied:{" "}
+                      {selectedApp.appliedAt
+                        ? new Date(selectedApp.appliedAt).toLocaleDateString()
+                        : "-"}
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                    Select an application to view its progress.
+                  </Typography>
+                )}
 
-                        return (
-                          statusDescriptions[stepKey as keyof typeof statusDescriptions] ??
-                          renderMaybeObject(selectedApp.status)
-                        );
-                      })()
-                    }
-                  </Alert>
+                {/* Show all statuses for the active category, with activeStepIdx highlighted */}
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="subtitle1" className="font-semibold mb-2" sx={{ mb: 2 }}>
+                    {TABS.find((t) => t.key === tab)?.label} Statuses
+                  </Typography>
+                  <StatusGrid
+                    steps={currentCategorySteps}
+                    activeStepIdx={activeStepIdx}
+                    statusDescriptions={statusDescriptions}
+                  />
                 </Box>
+
+                {/* Show current status description as an alert if an app is selected */}
+                {selectedApp && (
+                  <Box sx={{ mt: 3 }}>
+                    <Alert
+                      severity={
+                        selectedApp.currentStep === selectedApp.steps.length - 1
+                          ? "success"
+                          : "info"
+                      }
+                    >
+                      {
+                        (() => {
+                          // Show the correct description for the status of the selected application
+                          let statusValue = selectedApp.status;
+                          let statusString =
+                            typeof statusValue === "string"
+                              ? statusValue
+                              : (
+                                  statusValue && (statusValue.label || statusValue.name || statusValue.term)
+                                    ? statusValue.label || statusValue.name || statusValue.term
+                                    : JSON.stringify(statusValue)
+                                );
+                          // Try to map to a normalized step if possible for more accurate lookup
+                          let currentStepIndex = findCurrentStepIndex(statusString, selectedApp.steps);
+                          let stepKey = selectedApp.steps[currentStepIndex] || statusString;
+                          let description =
+                            statusDescriptions[stepKey as keyof typeof statusDescriptions] ||
+                            statusDescriptions[statusString as keyof typeof statusDescriptions];
+                          if (description) return description;
+                          return renderMaybeObject(selectedApp.status);
+                        })()
+                      }
+                    </Alert>
+                  </Box>
+                )}
+
                 {/* Show "Schedule Interview" button only for relevant steps for Work/Study Visa */}
-                {["workVisa", "studyVisa"].includes(selectedApp.type) &&
-                  selectedApp.currentStep === 2 && (
+                {selectedApp && ["workVisa", "studyVisa"].includes(selectedApp.type) &&
+                  (
+                    (selectedApp.type === "workVisa" &&
+                      selectedApp.currentStep === WORK_VISA_STEPS.indexOf('Interview/Screening Scheduled')
+                    )
+                    ||
+                    (selectedApp.type === "studyVisa" &&
+                      selectedApp.currentStep === STUDY_VISA_STEPS.indexOf('Interview/Screening Scheduled')
+                    ))
+                  && (
                     <Box
                       sx={{
                         mt: 4,
@@ -583,14 +823,7 @@ export const TrackProgress: React.FC = () => {
                       </Button>
                     </Box>
                   )}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="rounded-2xl shadow-md">
-              <CardContent>
-                <Typography variant="body1" color="text.secondary">
-                  Select an application to view its progress.
-                </Typography>
+
               </CardContent>
             </Card>
           )}
