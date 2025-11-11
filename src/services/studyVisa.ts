@@ -14,6 +14,33 @@ export async function getAllInstitutions() {
 }
 
 /**
+ * Fetch institution countries.
+ * @returns {Promise<any[]>} List of countries where institutions are located.
+ */
+export async function getInstitutionCountries() {
+  try {
+    const response = await api.get(`/app/institutions/countries/`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Fetch institutions filtered by country.
+ * @param country {string} The country name or code.
+ * @returns {Promise<any[]>} Institutions in the specified country.
+ */
+export async function getInstitutionsByCountry(country: string) {
+  try {
+    const response = await api.get(`/app/institutions/by-country/`, { params: { country } });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * Fetch the most recent study visa applications (limit 5).
  */
 export async function getMyRecentSudyVisaApplicaton() {
@@ -124,3 +151,4 @@ export async function getCoursesForInstitutionAndProgramType(
     throw error;
   }
 }
+

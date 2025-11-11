@@ -40,7 +40,6 @@ export async function getMyWorkVisaApplications() {
     throw error;
   }
 }
-
 export async function getAllWorkVisaApplication(params?: Record<string, any>) {
   try {
     const response = await api.get(`/app/work-visa-application/`, { params });

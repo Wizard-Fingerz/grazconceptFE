@@ -13,10 +13,11 @@ import {
   ListSubheader,
 } from "@mui/material";
 import {
-  getAllInstitutions,
+  getInstitutionsByCountry,
   getMyRecentSudyVisaApplicaton,
   getMyRecentSudyVisaOffer,
   getCoursesForInstitutionAndProgramType,
+  getInstitutionCountries,
 } from "../../../../services/studyVisa";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useNavigate } from "react-router-dom";
@@ -159,61 +160,101 @@ export const ApplyStudyVisa: React.FC = () => {
   const [coursesCount, setCoursesCount] = useState<number | null>(null);
   const [loadingCourses, setLoadingCourses] = useState(false);
 
-  // On mount: fetch institutions
+  // -------- NEW STATE FOR COUNTRIES FROM getInstitutionCountries --------
+  const [countryOptions, setCountryOptions] = useState<any[]>([]);
+  const [loadingCountries, setLoadingCountries] = useState(true);
+  // ----------------------------------------------------------------------
+
+  // Fetch countries on mount
   useEffect(() => {
-    setLoading(true);
-    getAllInstitutions()
-      .then((data) => {
-        let _results = data && data.results ? data.results : Array.isArray(data) ? data : [];
-        setInstitutions(_results || []);
-        setInstitutionsRaw(data || {});
-        setInstitutionsNext(data && data.next ? data.next : null);
-        setInstitutionsCount(data && typeof data.count === "number" ? data.count : null);
-        setLoading(false);
+    setLoadingCountries(true);
+    getInstitutionCountries()
+      .then((data: any[]) => {
+        // Defensive: data could be results in object or just array
+        let countryArr: string[] = [];
+        if (Array.isArray(data)) {
+          countryArr = data as string[];
+        } else if (data && Array.isArray((data as any).results)) {
+          countryArr = (data as any).results as string[];
+        }
+        setCountryOptions(countryArr.filter(Boolean));
+        setLoadingCountries(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setCountryOptions([]);
+        setLoadingCountries(false);
+      });
   }, []);
 
-  // Enhanced fetchMoreInstitutions: Refetches all next pages for selected country and updates counts accordingly
-  const fetchMoreInstitutions = async () => {
-    if (!institutionsNext) return;
-    setFetchingNextInstitutions(true);
+  // Fetch institutions by selected country (and handle paging for "see more")
+  const fetchInstitutionsByCountry = async (country: string, nextUrl?: string) => {
+    setLoading(true);
+    setFetchingNextInstitutions(!!nextUrl);
     try {
       let resp;
-      if (institutionsNext.startsWith("/")) {
-        resp = await api.get(institutionsNext);
-        resp = resp.data;
-      } else {
-        const fetchResp = await fetch(institutionsNext, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
-        });
-        resp = await fetchResp.json();
-      }
-      if (resp && Array.isArray(resp.results)) {
-        // Merge paginated results
-        const mergedInstitutions = [...institutions, ...resp.results];
-        setInstitutions(mergedInstitutions);
-        setInstitutionsRaw(resp);
-        setInstitutionsNext(resp.next || null);
-        // If the user has selected a country, we want to present only those institutions AFTER loading
-        if (selectedCountry) {
-          // Filter after merging
-          const filtered = mergedInstitutions.filter((i: any) => i.country === selectedCountry);
-          if (filtered.length > 0) {
-            // If the previously selected institution is NOT in the new filtered, reset it
-            if (!filtered.some((i: any) => String(i.id) === String(selectedInstitution))) {
-              setSelectedInstitution("");
-              setSelectedProgramType("");
-              setSelectedCourse("");
-            }
-          }
+      if (nextUrl) {
+        if (nextUrl.startsWith("/")) {
+          resp = await api.get(nextUrl);
+          resp = resp.data;
+        } else {
+          const fetchResp = await fetch(nextUrl, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+          });
+          resp = await fetchResp.json();
         }
-        // Update count accurately if present in new response, fallback to old
-        setInstitutionsCount(typeof resp.count === "number" ? resp.count : institutionsCount);
+      } else {
+        resp = await getInstitutionsByCountry(country);
       }
+
+      let _results = resp && resp.results ? resp.results : Array.isArray(resp) ? resp : [];
+      if (nextUrl) {
+        // "See more" appends new results
+        setInstitutions((prev) => [...prev, ..._results]);
+      } else {
+        setInstitutions(_results || []);
+      }
+      setInstitutionsRaw(resp || {});
+      setInstitutionsNext(resp && resp.next ? resp.next : null);
+      setInstitutionsCount(resp && typeof resp.count === "number" ? resp.count : null);
+
+    } catch (error) {
+      setInstitutions([]);
+      setInstitutionsRaw({});
+      setInstitutionsNext(null);
+      setInstitutionsCount(null);
     } finally {
+      setLoading(false);
       setFetchingNextInstitutions(false);
     }
+  };
+
+  // When selectedCountry changes, fetch its institutions
+  useEffect(() => {
+    // Reset institution-related state
+    setSelectedInstitution("");
+    setSelectedProgramType("");
+    setSelectedCourse("");
+    setCourses([]);
+    setCoursesRaw(null);
+    setCoursesNext(null);
+    setCoursesCount(null);
+
+    if (selectedCountry) {
+      fetchInstitutionsByCountry(selectedCountry);
+    } else {
+      // If no country is selected, clear
+      setInstitutions([]);
+      setInstitutionsRaw(null);
+      setInstitutionsNext(null);
+      setInstitutionsCount(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCountry]);
+
+  // Enhanced fetchMoreInstitutions: Fetches next page for current country
+  const fetchMoreInstitutions = async () => {
+    if (!institutionsNext || !selectedCountry) return;
+    await fetchInstitutionsByCountry(selectedCountry, institutionsNext);
   };
 
   useEffect(() => {
@@ -248,14 +289,12 @@ export const ApplyStudyVisa: React.FC = () => {
       .catch(() => setLoadingRecentStudyVisaOffers(false));
   }, []);
 
-  const countries = Array.from(
-    new Set(Array.isArray(institutions) ? institutions.map((inst) => inst.country) : [])
-  ).filter(Boolean);
+  // ---------- REPLACE countries LOGIC: use countryOptions for countries ----------
+  // (do not populate from institutions anymore)
+  // ------------------------------------------------------------------------------
 
   // filteredInstitutions always up to date with selectedCountry and institutions (after paging)
-  const filteredInstitutions = selectedCountry
-    ? (institutions || []).filter((inst) => inst.country === selectedCountry)
-    : institutions || [];
+  const filteredInstitutions = institutions || [];
 
   const programTypeObjects: { id: string; name: string }[] = Array.from(
     (filteredInstitutions || []).flatMap((inst) =>
@@ -357,18 +396,6 @@ export const ApplyStudyVisa: React.FC = () => {
     }
   };
 
-  // If country changes, reset the institution
-  const handleCountryChange = (e: any) => {
-    setSelectedCountry(e.target.value);
-    setSelectedInstitution("");
-    setSelectedProgramType("");
-    setSelectedCourse("");
-    setCourses([]);
-    setCoursesRaw(null);
-    setCoursesNext(null);
-    setCoursesCount(null);
-  };
-
   // If institution changes, reset below pieces
   const handleInstitutionChange = (e: any) => {
     setSelectedInstitution(e.target.value);
@@ -389,7 +416,7 @@ export const ApplyStudyVisa: React.FC = () => {
     setSelectedCourse(e.target.value);
   };
 
-  // Rewritten for instruction: Make sure load more (see more) fetches and updates count, and filtered institutions update for currently selected destination
+  // Rewritten: "See more" fetches next page for selected country
   const handleSeeMoreInstitutions = () => {
     fetchMoreInstitutions();
   };
@@ -405,7 +432,7 @@ export const ApplyStudyVisa: React.FC = () => {
     try {
       // If selectedInstitution is present, attempt to resolve the country from the selected institution object
       let countryValue = selectedCountry;
-      // If an institution is selected, try to resolve its country (in case the UI only exposes selectedCountry as an initial filter)
+      // If an institution is selected, try to resolve its country
       if (selectedInstitution) {
         const institutionObj = institutions.find((i: any) => String(i.id) === String(selectedInstitution));
         if (institutionObj && institutionObj.country) {
@@ -560,29 +587,52 @@ export const ApplyStudyVisa: React.FC = () => {
     </ListSubheader>
   );
 
-  // For destination/countries
-  const renderDestinationMenuItems = () => {
-    if (countries.length === 0) {
+  // --- Fix country key uniqueness and rendering ---
+  // Use country string or country code as key and value. If the country item is an object, extract 'code' or fallback to 'name' or to string value.
+  function renderDestinationMenuItems() {
+    if (loadingCountries) {
+      return [
+        <MenuItem value="" disabled key="countries-loading">
+          <CircularProgress size={18} sx={{ mr: 1 }} /> Loading countries...
+        </MenuItem>
+      ];
+    }
+    if (countryOptions.length === 0) {
       return [
         <MenuItem value="" disabled key="no-countries">
           No countries available
         </MenuItem>
       ];
     }
-    const menuItems = [
-      ...countries.map((country) => (
-        <MenuItem key={country} value={country}>
-          {country}
+    return countryOptions.map((country, idx) => {
+      // country might be a string or an object { code, name }
+      let key, val, label;
+      if (typeof country === "string") {
+        key = `country-string-${country}`;
+        val = country;
+        label = country;
+      } else if (country && typeof country === "object") {
+        // try code, else name, else fallback to idx
+        key = country.code
+          ? `country-code-${country.code}`
+          : (country.name
+              ? `country-name-${country.name}`
+              : `country-idx-${idx}`);
+        val = country.code || country.name || "";
+        // Prefer name for display, fallback
+        label = country.name || country.code || "";
+      } else {
+        key = `country-idx-${idx}`;
+        val = "";
+        label = "";
+      }
+      return (
+        <MenuItem key={key} value={val}>
+          {label}
         </MenuItem>
-      )),
-    ];
-    if (institutionsNext) {
-      menuItems.push(
-        renderSeeMoreListSubheader("see-more-countries", "See more destinations", handleSeeMoreInstitutions, fetchingNextInstitutions)
       );
-    }
-    return menuItems;
-  };
+    });
+  }
 
   // For institutions in country, show See more if there's more paginated
   const renderInstitutionsMenuItems = () => {
@@ -596,7 +646,7 @@ export const ApplyStudyVisa: React.FC = () => {
     } else {
       items = [
         ...filteredInstitutions.map((inst) => (
-          <MenuItem key={inst.id || inst.name} value={inst.id}>
+          <MenuItem key={inst.id != null ? `inst-${inst.id}` : `inst-name-${inst.name}`} value={inst.id}>
             {inst.name}
           </MenuItem>
         ))
@@ -627,7 +677,7 @@ export const ApplyStudyVisa: React.FC = () => {
     }
     return [
       ...programTypeObjects.map((pt) => (
-        <MenuItem key={pt.id} value={pt.id}>
+        <MenuItem key={`ptype-${pt.id}`} value={pt.id}>
           {pt.name}
         </MenuItem>
       )),
@@ -652,7 +702,7 @@ export const ApplyStudyVisa: React.FC = () => {
     }
     let items: any[] = [
       ...courses.map((course) => (
-        <MenuItem key={course.id} value={course.id}>
+        <MenuItem key={course.id != null ? `course-${course.id}` : undefined} value={course.id}>
           {course.name}
         </MenuItem>
       ))
@@ -711,7 +761,7 @@ export const ApplyStudyVisa: React.FC = () => {
             className="flex flex-col items-center justify-center"
             sx={{ height: { xs: 180, sm: 200, md: 220 }, width: "100%" }}
           >
-            {loading ? (
+            {loadingCountries ? (
               <CircularProgress size={28} />
             ) : (
               <TextField
@@ -719,7 +769,9 @@ export const ApplyStudyVisa: React.FC = () => {
                 fullWidth
                 label="Choose a destination"
                 value={selectedCountry}
-                onChange={handleCountryChange}
+                onChange={(e) => {
+                  setSelectedCountry(e.target.value);
+                }}
                 variant="outlined"
                 InputProps={{
                   sx: {
@@ -990,6 +1042,7 @@ export const ApplyStudyVisa: React.FC = () => {
                   <OfferCard
                     offer={offer}
                     onViewOffer={() => handleViewOffer(offer.id)}
+                    key={offer.id}
                   />
               ))
             )}
