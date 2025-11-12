@@ -732,7 +732,7 @@ export const ApplyStudyVisa: React.FC = () => {
     >
       <CustomerPageHeader>
         <Typography variant="h4" className="font-bold mb-6">
-          Apply Study Program
+        Study Program Application
         </Typography>
         <Typography variant="body1" className="text-gray-700 mb-4">
         Select your preferred county Institution and course then Apply   </Typography>
