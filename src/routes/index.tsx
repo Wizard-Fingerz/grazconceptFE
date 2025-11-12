@@ -90,6 +90,7 @@ import NotificationSettingsPage from "../pages/customer/accountsettings/Notifica
 import SettingsPage from "../pages/customer/accountsettings/SettingsPage";
 import LiveChatWithAgent from "../pages/customer/helpcenter/LiveChatWithAgent";
 import InvestmentPlanPage from "../pages/customer/citizenship/InvestmentPlan";
+import StudyLoanDetails from "../pages/customer/edufinance/Study/StudyLoanDetails";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -384,6 +385,10 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: "edufinance/study-abroad-loan",
         element: <StudyAbroadLoanPage />,
+      },
+      {
+        path: "edufinance/study-abroad-loan/offers/:id",
+        element: <StudyLoanDetails />,
       },
       {
         path: "edufinance/civil-servant-loan",

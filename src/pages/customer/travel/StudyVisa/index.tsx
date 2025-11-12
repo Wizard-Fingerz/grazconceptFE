@@ -734,6 +734,8 @@ export const ApplyStudyVisa: React.FC = () => {
         <Typography variant="h4" className="font-bold mb-6">
           Study visa
         </Typography>
+        <Typography variant="body1" className="text-gray-700 mb-4">
+        Select your preferred county Institution and course then Apply   </Typography>
       </CustomerPageHeader>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">

@@ -52,6 +52,20 @@ export async function getRecentStudyLoanOffers(limit: number = 5) {
 }
 
 /**
+ * Fetch a study loan offer by its ID.
+ * This service is needed for StudyLoanDetails page.
+ */
+export async function getStudyLoanOfferById(id: string | number) {
+  try {
+    const response = await api.get(`/wallet/loan-offers/${id}/`);
+    if (!response.data) throw new Error("Failed to fetch study loan offer details");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * Fetch all loan offers (optionally paginated/filtered).
  */
 export async function getAllLoanOffers(params?: Record<string, any>) {
@@ -80,7 +94,7 @@ export async function getMyRecentLoanApplications(limit: number = 5) {
  */
 export async function getLoanOfferById(id: string | number) {
   try {
-    const response = await api.get(`/app/loan-offers/${id}/`);
+    const response = await api.get(`/wallet/loan-offers/${id}/`);
     if (!response.data) throw new Error("Failed to fetch offer details");
     return response.data;
   } catch (error) {
@@ -101,3 +115,4 @@ export async function getLoanAnalyticsSummary() {
     throw error;
   }
 }
+

@@ -26,6 +26,7 @@ import { getRecentStudyLoanOffers, getLoanAnalyticsSummary, getStudyLoanOffers }
 
 // Proper OfferCard for Study Loan Offers (rewritten from ApplicationCard)
 export const OfferCard: React.FC<{
+    id: string | number;
     name: string;
     description: string;
     min_amount: string | number;
@@ -839,6 +840,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                             })}
                                         >
                                             <OfferCard
+                                                id={loan.id}
                                                 name={loan.name}
                                                 description={loan.description}
                                                 min_amount={loan.min_amount}
@@ -849,7 +851,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                                 required_documents={loan.required_documents}
                                                 requirements={loan.requirements}
                                                 onApply={() => {
-                                                    toast.info(`Begin your application for: ${loan.name}`);
+                                                    navigate(`/edufinance/study-abroad-loan/offers/${loan.id}`);
                                                 }}
                                             />
                                         </Box>
