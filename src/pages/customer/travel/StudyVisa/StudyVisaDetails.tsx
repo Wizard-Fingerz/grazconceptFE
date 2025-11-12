@@ -429,7 +429,7 @@ const StudyVisaDetails: React.FC = () => {
     { name: "emergency_contact_name", label: "Emergency Contact Name", type: "text", required: true },
     { name: "emergency_contact_relationship", label: "Emergency Contact Relationship", type: "text", required: true },
     { name: "emergency_contact_phone", label: "Emergency Contact Phone", type: "text", required: true },
-    { name: "statement_of_purpose", label: "Statement of Purpose", type: "textarea", required: true },
+    { name: "statement_of_purpose", label: "Statement of Purpose", type: "file", required: true },
 
     // Review & Submit
     { name: "is_submitted", label: "Application Submitted", type: "boolean", required: false },

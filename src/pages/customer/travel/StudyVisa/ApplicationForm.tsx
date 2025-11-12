@@ -222,6 +222,13 @@ function validateDocuments(data: any) {
     "image/png",
     "image/jpg",
   ]);
+  // Add check for statementOfPurpose as file (required, max 5MB, pdf or word or text)
+  checkFile("statementOfPurpose", true, 5, [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain"
+  ]);
   return errors;
 }
 
@@ -235,9 +242,8 @@ function validateAdditional(data: any) {
   if (!data.emergencyContactPhone)
     errors.emergencyContactPhone = "Contact phone is required";
   if (!data.statementOfPurpose)
-    errors.statementOfPurpose = "Statement of purpose is required";
-  else if (data.statementOfPurpose.length < 30)
-    errors.statementOfPurpose = "Statement should be at least 30 characters";
+    errors.statementOfPurpose = "Statement of purpose file is required";
+  // Don't check min length - handled by file requirement now
   return errors;
 }
 const stepValidators = [
@@ -760,20 +766,20 @@ const StepAdditional = ({ values, errors, onChange }: any) => (
       error={!!errors.emergencyContactPhone}
       helperText={errors.emergencyContactPhone}
     />
-    <TextField
-      label="Short Statement of Purpose"
+    <FileUploadField
+      name="statementOfPurpose"
+      label="Statement of Purpose"
+      accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+      maxSizeMB={5}
       required
-      multiline
-      minRows={4}
       value={values.statementOfPurpose}
-      onChange={e => onChange("statementOfPurpose", e.target.value)}
-      error={!!errors.statementOfPurpose}
-      helperText={errors.statementOfPurpose}
+      onChange={file => onChange("statementOfPurpose", file)}
+      error={errors.statementOfPurpose}
     />
   </Box>
 );
 
-// StepReview with special display for draft application prefill (unchanged)
+// StepReview with special display for draft application prefill (unchanged, except Statement of Purpose display)
 const StepReview = ({
   data,
   onEditStep,
@@ -883,8 +889,7 @@ const StepReview = ({
           )}
           Travel History: {data.travelHistory} <br />
           Emergency Contact: {data.emergencyContactName} ({data.emergencyContactPhone}) <br />
-          Statement of Purpose: <br />
-          <span className="whitespace-pre-line">{data.statementOfPurpose}</span>
+          Statement of Purpose: {getFileName(data.statementOfPurpose)}
         </Typography>
       </Box>
       <Box className="flex gap-2 mt-4">
@@ -1045,8 +1050,8 @@ const StudyVisaApplicationForm: React.FC = () => {
             travelHistory: data.travel_history || "",
             emergencyContactName: data.emergency_contact_name || "",
             emergencyContactPhone: data.emergency_contact_phone || "",
-            statementOfPurpose: data.statement_of_purpose || "",
-            // If your form values have more properties, map them similarly here.
+            // statementOfPurpose as file
+            statementOfPurpose: data.statement_of_purpose || null,
           }));
 
           // Prefill additional meta if needed
@@ -1112,7 +1117,7 @@ const StudyVisaApplicationForm: React.FC = () => {
     travelHistory: string;
     emergencyContactName: string;
     emergencyContactPhone: string;
-    statementOfPurpose: string;
+    statementOfPurpose: File | null;
   }
 
   const [formValues, setFormValues] = useState<StudyVisaFormValues>({
@@ -1150,7 +1155,7 @@ const StudyVisaApplicationForm: React.FC = () => {
     travelHistory: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
-    statementOfPurpose: "",
+    statementOfPurpose: null,
   });
 
   useEffect(() => {
@@ -1317,7 +1322,9 @@ const StudyVisaApplicationForm: React.FC = () => {
     fd.append("travel_history", formValues.travelHistory);
     fd.append("emergency_contact_name", formValues.emergencyContactName);
     fd.append("emergency_contact_phone", formValues.emergencyContactPhone);
-    fd.append("statement_of_purpose", formValues.statementOfPurpose);
+
+    // Append statementOfPurpose as file
+    appendFileIfExists(fd, "statement_of_purpose", formValues.statementOfPurpose);
 
     // If editing a draft, include application id
     if (id) {
