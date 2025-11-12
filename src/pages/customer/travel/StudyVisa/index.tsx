@@ -25,100 +25,161 @@ import api from "../../../../services/api";
 import { capitalizeWords } from "../../../../utils";
 import { OfferCard } from "../../../../components/StudyVisaCard";
 
-// ApplicationCard and GuideCard remain unchanged...
+// ApplicationCard - Now displays API fields directly if present
+export const ApplicationCard: React.FC<{ app: any }> = ({ app }) => {
+  // Prefer the explicit fields from the API response
+  const university =
+    app.institution_name ||
+    app.university ||
+    (typeof app.institution === "string"
+      ? capitalizeWords(app.institution)
+      : app.institution && typeof app.institution === "object" && app.institution.name
+        ? capitalizeWords(app.institution.name)
+        : "Unknown Institution");
 
-export const ApplicationCard: React.FC<{
-  university: string;
-  country: string;
-  program: string;
-  status: string;
-}> = ({ university, country, program, status }) => (
-  <Card
-    className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
-    sx={{
-      borderLeft: `6px solid ${
-        status === "Approved"
-          ? "#4caf50"
-          : status === "Pending"
-          ? "#ff9800"
-          : status === "Rejected"
-          ? "#f44336"
-          : "#bdbdbd"
-      }`,
-      margin: "auto",
-      background: "#fffdfa",
-    }}
-  >
-    <CardContent className="flex flex-col gap-2">
-      <Box className="flex items-center justify-between gap-4 mb-1">
-        <Typography
-          variant="subtitle1"
-          className="font-bold"
-          sx={{ fontSize: "1.1rem" }}
-        >
-          {capitalizeWords(university)}
-        </Typography>
-        <Button
-          size="small"
-          className="bg-[#f5ebe1] rounded-xl normal-case w-fit"
-          sx={{
-            fontWeight: 600,
-            fontSize: "0.85rem",
-            color:
-              status === "Approved"
-                ? "#388e3c"
-                : status === "Pending"
-                ? "#ff9800"
-                : status === "Rejected"
-                ? "#d32f2f"
-                : "#616161",
-            background:
-              status === "Approved"
-                ? "#e8f5e9"
-                : status === "Pending"
-                ? "#fff3e0"
-                : status === "Rejected"
-                ? "#ffebee"
-                : "#f5ebe1",
-            px: 2,
-            py: 0.5,
-            boxShadow: "none",
-            pointerEvents: "none",
-          }}
-          disableElevation
-        >
-          {status}
-        </Button>
-      </Box>
-      <Box className="flex flex-col gap-1">
-        <Box className="flex items-center gap-2">
+  const country =
+    app.destination_country ||
+    app.country ||
+    app.country_name ||
+    "Unknown Country";
+
+  // Prefer API fields for program and course
+  const programType =
+    app.program_type_name ||
+    app.program_type ||
+    app.program_name ||
+    (typeof app.program === "string" ? app.program : "") ||
+    "";
+  const courseName =
+    app.course_of_study_name ||
+    app.course_name ||
+    (typeof app.course_of_study === "string"
+      ? app.course_of_study
+      : (app.course_of_study && typeof app.course_of_study === "object" && app.course_of_study.name
+        ? app.course_of_study.name
+        : "")) ||
+    "";
+
+  const program =
+    programType && courseName
+      ? `${programType} - ${courseName}`
+      : programType || courseName || "";
+
+  // Prefer status_name from API, then fallback to normal logic
+  const status =
+    (typeof app.is_submitted === "boolean" && !app.is_submitted && app.status_name)
+      ? app.status_name
+      : app.status_name ||
+        (app.is_submitted ? "Submitted" : app.status) ||
+        "Draft";
+
+  // Use similar color logic for known statuses, but also fallback to grey if not mapped
+  let borderLeftColor = "#bdbdbd";
+  if (
+    status === "Approved" ||
+    String(app.status).toLowerCase() === "approved"
+  ) {
+    borderLeftColor = "#4caf50";
+  } else if (
+    status === "Pending" ||
+    String(app.status).toLowerCase() === "pending"
+  ) {
+    borderLeftColor = "#ff9800";
+  } else if (
+    status === "Rejected" ||
+    String(app.status).toLowerCase() === "rejected"
+  ) {
+    borderLeftColor = "#f44336";
+  }
+
+  let statusColor = "#616161";
+  let statusBg = "#f5ebe1";
+  if (
+    status === "Approved" ||
+    String(app.status).toLowerCase() === "approved"
+  ) {
+    statusColor = "#388e3c";
+    statusBg = "#e8f5e9";
+  } else if (
+    status === "Pending" ||
+    String(app.status).toLowerCase() === "pending"
+  ) {
+    statusColor = "#ff9800";
+    statusBg = "#fff3e0";
+  } else if (
+    status === "Rejected" ||
+    String(app.status).toLowerCase() === "rejected"
+  ) {
+    statusColor = "#d32f2f";
+    statusBg = "#ffebee";
+  }
+
+  return (
+    <Card
+      className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
+      sx={{
+        borderLeft: `6px solid ${borderLeftColor}`,
+        margin: "auto",
+        background: "#fffdfa",
+      }}
+    >
+      <CardContent className="flex flex-col gap-2">
+        <Box className="flex items-center justify-between gap-4 mb-1">
           <Typography
-            variant="body2"
-            className="text-gray-600"
-            sx={{ fontWeight: 500, minWidth: 70 }}
+            variant="subtitle1"
+            className="font-bold"
+            sx={{ fontSize: "1.1rem" }}
           >
-            Country:
+            {university}
           </Typography>
-          <Typography variant="body2" className="text-gray-800">
-            {country}
-          </Typography>
-        </Box>
-        <Box className="flex items-center gap-2">
-          <Typography
-            variant="body2"
-            className="text-gray-600"
-            sx={{ fontWeight: 500, minWidth: 70 }}
+          <Button
+            size="small"
+            className="bg-[#f5ebe1] rounded-xl normal-case w-fit"
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              color: statusColor,
+              background: statusBg,
+              px: 2,
+              py: 0.5,
+              boxShadow: "none",
+              pointerEvents: "none",
+            }}
+            disableElevation
           >
-            Program:
-          </Typography>
-          <Typography variant="body2" className="text-gray-800">
-            {program}
-          </Typography>
+            {status}
+          </Button>
         </Box>
-      </Box>
-    </CardContent>
-  </Card>
-);
+        <Box className="flex flex-col gap-1">
+          <Box className="flex items-center gap-2">
+            <Typography
+              variant="body2"
+              className="text-gray-600"
+              sx={{ fontWeight: 500, minWidth: 70 }}
+            >
+              Country:
+            </Typography>
+            <Typography variant="body2" className="text-gray-800">
+              {country}
+            </Typography>
+          </Box>
+          <Box className="flex items-center gap-2">
+            <Typography
+              variant="body2"
+              className="text-gray-600"
+              sx={{ fontWeight: 500, minWidth: 70 }}
+            >
+              Program:
+            </Typography>
+            <Typography variant="body2" className="text-gray-800">
+              {program}
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
   <Button className="bg-[#f5ebe1] rounded-xl px-6 py-3 font-semibold normal-case shadow-sm hover:bg-[#f3e1d5]">
@@ -154,7 +215,7 @@ export const ApplyStudyVisa: React.FC = () => {
   const [fetchingNextCourses, setFetchingNextCourses] = useState(false);
 
   // For Courses
-  const [coursesRaw, setCoursesRaw] = useState<any>(null);
+  const [, setCoursesRaw] = useState<any>(null);
   const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
   const [coursesNext, setCoursesNext] = useState<string | null>(null);
   const [coursesCount, setCoursesCount] = useState<number | null>(null);
@@ -472,68 +533,8 @@ export const ApplyStudyVisa: React.FC = () => {
   };
   // ---- END: CHANGED PAYLOAD LOGIC FOR COUNTRY ----
 
-  const getInstitutionName = (id: number | string) => {
-    const inst = (institutions || []).find((i) => String(i.id) === String(id));
-    return inst?.name || "Unknown Institution";
-  };
-
-  const getInstitutionCountry = (id: number | string) => {
-    const inst = (institutions || []).find((i) => String(i.id) === String(id));
-    return inst?.country || "Unknown Country";
-  };
-
-  const getProgramTypeName = (id: number | string) => {
-    for (const inst of institutions || []) {
-      if (Array.isArray(inst.program_types)) {
-        const pt = inst.program_types.find((pt: any) => String(pt.id) === String(id));
-        if (pt) return pt.name;
-      }
-    }
-    return "Unknown Program";
-  };
-
-  // Patch getCourseName to correctly look in paginated and array courses responses
-  const getCourseName = (id: number | string | null | undefined) => {
-    if (!id) return "";
-    // Try loaded courses
-    const course = courses.find((c) => String(c.id) === String(id));
-    if (course) return course.name;
-    // Try raw data if available and it is paginated
-    if (coursesRaw && Array.isArray(coursesRaw.results)) {
-      const cObj = coursesRaw.results.find((c: any) => String(c.id) === String(id));
-      if (cObj) return cObj.name;
-    }
-    // Fallback: try flattened institution.courses
-    for (const inst of institutions || []) {
-      if (Array.isArray(inst.courses)) {
-        const cObj = inst.courses.find((c: any) => String(c.id) === String(id));
-        if (cObj) return cObj.name;
-      }
-    }
-    return "Unknown Course";
-  };
-
-  const getStatusLabel = (status: number | string | null | undefined) => {
-    const statusMap: Record<string, string> = {
-      "33": "Draft",
-      "34": "Submitted",
-      "35": "In Review",
-      "36": "Approved",
-      "37": "Rejected",
-    };
-    if (status == null) return "Unknown Status";
-    return statusMap[String(status)] || String(status);
-  };
-
-  const getProgramString = (app: any) => {
-    const courseId = app.course_of_study ?? app.course;
-    const programTypeName = getProgramTypeName(app.program_type);
-    const courseName = getCourseName(courseId);
-    if (courseId && courseName && courseName !== "Unknown Course") {
-      return `${programTypeName} - ${courseName}`;
-    }
-    return programTypeName;
-  };
+  // -- All getXXXName methods no longer needed for card rendering, so remove use --
+  // -- getProgramString, getStatusLabel also not used on the UI for ApplicationCard --
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -767,7 +768,7 @@ export const ApplyStudyVisa: React.FC = () => {
               <TextField
                 select
                 fullWidth
-                label="Choose a destination"
+                label="Select your preferred country"
                 value={selectedCountry}
                 onChange={(e) => {
                   setSelectedCountry(e.target.value);
@@ -1008,12 +1009,7 @@ export const ApplyStudyVisa: React.FC = () => {
             ) : (
               recentApplications.map((app: any) => (
                 <Box key={app.id} sx={{ minWidth: 280, maxWidth: 340, flex: "0 0 auto" }}>
-                  <ApplicationCard
-                    university={getInstitutionName(app.institution)}
-                    country={getInstitutionCountry(app.institution)}
-                    program={getProgramString(app)}
-                    status={getStatusLabel(app.status)}
-                  />
+                  <ApplicationCard app={app} />
                 </Box>
               ))
             )}
