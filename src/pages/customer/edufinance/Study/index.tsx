@@ -10,171 +10,185 @@ import {
     Tab,
     useMediaQuery,
     useTheme,
+    Divider,
+    Tooltip,
+    Collapse,
+    IconButton,
 } from "@mui/material";
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { getAddBanners } from '../../../../services/studyVisa';
 import { toast } from "react-toastify";
 import { ImageCard } from "../../../../components/ImageCard";
 import { useNavigate } from "react-router-dom";
 import FinanceCard from "../../../../components/FinanceCard";
-import { getRecentStudyLoanOffers, getLoanAnalyticsSummary } from "../../../../services/edufinanceService";
+import { getRecentStudyLoanOffers, getLoanAnalyticsSummary, getStudyLoanOffers } from "../../../../services/edufinanceService";
 
-// ApplicationCard for Study Abroad Loan offers/applications
-export const ApplicationCard: React.FC<{
-    title: string;
-    country: string;
-    institution: string;
-    status?: string;
-    amount: string | number;
+// Proper OfferCard for Study Loan Offers (rewritten from ApplicationCard)
+export const OfferCard: React.FC<{
+    name: string;
+    description: string;
+    min_amount: string | number;
+    max_amount: string | number;
     currency: string;
-    type?: string;
+    interest_rate: string | number;
+    duration_months: number;
+    required_documents?: string;
+    requirements?: string;
     onApply?: () => void;
 }> = ({
-    title,
-    country,
-    institution,
-    status,
-    amount,
+    name,
+    description,
+    min_amount,
+    max_amount,
     currency,
-    type,
+    interest_rate,
+    duration_months,
+    required_documents,
+    requirements,
     onApply,
-}) => (
-    <Card
-        className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
-        sx={{
-            borderLeft: `6px solid ${
-                status
-                    ? status === "Disbursed"
-                        ? "#4caf50"
-                        : status === "Under Review"
-                        ? "#ff9800"
-                        : status === "Rejected"
-                        ? "#f44336"
-                        : "#bdbdbd"
-                    : "#1976d2"
-            }`,
-            margin: "auto",
-            background: "#fffdfa",
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-        }}
-    >
-        <CardContent className="flex flex-col gap-2" sx={{ flex: 1 }}>
-            <Box className="flex items-center justify-between gap-4 mb-1">
-                <Typography
-                    variant="subtitle1"
-                    className="font-bold"
-                    sx={{ fontSize: "1.1rem" }}
-                >
-                    {title}
-                </Typography>
-                {status ? (
+}) => {
+    const [expanded, setExpanded] = useState(false);
+    return (
+        <Card
+            className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
+            sx={{
+                borderLeft: `6px solid #1976d2`,
+                margin: "auto",
+                background: "#fffdfa",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+            }}
+        >
+            <CardContent className="flex flex-col gap-2" sx={{ flex: 1 }}>
+                <Box className="flex items-start justify-between gap-4 mb-1">
+                    <Box className="flex flex-col">
+                        <Typography
+                            variant="subtitle1"
+                            className="font-bold"
+                            sx={{ fontSize: "1.1rem", mb: 0.2 }}
+                        >
+                            {name}
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            className="text-gray-600"
+                            sx={{ fontWeight: 500, fontSize: "0.95rem" }}
+                        >
+                            {description}
+                        </Typography>
+                    </Box>
                     <Button
                         size="small"
-                        className="bg-[#f5ebe1] rounded-xl normal-case w-fit"
+                        className="bg-[#f5ebe1] rounded-xl normal-case w-fit font-semibold hover:bg-[#f3e1d5]"
                         sx={{
                             fontWeight: 600,
-                            fontSize: "0.85rem",
-                            color:
-                                status === "Disbursed"
-                                    ? "#388e3c"
-                                    : status === "Under Review"
-                                    ? "#ff9800"
-                                    : status === "Rejected"
-                                    ? "#d32f2f"
-                                    : "#616161",
-                            background:
-                                status === "Disbursed"
-                                    ? "#e8f5e9"
-                                    : status === "Under Review"
-                                    ? "#fff3e0"
-                                    : status === "Rejected"
-                                    ? "#ffebee"
-                                    : "#f5ebe1",
+                            fontSize: "0.90rem",
                             px: 2,
                             py: 0.5,
                             boxShadow: "none",
-                            pointerEvents: "none",
                         }}
-                        disableElevation
+                        onClick={onApply}
                     >
-                        {status}
+                        Apply
                     </Button>
-                ) : (
-                    onApply && (
-                        <Button
-                            size="small"
-                            className="bg-[#f5ebe1] rounded-xl normal-case w-fit font-semibold hover:bg-[#f3e1d5]"
-                            sx={{
-                                fontWeight: 600,
-                                fontSize: "0.90rem",
-                                px: 2,
-                                py: 0.5,
-                                boxShadow: "none",
-                            }}
-                            onClick={onApply}
-                        >
-                            Apply
-                        </Button>
-                    )
-                )}
-            </Box>
-            <Box className="flex flex-col gap-1">
-                <Box className="flex items-center gap-2">
-                    <Typography
-                        variant="body2"
-                        className="text-gray-600"
-                        sx={{ fontWeight: 500, minWidth: 88 }}
-                    >
-                        Country:
-                    </Typography>
-                    <Typography variant="body2" className="text-gray-800">
-                        {country}
-                    </Typography>
                 </Box>
-                <Box className="flex items-center gap-2">
-                    <Typography
-                        variant="body2"
-                        className="text-gray-600"
-                        sx={{ fontWeight: 500, minWidth: 70 }}
-                    >
-                        Institution:
-                    </Typography>
-                    <Typography variant="body2" className="text-gray-800">
-                        {institution}
-                    </Typography>
-                </Box>
-                <Box className="flex items-center gap-2">
-                    <Typography
-                        variant="body2"
-                        className="text-gray-600"
-                        sx={{ fontWeight: 500, minWidth: 70 }}
-                    >
-                        Amount:
-                    </Typography>
-                    <Typography variant="body2" className="text-gray-800">
-                        {amount} {currency}
-                    </Typography>
-                </Box>
-                {type && (
+                <Divider sx={{ my: 1 }} />
+                <Box className="flex flex-col gap-2">
                     <Box className="flex items-center gap-2">
                         <Typography
                             variant="body2"
                             className="text-gray-600"
-                            sx={{ fontWeight: 500, minWidth: 70 }}
+                            sx={{ fontWeight: 500, minWidth: 100 }}
                         >
-                            Loan Type:
+                            Loan Range:
                         </Typography>
-                        <Typography variant="body2" className="text-gray-800">
-                            {type}
+                        <Typography variant="body2" className="text-gray-800 font-semibold">
+                            {min_amount} - {max_amount} {currency}
                         </Typography>
                     </Box>
+                    <Box className="flex items-center gap-2">
+                        <Typography
+                            variant="body2"
+                            className="text-gray-600"
+                            sx={{ fontWeight: 500, minWidth: 100 }}
+                        >
+                            Interest Rate:
+                        </Typography>
+                        <Typography variant="body2" className="text-gray-800 font-semibold">
+                            {interest_rate}% p.a.
+                        </Typography>
+                    </Box>
+                    <Box className="flex items-center gap-2">
+                        <Typography
+                            variant="body2"
+                            className="text-gray-600"
+                            sx={{ fontWeight: 500, minWidth: 100 }}
+                        >
+                            Duration:
+                        </Typography>
+                        <Typography variant="body2" className="text-gray-800 font-semibold">
+                            {duration_months} months
+                        </Typography>
+                    </Box>
+                </Box>
+
+                {(requirements || required_documents) && (
+                    <>
+                        <Collapse in={expanded} timeout="auto" unmountOnExit>
+                            <Divider sx={{ my: 1 }} />
+                            <Box sx={{ mt: 1 }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 600, mb: 0.5 }}
+                                >
+                                    Requirements / Documents
+                                </Typography>
+                                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                    {(
+                                        (requirements || required_documents || "")
+                                            .split(/[\r\n]+/)
+                                            .filter(line => line && line.trim())
+                                    ).map((req, idx) => (
+                                        <li key={idx}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                {req}
+                                            </Typography>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Box>
+                        </Collapse>
+                        <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                            <Tooltip title={expanded ? "Hide requirements" : "Show requirements"}>
+                                <IconButton
+                                    onClick={() => setExpanded(exp => !exp)}
+                                    size="small"
+                                    sx={{
+                                        ml: -0.5,
+                                        color: "#1976d2",
+                                        transition: "transform 0.2s",
+                                        transform: expanded ? "rotate(180deg)" : undefined,
+                                    }}
+                                >
+                                    <ExpandMoreIcon />
+                                </IconButton>
+                            </Tooltip>
+                            <Typography
+                                variant="body2"
+                                sx={{ ml: 0.5, color: "#1976d2", cursor: "pointer" }}
+                                onClick={() => setExpanded(exp => !exp)}
+                            >
+                                {expanded ? "Hide requirements" : "View requirements"}
+                            </Typography>
+                        </Box>
+                    </>
                 )}
-            </Box>
-        </CardContent>
-    </Card>
-);
+            </CardContent>
+        </Card>
+    );
+};
 
 export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
     <Button className="bg-[#f5ebe1] rounded-xl px-6 py-3 font-semibold normal-case shadow-sm hover:bg-[#f3e1d5]">
@@ -227,39 +241,29 @@ export const StudyAbroadLoanPage: React.FC = () => {
         return () => { ignore = true; };
     }, []);
 
-    // --- API: Offers (missing in original) ---
+    // --- API: Offers (replace dummy data with real API call) ---
     useEffect(() => {
+        let ignore = false;
         setLoadingOffers(true);
-        // Simulate fetching offers: could be replaced by an actual API like getStudyLoanOffers()
-        // Here we're just setting to an array for illustration. Real use should fetch actual offers.
-        // If there's a real "getOffers" API, use it.
-        // getStudyLoanOffers().then(...)
-
-        // TODO: Replace this block below with actual API call to fetch offers!
-        setTimeout(() => {
-            // Fake offers; For demo, so page doesn't break
-            setOffers([
-                {
-                    id: 1,
-                    loan_title: 'Canada University Loan',
-                    country: 'Canada',
-                    institution: 'Toronto University',
-                    amount: 10000,
-                    currency: 'CAD',
-                    type: 'Education Loan'
-                },
-                {
-                    id: 2,
-                    loan_title: 'UK Masters Loan',
-                    country: 'United Kingdom',
-                    institution: 'Oxford',
-                    amount: 8000,
-                    currency: 'GBP',
-                    type: 'Study Loan'
+        getStudyLoanOffers()
+            .then((data: any) => {
+                if (ignore) return;
+                if (Array.isArray(data)) {
+                    setOffers(data);
+                } else if (data && Array.isArray(data.results)) {
+                    setOffers(data.results);
+                } else {
+                    setOffers([]);
                 }
-            ]);
-            setLoadingOffers(false);
-        }, 700);
+            })
+            .catch(() => {
+                if (!ignore) setOffers([]);
+            })
+            .finally(() => {
+                if (!ignore) setLoadingOffers(false);
+            });
+
+        return () => { ignore = true; };
     }, []);
 
     // --- API: Recent Applications ---
@@ -310,8 +314,6 @@ export const StudyAbroadLoanPage: React.FC = () => {
         ...(breakpoints.sm && { [`@media (min-width:600px)`]: { minWidth: breakpoints.sm, width: breakpoints.sm } }),
         ...(breakpoints.md && { [`@media (min-width:900px)`]: { minWidth: breakpoints.md, width: breakpoints.md } }),
     });
-
-
 
     // --- Render Analytics Cards (fixed) ---
     function renderAnalyticsCards() {
@@ -668,15 +670,110 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                                 max: 380
                                             })}
                                         >
-                                            <ApplicationCard
-                                                title={loan.loan_title || loan.title || "Study Abroad Loan"}
-                                                country={loan.country}
-                                                institution={loan.institution}
-                                                status={app.status}
-                                                amount={app.amount || loan.amount || "-"}
-                                                currency={app.currency || loan.currency || ""}
-                                                type={loan.type}
-                                            />
+                                            {/* Legacy: Show legacy ApplicationCard for now for applications */}
+                                            {/* You may refactor it using OfferCard for homogeneity if apps data matches offer data structure. */}
+                                            <Card
+                                                className="rounded-2xl shadow-md transition-transform hover:scale-[1.025] hover:shadow-lg"
+                                                sx={{
+                                                    borderLeft: `6px solid ${
+                                                        app.status
+                                                            ? app.status === "Disbursed"
+                                                                ? "#4caf50"
+                                                                : app.status === "Under Review"
+                                                                ? "#ff9800"
+                                                                : app.status === "Rejected"
+                                                                ? "#f44336"
+                                                                : "#bdbdbd"
+                                                            : "#1976d2"
+                                                    }`,
+                                                    margin: "auto",
+                                                    background: "#fffdfa",
+                                                    height: "100%",
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                }}
+                                            >
+                                                <CardContent className="flex flex-col gap-2" sx={{ flex: 1 }}>
+                                                    <Box className="flex items-center justify-between gap-4 mb-1">
+                                                        <Typography
+                                                            variant="subtitle1"
+                                                            className="font-bold"
+                                                            sx={{ fontSize: "1.1rem" }}
+                                                        >
+                                                            {loan.name || loan.loan_title || loan.title || "Study Abroad Loan"}
+                                                        </Typography>
+                                                        <Button
+                                                            size="small"
+                                                            className="bg-[#f5ebe1] rounded-xl normal-case w-fit"
+                                                            sx={{
+                                                                fontWeight: 600,
+                                                                fontSize: "0.85rem",
+                                                                color:
+                                                                    app.status === "Disbursed"
+                                                                        ? "#388e3c"
+                                                                        : app.status === "Under Review"
+                                                                        ? "#ff9800"
+                                                                        : app.status === "Rejected"
+                                                                        ? "#d32f2f"
+                                                                        : "#616161",
+                                                                background:
+                                                                    app.status === "Disbursed"
+                                                                        ? "#e8f5e9"
+                                                                        : app.status === "Under Review"
+                                                                        ? "#fff3e0"
+                                                                        : app.status === "Rejected"
+                                                                        ? "#ffebee"
+                                                                        : "#f5ebe1",
+                                                                px: 2,
+                                                                py: 0.5,
+                                                                boxShadow: "none",
+                                                                pointerEvents: "none",
+                                                            }}
+                                                            disableElevation
+                                                        >
+                                                            {app.status}
+                                                        </Button>
+                                                    </Box>
+                                                    <Box className="flex flex-col gap-1">
+                                                        <Box className="flex items-center gap-2">
+                                                            <Typography
+                                                                variant="body2"
+                                                                className="text-gray-600"
+                                                                sx={{ fontWeight: 500, minWidth: 100 }}
+                                                            >
+                                                                Loan Range:
+                                                            </Typography>
+                                                            <Typography variant="body2" className="text-gray-800 font-semibold">
+                                                                {loan.min_amount} - {loan.max_amount} {loan.currency}
+                                                            </Typography>
+                                                        </Box>
+                                                        <Box className="flex items-center gap-2">
+                                                            <Typography
+                                                                variant="body2"
+                                                                className="text-gray-600"
+                                                                sx={{ fontWeight: 500, minWidth: 100 }}
+                                                            >
+                                                                Interest Rate:
+                                                            </Typography>
+                                                            <Typography variant="body2" className="text-gray-800 font-semibold">
+                                                                {loan.interest_rate}% p.a.
+                                                            </Typography>
+                                                        </Box>
+                                                        <Box className="flex items-center gap-2">
+                                                            <Typography
+                                                                variant="body2"
+                                                                className="text-gray-600"
+                                                                sx={{ fontWeight: 500, minWidth: 100 }}
+                                                            >
+                                                                Duration:
+                                                            </Typography>
+                                                            <Typography variant="body2" className="text-gray-800 font-semibold">
+                                                                {loan.duration_months} months
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
+                                                </CardContent>
+                                            </Card>
                                         </Box>
                                     );
                                 })
@@ -741,15 +838,18 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                                 max: 380
                                             })}
                                         >
-                                            <ApplicationCard
-                                                title={loan.loan_title || loan.title || ""}
-                                                country={loan.country}
-                                                institution={loan.institution}
-                                                amount={loan.amount}
+                                            <OfferCard
+                                                name={loan.name}
+                                                description={loan.description}
+                                                min_amount={loan.min_amount}
+                                                max_amount={loan.max_amount}
                                                 currency={loan.currency}
-                                                type={loan.type}
+                                                interest_rate={loan.interest_rate}
+                                                duration_months={loan.duration_months}
+                                                required_documents={loan.required_documents}
+                                                requirements={loan.requirements}
                                                 onApply={() => {
-                                                    toast.info("Begin your application for this loan offer.");
+                                                    toast.info(`Begin your application for: ${loan.name}`);
                                                 }}
                                             />
                                         </Box>
