@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { showErrorToast, shouldShowErrorToast } from '../utils/errorHandler';
 
-// const API_BASE_URL = 'http://localhost:8002/api/';
+// export const API_BASE_URL = 'http://localhost:8002/api/';
 
 // const API_BASE_URL = 'https://backend.grazconcept.com.ng/api/';
 export const API_BASE_URL = 'https://backend.grazconcept.com.ng/api/';

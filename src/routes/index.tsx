@@ -89,6 +89,7 @@ import KnowledgeBasePage from "../pages/customer/helpcenter/KnowledgeBased";
 import NotificationSettingsPage from "../pages/customer/accountsettings/Notifications";
 import SettingsPage from "../pages/customer/accountsettings/SettingsPage";
 import LiveChatWithAgent from "../pages/customer/helpcenter/LiveChatWithAgent";
+import InvestmentPlanPage from "../pages/customer/citizenship/InvestmentPlan";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -410,7 +411,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "citizenship/investment-plan",
-        element: <CustomerPlaceholderPage title="Investment Plan" />,
+        element: <InvestmentPlanPage />,
       },
       {
         path: "value-added/gift-cards",
