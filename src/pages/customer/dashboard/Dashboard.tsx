@@ -372,6 +372,12 @@ export const Dashboard: React.FC = () => {
       case "Business loan for travel project":
         route = "/edufinance/business-loan";
         break;
+      case "Investment Plan":
+        route = "/citizenship/investment-plan";
+        break;
+      case "Edufinance":
+        route = "/edufinance/study-abroad-loan";
+        break;
       default:
         // fallback to modal for unknown actions (for banners, etc)
         setModalLabel(label);
@@ -578,6 +584,8 @@ export const Dashboard: React.FC = () => {
             <ActionCard icon={<School />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
             <ActionCard icon={<School />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
             <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
+            <ActionCard icon={<Savings />} label="Investment Plan" onClick={() => handleActionClick("Investment Plan")} />
+            <ActionCard icon={<School />} label="Edufinance" onClick={() => handleActionClick("Edufinance")} />
             {/* <ActionCard icon={<Chat />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
             <ActionCard icon={<School />} label="Apply for Study Loan" onClick={() => handleActionClick("Apply for Study Loan")} />
             <ActionCard icon={<DirectionsCar />} label="Car Rentals" onClick={() => handleActionClick("Car Rentals")} />
