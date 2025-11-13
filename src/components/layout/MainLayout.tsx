@@ -69,7 +69,7 @@ import {
   Info as InfoIcon,
   Done as DoneIcon,
 } from "@mui/icons-material";
-import { useLocation, Outlet } from "react-router-dom";
+import { useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import SidebarContent from "../SideBar/SidebarContent";
 import {
@@ -139,6 +139,7 @@ export const MainLayout: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Track previous pathname to detect navigation
   const prevPathname = useRef(location.pathname);
@@ -162,7 +163,6 @@ export const MainLayout: React.FC = () => {
   // Notification handlers
   const handleNotifOpen = (event: React.MouseEvent<HTMLElement>) => {
     setNotifAnchorEl(event.currentTarget);
-    // Explicitly request notifications every time the menu opens
     requestUserNotifications();
   };
   const handleNotifClose = () => {
@@ -173,24 +173,17 @@ export const MainLayout: React.FC = () => {
   const notificationsRef = useRef<Notification[]>([]);
   useEffect(() => { notificationsRef.current = notifications }, [notifications]);
 
-  // Notifications WebSocket subscription
   useEffect(() => {
     let isMounted = true;
-
-    // Handle incoming notification WebSocket data, supports backend structure: {notifications: [...]}
-    const MAX_MESSAGE_LENGTH = 30; // Or adjust as needed
-
+    const MAX_MESSAGE_LENGTH = 30;
     const truncateMessage = (msg?: string) => {
       if (typeof msg !== "string") return msg;
       return msg.length > MAX_MESSAGE_LENGTH
         ? msg.slice(0, MAX_MESSAGE_LENGTH) + "..."
         : msg;
     };
-
     const onNotification = (data: any) => {
       if (!isMounted) return;
-
-      // If the server sends the new API structure: { notifications: [...] }
       let notificationsArr: any[] | null = null;
       if (Array.isArray(data)) {
         notificationsArr = data;
@@ -201,9 +194,7 @@ export const MainLayout: React.FC = () => {
       ) {
         notificationsArr = data.notifications;
       }
-
       if (notificationsArr) {
-        // Use new structure for each notification, with message truncation
         const normalized = notificationsArr
           .map((n, idx) => ({
             ...n,
@@ -212,11 +203,9 @@ export const MainLayout: React.FC = () => {
             type: n.notification_type || n.type || "info",
             read: "read" in n ? !!n.read : ("is_read" in n ? !!n.is_read : false),
             time: n.time || n.created_at || n.timestamp || n.updated_at,
-            title: n.title, // allow for explicit title property if available
+            title: n.title,
           }))
           .reverse();
-
-        // If all IDs in normalized already exist, don't update
         const incomingIds = new Set(normalized.map(n => n.id));
         const existingIds = new Set(notificationsRef.current.map(n => n.id));
         const hasNew = [...incomingIds].some(id => !existingIds.has(id));
@@ -224,7 +213,6 @@ export const MainLayout: React.FC = () => {
           setNotifications(normalized);
         }
       } else if (typeof data === "object" && data !== null) {
-        // Single notification, as either a fresh push or legacy, with truncation
         setNotifications((prev) => {
           const id =
             data.id ??
@@ -249,12 +237,8 @@ export const MainLayout: React.FC = () => {
         });
       }
     };
-
-
     const unsubscribe = subscribeToNotifications(onNotification);
-    // Request notifications on mount as additional safety
     requestUserNotifications();
-
     return () => {
       isMounted = false;
       unsubscribe?.();
@@ -350,7 +334,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-        // 🟡 Airtime & Bills Payment
         {
           section: "Other Services",
           icon: <AppsOutlinedIcon />,
@@ -376,7 +359,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-
         {
           section: "Referrals",
           icon: <PeopleIcon />,
@@ -393,11 +375,6 @@ export const MainLayout: React.FC = () => {
               label: "Support Tickets",
               to: "/support/tickets",
             },
-            // {
-            //   icon: <SupportAgentIcon />,
-            //   label: "Live Chat & Email",
-            //   to: "/support/chat",
-            // },
             {
               icon: <MenuBookIcon />,
               label: "Knowledge Base",
@@ -414,11 +391,6 @@ export const MainLayout: React.FC = () => {
               label: "Notifications",
               to: "/settings/notifications",
             },
-            // {
-            //   icon: <HelpIcon />,
-            //   label: "Help & Support",
-            //   to: "/settings/support",
-            // },
             {
               icon: <SettingsIcon />,
               label: "Advanced Settings",
@@ -428,8 +400,8 @@ export const MainLayout: React.FC = () => {
           ],
         },
       ],
-
       agent: [
+        // ... agent unchanged ...
         {
           section: "Dashboard",
           icon: <AppsOutlinedIcon />,
@@ -566,7 +538,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-
         {
           section: "Transactions & Commission",
           icon: <CalculateIcon />,
@@ -664,13 +635,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-
-        // 🔹 Onboarding & Orientation Videos
-        // 🔹 Product Training Materials
-        // 🔹 Marketing Resources & Flyers
-        // 🔹 Webinar / Live Session Access
-        // 🔹 Certificate of Completion
-
         {
           section: "Training & Resource Center",
           icon: <SchoolIcon />,
@@ -722,12 +686,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-
-        //         🔹 General Announcements
-        // 🔹 New Service Alerts
-        // 🔹 Promo & Bonus Notifications
-        // 🔹 System Maintenance Notices
-        // 🔹 Past Broadcast Archive
         {
           section: "Notifications & Broadcasts",
           icon: <NotificationsIcon />,
@@ -762,7 +720,6 @@ export const MainLayout: React.FC = () => {
               label: "System Maintenance Notices",
               to: "/staff/notifications/broadcasts",
             },
-
             {
               icon: <NotificationsIcon />,
               label: "Campaigns",
@@ -780,12 +737,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-
-        //         🔹 Submit Support Ticket
-        // 🔹 Live Chat / WhatsApp Support
-        // 🔹 Frequently Asked Questions (FAQs)
-        // 🔹 Feedback & Complaint Form
-        // 🔹 Help Articles & Guides
         {
           section: "Support / Helpdesk",
           icon: <HelpIcon />,
@@ -822,11 +773,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-        //         🔹 Edit Personal Information
-        // 🔹 Upload CAC / ID Documents
-        // 🔹 Bank Details Setup
-        // 🔹 Change Password / PIN
-        // 🔹 2FA & OTP Security
         {
           section: "Profile & Settings",
           icon: <SettingsIcon />,
@@ -862,7 +808,6 @@ export const MainLayout: React.FC = () => {
               label: "Staff",
               to: "/staff/settings/staff",
             },
-
             {
               icon: <NotificationsIcon />,
               label: "Notification Preferences",
@@ -885,12 +830,6 @@ export const MainLayout: React.FC = () => {
             },
           ],
         },
-        //  Monthly Sales Graph
-        //  Top-Selling Services Chart
-        //  Partner Ranking Board
-        //  Goal Setting & Progress Tracker
-        //  Performance Badge Display
-
         {
           section: "Performance & Analytics",
           icon: <SettingsIcon />,
@@ -959,7 +898,6 @@ export const MainLayout: React.FC = () => {
           ],
         },
       ],
-
       admin: [
         {
           section: "Menu",
@@ -977,10 +915,52 @@ export const MainLayout: React.FC = () => {
     []
   );
 
-  // Use helper to get normalized role
   const role: RoleKey = getRoleFromUser(user);
 
-  // Find the current title based on the current path
+  // Find settings page per role -- advanced: always go to advanced settings for customer
+  const settingsPath = useMemo(() => {
+    switch (role) {
+      case "customer":
+        // ADVANCED: customer settings should navigate to "Advanced Settings"
+        return (
+          (sidebarStructureByRole["customer"]
+            .find(section =>
+              section.items.some(
+                item =>
+                  item.label === "Advanced Settings" &&
+                  item.to === "/settings/advanced"
+              )
+            )
+            ?.items.find(
+              item =>
+                item.label === "Advanced Settings" &&
+                item.to === "/settings/advanced"
+            )?.to) ||
+          "/settings/advanced"
+        );
+      case "agent":
+        return (
+          (sidebarStructureByRole["agent"]
+            .find(section =>
+              section.items.some(item => item.to && item.to.startsWith("/staff/settings/"))
+            )
+            ?.items.find(item => item.to && item.to.startsWith("/staff/settings/"))?.to) ||
+          "/staff/settings/profile"
+        );
+      case "admin":
+        return (
+          (sidebarStructureByRole["admin"]
+            .find(section =>
+              section.items.some(item => item.to && item.to.startsWith("/admin/settings"))
+            )
+            ?.items.find(item => item.to && item.to.startsWith("/admin/settings"))?.to) ||
+          "/admin/settings"
+        );
+      default:
+        return "/";
+    }
+  }, [role, sidebarStructureByRole]);
+
   const currentTitle = useMemo(() => {
     const sections = sidebarStructureByRole[role] || [];
     for (const section of sections) {
@@ -990,7 +970,6 @@ export const MainLayout: React.FC = () => {
         }
       }
     }
-    // If no exact match, try to find a partial match (startsWith)
     for (const section of sections) {
       for (const item of section.items) {
         if (item.to && location.pathname.startsWith(item.to)) {
@@ -998,14 +977,12 @@ export const MainLayout: React.FC = () => {
         }
       }
     }
-    // Fallback: use the first sidebar item label if available
     if (sections.length > 0 && sections[0].items.length > 0) {
       return sections[0].items[0].label;
     }
     return "Dashboard";
   }, [location.pathname, role, sidebarStructureByRole]);
 
-  // Always pass a fresh array to SidebarContent to avoid stale props
   const drawer = (
     <SidebarContent
       isOpen={open}
@@ -1014,7 +991,6 @@ export const MainLayout: React.FC = () => {
     />
   );
 
-  // Notification icon with menu
   function NotifTypeIcon({ type }: { type: string }) {
     switch (type) {
       case "error":
@@ -1027,6 +1003,12 @@ export const MainLayout: React.FC = () => {
         return <NotificationsIcon fontSize="small" />;
     }
   }
+
+  const handleSettingsClick = () => {
+    if (settingsPath) {
+      navigate(settingsPath);
+    }
+  };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -1061,7 +1043,6 @@ export const MainLayout: React.FC = () => {
           >
             {currentTitle}
           </Typography>
-
           <Stack direction="row" spacing={1}>
             <Tooltip title="Notifications">
               <IconButton
@@ -1137,10 +1118,15 @@ export const MainLayout: React.FC = () => {
                 ))
               )}
             </Menu>
-
-            <IconButton sx={{ bgcolor: theme.palette.background.paper }}>
-              <SettingsIcon />
-            </IconButton>
+            <Tooltip title="Settings">
+              <IconButton
+                sx={{ bgcolor: theme.palette.background.paper }}
+                onClick={handleSettingsClick}
+                aria-label="settings"
+              >
+                <SettingsIcon />
+              </IconButton>
+            </Tooltip>
           </Stack>
         </Toolbar>
       </AppBar>
