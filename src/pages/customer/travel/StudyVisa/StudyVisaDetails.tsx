@@ -179,7 +179,7 @@ const StudyVisaDetails: React.FC = () => {
   const [liveDescription, setLiveDescription] = useState<string>("");
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Steps definition (no change)
+  // Steps definition (move statement_of_purpose field to "Document Uploads")
   const FORM_STEPS = [
     {
       label: "Personal Information",
@@ -222,6 +222,7 @@ const StudyVisaDetails: React.FC = () => {
         "admission_letter",
         "financial_statement",
         "english_test_result",
+        "statement_of_purpose", // <--- Move to Document Uploads step
       ],
     },
     {
@@ -233,7 +234,7 @@ const StudyVisaDetails: React.FC = () => {
         "emergency_contact_name",
         "emergency_contact_relationship",
         "emergency_contact_phone",
-        "statement_of_purpose",
+        // "statement_of_purpose", <-- REMOVED FROM HERE
       ],
     },
     {
@@ -421,6 +422,7 @@ const StudyVisaDetails: React.FC = () => {
     { name: "admission_letter", label: "Admission Letter", type: "file", required: false },
     { name: "financial_statement", label: "Financial Statement", type: "file", required: false },
     { name: "english_test_result", label: "English Test Result", type: "file", required: false },
+    { name: "statement_of_purpose", label: "Statement of Purpose", type: "file", required: true }, // <--- already file
 
     // Additional Information
     { name: "previous_visa_applications", label: "Previous Visa Applications", type: "boolean", required: false },
@@ -429,7 +431,7 @@ const StudyVisaDetails: React.FC = () => {
     { name: "emergency_contact_name", label: "Emergency Contact Name", type: "text", required: true },
     { name: "emergency_contact_relationship", label: "Emergency Contact Relationship", type: "text", required: true },
     { name: "emergency_contact_phone", label: "Emergency Contact Phone", type: "text", required: true },
-    { name: "statement_of_purpose", label: "Statement of Purpose", type: "file", required: true },
+    // statement_of_purpose REMOVED from here
 
     // Review & Submit
     { name: "is_submitted", label: "Application Submitted", type: "boolean", required: false },
@@ -810,6 +812,7 @@ const StudyVisaDetails: React.FC = () => {
       "admission_letter",
       "financial_statement",
       "english_test_result",
+      "statement_of_purpose", // <--- MOVED HERE
       // 5️⃣ Additional Information
       "previous_visa_applications",
       "previous_visa_details",
@@ -817,7 +820,7 @@ const StudyVisaDetails: React.FC = () => {
       "emergency_contact_name",
       "emergency_contact_relationship",
       "emergency_contact_phone",
-      "statement_of_purpose",
+      // "statement_of_purpose", <-- REMOVED FROM HERE
       // 6️⃣ Review & Submit
       "is_submitted",
       "submitted_at",

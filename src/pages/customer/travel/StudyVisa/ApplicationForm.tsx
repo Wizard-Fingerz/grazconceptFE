@@ -1254,11 +1254,11 @@ const StudyVisaApplicationForm: React.FC = () => {
     }));
   }
 
-  function toYMD(dateObj: Date | null): string {
-    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "";
-    // Always format as 'YYYY-MM-DD'
-    return dateObj.toISOString().slice(0, 10);
-  }
+  // function _toYMD(dateObj: Date | null): string {
+  //   if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "";
+  //   // Always format as 'YYYY-MM-DD'
+  //   return dateObj.toISOString().slice(0, 10);
+  // }
 
   function validateStep(): boolean {
     const validator = stepValidators[activeStep];
