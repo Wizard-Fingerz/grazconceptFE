@@ -709,6 +709,16 @@ const StepDocuments = ({ values, errors, onChange }: any) => (
       onChange={file => onChange("englishTest", file)}
       error={errors.englishTest}
     />
+    <FileUploadField
+      name="statementOfPurpose"
+      label="Statement of Purpose"
+      accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+      maxSizeMB={5}
+      required
+      value={values.statementOfPurpose}
+      onChange={file => onChange("statementOfPurpose", file)}
+      error={errors.statementOfPurpose}
+    />
   </Box>
 );
 
@@ -765,16 +775,6 @@ const StepAdditional = ({ values, errors, onChange }: any) => (
       onChange={e => onChange("emergencyContactPhone", e.target.value)}
       error={!!errors.emergencyContactPhone}
       helperText={errors.emergencyContactPhone}
-    />
-    <FileUploadField
-      name="statementOfPurpose"
-      label="Statement of Purpose"
-      accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-      maxSizeMB={5}
-      required
-      value={values.statementOfPurpose}
-      onChange={file => onChange("statementOfPurpose", file)}
-      error={errors.statementOfPurpose}
     />
   </Box>
 );
@@ -870,7 +870,8 @@ const StepReview = ({
           Transcript: {getFileName(data.transcript)} <br />
           Admission Letter: {getFileName(data.admissionLetter)} <br />
           Financial Statement: {getFileName(data.financialStatement)} <br />
-          English Test: {getFileName(data.englishTest)}
+          English Test: {getFileName(data.englishTest)} <br />
+          Statement of Purpose: {getFileName(data.statementOfPurpose)}
         </Typography>
       </Box>
       <Box className="mb-4">
@@ -888,8 +889,7 @@ const StepReview = ({
             </>
           )}
           Travel History: {data.travelHistory} <br />
-          Emergency Contact: {data.emergencyContactName} ({data.emergencyContactPhone}) <br />
-          Statement of Purpose: {getFileName(data.statementOfPurpose)}
+          Emergency Contact: {data.emergencyContactName} ({data.emergencyContactPhone})
         </Typography>
       </Box>
       <Box className="flex gap-2 mt-4">
@@ -1027,7 +1027,13 @@ const StudyVisaApplicationForm: React.FC = () => {
           setFormValues((prev: any) => ({
             ...prev,
             passportNumber: data.passport_number || "",
-            passportExpiry: data.passport_expiry_date ? new Date(data.passport_expiry_date) : null,
+            passportExpiry: data.passport_expiry_date
+              ? new Date(
+                  typeof data.passport_expiry_date === "string"
+                    ? data.passport_expiry_date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$1-$2-$3T00:00:00")
+                    : data.passport_expiry_date
+                )
+              : null,
             highestQualification: data.highest_qualification || "",
             institutionName: data.institution_name || data.previous_university || "",
             courseOfStudy: data.course_of_study_name || data.previous_course_of_study || "",
@@ -1272,23 +1278,33 @@ const StudyVisaApplicationForm: React.FC = () => {
     // Every field, both non-file and file, must be included in FormData payload
     const fd = new FormData();
 
+    // Helper to format YMD string (YYYY-MM-DD)
+    const toYMD = (dateObj: Date | null): string => {
+      if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "";
+      return dateObj.toISOString().slice(0, 10);
+    };
+
     // Step 1
     fd.append("first_name", formValues.firstName);
     fd.append("last_name", formValues.lastName);
     fd.append("middle_name", formValues.middleName);
     fd.append("email", formValues.email);
     fd.append("phone_number", formValues.phone);
-    fd.append("date_of_birth", user?.date_of_birth
-      ? new Date(user.date_of_birth).toISOString()
-      : formValues.dateOfBirth
-        ? formValues.dateOfBirth.toISOString()
-        : "");
+    fd.append(
+      "date_of_birth",
+      user?.date_of_birth
+        ? toYMD(new Date(user.date_of_birth))
+        : formValues.dateOfBirth
+        ? toYMD(formValues.dateOfBirth)
+        : ""
+    );
     fd.append("gender", formValues.gender);
     fd.append("nationality", formValues.nationality);
     fd.append("passport_number", formValues.passportNumber);
-    fd.append("passport_expiry_date", formValues.passportExpiry
-      ? formValues.passportExpiry.toISOString()
-      : "");
+    fd.append(
+      "passport_expiry_date",
+      formValues.passportExpiry ? toYMD(formValues.passportExpiry) : ""
+    );
     fd.append("current_address", formValues.currentAddress);
     fd.append("country_of_residence", formValues.countryOfResidence);
 
@@ -1301,7 +1317,6 @@ const StudyVisaApplicationForm: React.FC = () => {
 
     // Step 3 -- FORMAT DATES AND visa_type FIELD
     fd.append("university_applying", formValues.universityApplying);
-
     fd.append("institution_country", formValues.institutionCountry);
     fd.append(
       "intended_start_date",
