@@ -274,6 +274,8 @@ const AllStudyOffers: React.FC = () => {
               flexWrap: "wrap",
               gap: 3,
               mt: 2,
+              justifyContent: "center", // Center the cards horizontally
+              // Remove ml & mr
             }}
           >
             {loading ? (

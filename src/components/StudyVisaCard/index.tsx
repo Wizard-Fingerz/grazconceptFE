@@ -8,6 +8,8 @@ import {
   Chip,
   Divider,
   Tooltip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { capitalizeWords } from "../../utils";
 
@@ -15,12 +17,16 @@ import { capitalizeWords } from "../../utils";
  * OfferCard - Professional, compact card for displaying a study visa offer.
  * Uses the new offer API structure.
  * 
- * Layout: Horizontal (row) for main info, to reduce height and increase width.
+ * Now fully responsive for mobile: width, direction, and spacing adapt to screen size.
  */
 export const OfferCard: React.FC<{
   offer: any;
   onViewOffer?: () => void;
 }> = ({ offer, onViewOffer }) => {
+  // For responsive truncation
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   // Format tuition fee
   const tuitionFee =
     offer.tuition_fee && !isNaN(Number(offer.tuition_fee))
@@ -42,6 +48,13 @@ export const OfferCard: React.FC<{
     ? new Date(offer.created_at).toLocaleDateString()
     : null;
 
+  // Truncate description for display: shorter on mobile, longer on desktop
+  const truncateDescription = (desc: string, maxMobile: number = 55, maxDesktop: number = 80) => {
+    if (!desc) return "";
+    const max = isMobile ? maxMobile : maxDesktop;
+    return desc.length > max ? desc.slice(0, max).trim() + "..." : desc;
+  };
+
   return (
     <Card
       className="rounded-xl shadow-md transition-transform hover:scale-[1.015] hover:shadow-lg"
@@ -50,21 +63,23 @@ export const OfferCard: React.FC<{
         margin: "auto",
         background: "#f7f3ff",
         minHeight: 0,
-        maxWidth: 650,
-        minWidth: 420,
+        maxWidth: { xs: "100%", sm: 500, md: 650 },
+        minWidth: { xs: "0", sm: 340, md: 420 },
+        width: "100%",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
         position: "relative",
         p: 0,
+        boxSizing: "border-box",
       }}
       elevation={2}
     >
       <CardContent
         className="flex flex-col gap-2"
         sx={{
-          p: 2.2,
-          "&:last-child": { pb: 2.2 },
+          p: { xs: 1.2, sm: 2.2 },
+          "&:last-child": { pb: { xs: 1.2, sm: 2.2 } },
         }}
       >
         {/* Header: University and Offer Title */}
@@ -75,10 +90,10 @@ export const OfferCard: React.FC<{
                 variant="subtitle1"
                 className="font-bold truncate"
                 sx={{
-                  fontSize: "1.05rem",
+                  fontSize: { xs: "1rem", sm: "1.05rem" },
                   color: "#6a1b9a",
                   lineHeight: 1.2,
-                  maxWidth: 320,
+                  maxWidth: { xs: 220, sm: 320 },
                 }}
               >
                 {capitalizeWords(offer.institution_name || "Unknown Institution")}
@@ -90,10 +105,10 @@ export const OfferCard: React.FC<{
                 className="text-gray-700 truncate"
                 sx={{
                   fontWeight: 500,
-                  fontSize: "0.93rem",
+                  fontSize: { xs: "0.9rem", sm: "0.93rem" },
                   color: "#3d2956",
                   lineHeight: 1.2,
-                  maxWidth: 320,
+                  maxWidth: { xs: 220, sm: 320 },
                 }}
               >
                 {offer.offer_title}
@@ -104,7 +119,7 @@ export const OfferCard: React.FC<{
             label="Offer"
             sx={{
               fontWeight: 600,
-              fontSize: "0.82rem",
+              fontSize: { xs: "0.78rem", sm: "0.82rem" },
               color: "#6a1b9a",
               background: "#ede7f6",
               px: 1.5,
@@ -119,31 +134,48 @@ export const OfferCard: React.FC<{
 
         <Divider sx={{ my: 1 }} />
 
-        {/* Main Info - Horizontal Layout */}
+        {/* Main Info - Responsive Layout */}
         <Box
-          className="flex flex-row gap-4"
+          className="gap-4"
           sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
             columnGap: 4,
-            rowGap: 0.5,
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
+            rowGap: 2,
+            flexWrap: { xs: "nowrap", sm: "wrap" },
+            alignItems: { xs: "stretch", sm: "flex-start" },
+            justifyContent: { xs: "flex-start", sm: "space-between" },
           }}
         >
-          {/* Left Column: Program, Course, Tuition */}
-          <Box className="flex flex-col gap-1" sx={{ minWidth: 180, flex: 1 }}>
+          {/* Left Column */}
+          <Box
+            className="flex flex-col gap-1"
+            sx={{
+              minWidth: { xs: 0, sm: 160, md: 180 },
+              flex: 1,
+              mb: { xs: 1, sm: 0 },
+              pr: { sm: 2, md: 0 },
+            }}
+          >
             <Box className="flex items-center" sx={{ gap: 1 }}>
               <Typography
                 variant="body2"
                 className="text-gray-600"
-                sx={{ fontWeight: 500, minWidth: 80, fontSize: "0.93rem" }}
+                sx={{
+                  fontWeight: 500,
+                  minWidth: 68,
+                  fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                }}
               >
                 Program:
               </Typography>
               <Typography
                 variant="body2"
                 className="text-gray-800 font-semibold truncate"
-                sx={{ fontSize: "0.93rem", maxWidth: 140 }}
+                sx={{
+                  fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                  maxWidth: { xs: 100, sm: 140 },
+                }}
               >
                 {offer.program_type_name || "N/A"}
               </Typography>
@@ -152,7 +184,11 @@ export const OfferCard: React.FC<{
               <Typography
                 variant="body2"
                 className="text-gray-600"
-                sx={{ fontWeight: 500, minWidth: 80, fontSize: "0.93rem" }}
+                sx={{
+                  fontWeight: 500,
+                  minWidth: 68,
+                  fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                }}
               >
                 Course:
               </Typography>
@@ -160,7 +196,10 @@ export const OfferCard: React.FC<{
                 <Typography
                   variant="body2"
                   className="text-gray-800 truncate"
-                  sx={{ fontSize: "0.93rem", maxWidth: 140 }}
+                  sx={{
+                    fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                    maxWidth: { xs: 100, sm: 140 },
+                  }}
                 >
                   {offer.course_of_study_name || "N/A"}
                 </Typography>
@@ -170,34 +209,50 @@ export const OfferCard: React.FC<{
               <Typography
                 variant="body2"
                 className="text-gray-600"
-                sx={{ fontWeight: 500, minWidth: 80, fontSize: "0.93rem" }}
+                sx={{
+                  fontWeight: 500,
+                  minWidth: 68,
+                  fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                }}
               >
                 Tuition:
               </Typography>
               <Typography
                 variant="body2"
                 className="text-gray-800"
-                sx={{ fontSize: "0.93rem" }}
+                sx={{ fontSize: { xs: "0.91rem", sm: "0.93rem" } }}
               >
                 {tuitionFee}
               </Typography>
             </Box>
           </Box>
 
-          {/* Middle Column: Deadline, End Date, Min Qual */}
-          <Box className="flex flex-col gap-1" sx={{ minWidth: 180, flex: 1 }}>
+          {/* Middle Column */}
+          <Box
+            className="flex flex-col gap-1"
+            sx={{
+              minWidth: { xs: 0, sm: 160, md: 180 },
+              flex: 1,
+              mb: { xs: 1, sm: 0 },
+              pr: { sm: 2, md: 0 },
+            }}
+          >
             <Box className="flex items-center" sx={{ gap: 1 }}>
               <Typography
                 variant="body2"
                 className="text-gray-600"
-                sx={{ fontWeight: 500, minWidth: 80, fontSize: "0.93rem" }}
+                sx={{
+                  fontWeight: 500,
+                  minWidth: 68,
+                  fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                }}
               >
                 Deadline:
               </Typography>
               <Typography
                 variant="body2"
                 className="text-gray-800"
-                sx={{ fontSize: "0.93rem" }}
+                sx={{ fontSize: { xs: "0.91rem", sm: "0.93rem" } }}
               >
                 {deadline}
               </Typography>
@@ -207,14 +262,18 @@ export const OfferCard: React.FC<{
                 <Typography
                   variant="body2"
                   className="text-gray-600"
-                  sx={{ fontWeight: 500, minWidth: 80, fontSize: "0.93rem" }}
+                  sx={{
+                    fontWeight: 500,
+                    minWidth: 68,
+                    fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                  }}
                 >
                   End Date:
                 </Typography>
                 <Typography
                   variant="body2"
                   className="text-gray-800"
-                  sx={{ fontSize: "0.93rem" }}
+                  sx={{ fontSize: { xs: "0.91rem", sm: "0.93rem" } }}
                 >
                   {endDate}
                 </Typography>
@@ -225,14 +284,18 @@ export const OfferCard: React.FC<{
                 <Typography
                   variant="body2"
                   className="text-gray-600"
-                  sx={{ fontWeight: 500, minWidth: 80, fontSize: "0.93rem" }}
+                  sx={{
+                    fontWeight: 500,
+                    minWidth: 68,
+                    fontSize: { xs: "0.91rem", sm: "0.93rem" },
+                  }}
                 >
                   Min. Qual.:
                 </Typography>
                 <Typography
                   variant="body2"
                   className="text-gray-800"
-                  sx={{ fontSize: "0.93rem" }}
+                  sx={{ fontSize: { xs: "0.91rem", sm: "0.93rem" } }}
                 >
                   {offer.minimum_qualification}
                 </Typography>
@@ -240,35 +303,40 @@ export const OfferCard: React.FC<{
             )}
           </Box>
 
-          {/* Right Column: Description, Created, Button */}
+          {/* Right Column */}
           <Box
             className="flex flex-col gap-1"
             sx={{
-              minWidth: 180,
+              minWidth: { xs: 0, sm: 160, md: 180 },
               flex: 1,
-              alignItems: { xs: "flex-start", md: "flex-end" },
+              // On mobile align everything to start; on sm+ align end
+              alignItems: { xs: "flex-start", sm: "flex-end" },
               justifyContent: "space-between",
+              mb: { xs: 1, sm: 0 },
             }}
           >
             {/* Description */}
             {offer.description && (
-              <Box sx={{ mt: 0, mb: 0.5, maxWidth: 200 }}>
-                <Typography
-                  variant="body2"
-                  className="text-gray-700"
-                  sx={{
-                    fontStyle: "italic",
-                    fontSize: "0.92rem",
-                    color: "#5a4a6d",
-                    lineHeight: 1.3,
-                    maxHeight: 38,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {offer.description}
-                </Typography>
+              <Box sx={{ mt: 0, mb: 0.5, maxWidth: { xs: "100%", sm: 200 } }}>
+                <Tooltip title={offer.description} arrow>
+                  <Typography
+                    variant="body2"
+                    className="text-gray-700"
+                    sx={{
+                      fontStyle: "italic",
+                      fontSize: { xs: "0.89rem", sm: "0.92rem" },
+                      color: "#5a4a6d",
+                      lineHeight: 1.3,
+                      maxHeight: 38,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      maxWidth: { xs: "98vw", sm: 200 },
+                    }}
+                  >
+                    {truncateDescription(offer.description)}
+                  </Typography>
+                </Tooltip>
               </Box>
             )}
 
@@ -278,14 +346,14 @@ export const OfferCard: React.FC<{
                 <Typography
                   variant="caption"
                   className="text-gray-500"
-                  sx={{ minWidth: 60, fontSize: "0.85rem" }}
+                  sx={{ minWidth: 48, fontSize: { xs: "0.8rem", sm: "0.85rem" } }}
                 >
                   Created:
                 </Typography>
                 <Typography
                   variant="caption"
                   className="text-gray-500"
-                  sx={{ fontSize: "0.85rem" }}
+                  sx={{ fontSize: { xs: "0.8rem", sm: "0.85rem" } }}
                 >
                   {createdAt}
                 </Typography>
@@ -293,7 +361,14 @@ export const OfferCard: React.FC<{
             )}
 
             {/* View Offer Button */}
-            <Box className="flex items-center justify-end" sx={{ mt: 1 }}>
+            <Box
+              className="flex items-center"
+              sx={{
+                justifyContent: { xs: "flex-start", sm: "flex-end" },
+                mt: 1,
+                width: "100%",
+              }}
+            >
               <Button
                 size="small"
                 variant="outlined"
@@ -306,9 +381,10 @@ export const OfferCard: React.FC<{
                   px: 2,
                   py: 0.2,
                   minWidth: 0,
-                  fontSize: "0.93rem",
+                  fontSize: { xs: "0.91rem", sm: "0.93rem" },
                   height: 32,
                   lineHeight: 1,
+                  width: { xs: "100%", sm: "auto" },
                 }}
                 onClick={onViewOffer}
               >

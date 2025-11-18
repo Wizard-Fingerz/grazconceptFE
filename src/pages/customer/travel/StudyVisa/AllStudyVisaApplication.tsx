@@ -83,24 +83,25 @@ const StudyVisaApplicationCard: React.FC<{ app: any; onContinue: (id: any) => vo
   return (
     <Card
       sx={{
-        width: { xs: "100%", sm: 600, md: 800 },
+        width: "100%",
         minHeight: 100,
         borderRadius: 1,
         boxShadow: 3,
         display: "flex",
-        flexDirection: "row",
-        alignItems: "stretch",
-        justifyContent: "space-between",
-        p: 2,
+        flexDirection: { xs: "column", sm: "row" }, // Responsive: column on xs
+        alignItems: { xs: "stretch", sm: "stretch" },
+        justifyContent: { xs: "flex-start", sm: "space-between" },
+        p: { xs: 1, sm: 2 },
         mb: 2,
+        gap: { xs: 1, sm: 0 },
       }}
     >
       <CardContent
         sx={{
           flex: 1,
           display: "flex",
-          flexDirection: "row",
-          alignItems: "flex-start",
+          flexDirection: "column",
+          justifyContent: "center",
           p: 0,
           "&:last-child": { pb: 0 },
           width: "100%",
@@ -109,44 +110,56 @@ const StudyVisaApplicationCard: React.FC<{ app: any; onContinue: (id: any) => vo
         {/* Left: Main Info */}
         <Box sx={{ flex: 2, minWidth: 0 }}>
           {/* Top Row: Institution, Country, Program */}
-          <Stack direction="row" spacing={2} alignItems="center" mb={1}>
-            <Chip
-              label={
-                app.institution_name ||
-                app.university ||
-                (typeof app.institution === "string"
-                  ? capitalizeWords(app.institution)
-                  : app.institution && typeof app.institution === "object" && app.institution.name
-                    ? capitalizeWords(app.institution.name)
-                    : "Unknown Institution")
-              }
-              size="small"
-              color="primary"
-              sx={{ fontWeight: 500, fontSize: 13 }}
-            />
-            <Chip
-              label={
-                app.country ||
-                app.destination_country ||
-                "Unknown Country"
-              }
-              size="small"
-              color="secondary"
-              sx={{ fontWeight: 500, fontSize: 13 }}
-            />
-            <Tooltip title={courseName} arrow disableHoverListener={courseName.length <= MAX_COURSE_NAME_LENGTH}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            mb={1}
+          >
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%" }}>
+              <Chip
+                label={
+                  app.institution_name ||
+                  app.university ||
+                  (typeof app.institution === "string"
+                    ? capitalizeWords(app.institution)
+                    : app.institution && typeof app.institution === "object" && app.institution.name
+                      ? capitalizeWords(app.institution.name)
+                      : "Unknown Institution")
+                }
+                size="small"
+                color="primary"
+                sx={{ fontWeight: 500, fontSize: 13, mb: { xs: 1, sm: 0 } }}
+              />
+              <Chip
+                label={
+                  app.country ||
+                  app.destination_country ||
+                  "Unknown Country"
+                }
+                size="small"
+                color="secondary"
+                sx={{ fontWeight: 500, fontSize: 13, mb: { xs: 1, sm: 0 } }}
+              />
+            </Stack>
+            <Tooltip
+              title={courseName}
+              arrow
+              disableHoverListener={courseName.length <= MAX_COURSE_NAME_LENGTH}
+            >
               <Typography
                 variant="h6"
                 fontWeight="bold"
                 sx={{
-                  ml: 2,
-                  flexShrink: 1,
+                  mt: { xs: 0.5, sm: 0 },
+                  ml: { xs: 0, sm: 2 },
                   minWidth: 0,
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   whiteSpace: "nowrap",
-                  maxWidth: { xs: 120, sm: 220, md: 350 },
+                  maxWidth: { xs: "100%", sm: 120, md: 220, lg: 350 },
                   cursor: courseName.length > MAX_COURSE_NAME_LENGTH ? "pointer" : "default",
+                  fontSize: { xs: "1.05rem", sm: "1.17rem" },
                 }}
               >
                 {truncatedCourseName}
@@ -154,39 +167,74 @@ const StudyVisaApplicationCard: React.FC<{ app: any; onContinue: (id: any) => vo
             </Tooltip>
           </Stack>
           {/* Status, Dates */}
-          <Stack direction="row" spacing={2} alignItems="center" mb={1}>
-            <Typography variant="body2" fontWeight={500}>
-              Status:
-            </Typography>
-            <Typography variant="body2">
-              {getStatusLabel(app.status, app.is_submitted, app.status_name)}
-            </Typography>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            mb={1}
+          >
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: { xs: 0.5, sm: 0 } }}>
+              <Typography variant="body2" fontWeight={500}>
+                Status:
+              </Typography>
+              <Typography variant="body2">
+                {getStatusLabel(app.status, app.is_submitted, app.status_name)}
+              </Typography>
+            </Stack>
             {app.is_submitted && app.submitted_at && (
-              <>
-                <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: { xs: 0.5, sm: 0 } }}>
+                <Divider
+                  orientation={typeof window !== "undefined" && window.innerWidth < 600 ? "horizontal" : "vertical"}
+                  flexItem
+                  sx={{ mx: 1, display: { xs: "none", sm: "block" } }}
+                />
                 <Typography variant="body2" fontWeight={500}>
                   Submitted:
                 </Typography>
                 <Typography variant="body2">
                   {formatDate(app.submitted_at)}
                 </Typography>
-              </>
+              </Stack>
             )}
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-            <Typography variant="body2" fontWeight={500}>
-              Created:
-            </Typography>
-            <Typography variant="body2">
-              {formatDate(app.created_at || app.application_date)}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Divider
+                orientation={typeof window !== "undefined" && window.innerWidth < 600 ? "horizontal" : "vertical"}
+                flexItem
+                sx={{ mx: 1, display: { xs: "none", sm: "block" } }}
+              />
+              <Typography variant="body2" fontWeight={500}>
+                Created:
+              </Typography>
+              <Typography variant="body2">
+                {formatDate(app.created_at || app.application_date)}
+              </Typography>
+            </Stack>
           </Stack>
         </Box>
       </CardContent>
-      <CardActions sx={{ flexDirection: "column", justifyContent: "center", alignItems: "flex-end", minWidth: 120, p: 0, pl: 2 }}>
+      <CardActions
+        sx={{
+          flexDirection: { xs: "row", sm: "column" },
+          justifyContent: { xs: "flex-end", sm: "center" },
+          alignItems: { xs: "center", sm: "flex-end" },
+          minWidth: { xs: 0, sm: 120 },
+          p: 0,
+          pl: { xs: 0, sm: 2 },
+          pt: { xs: 1, sm: 0 },
+          gap: { xs: 1, sm: 0 },
+        }}
+      >
         <Button
           variant="contained"
           color="primary"
-          sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, minWidth: 100 }}
+          sx={{
+            borderRadius: 2,
+            textTransform: "none",
+            fontWeight: 600,
+            minWidth: { xs: 80, sm: 100 },
+            width: { xs: "100%", sm: "auto" },
+            fontSize: { xs: "0.95rem", sm: "1rem" },
+          }}
           onClick={() => onContinue(app.id)}
         >
           {getStatusLabel(app.status, app.is_submitted, app.status_name) === "Draft" ? "Continue" : "View"}
@@ -195,6 +243,7 @@ const StudyVisaApplicationCard: React.FC<{ app: any; onContinue: (id: any) => vo
     </Card>
   );
 };
+
 
 const PAGE_SIZE = 15; // Default page size, can be adjusted if needed
 
