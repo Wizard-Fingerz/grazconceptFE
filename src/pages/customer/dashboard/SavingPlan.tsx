@@ -20,12 +20,22 @@ import {
   Chip,
   Stack,
 } from "@mui/material";
-import { Pie, Line } from "react-chartjs-2";
-// Chart.js modules for charts support:
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import api from "../../../services/api";
-
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement);
+import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
+// --- Charts Imports (using Recharts) ---
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
 
 type SavingsPlan = {
   id: number;
@@ -62,6 +72,8 @@ const statusColor = (status: string) => {
   }
 };
 
+const pieColors = ["#009688", "#1976d2", "#ffc107", "#4caf50", "#ff7043", "#8e24aa", "#00bcd4"];
+
 const SavingPlan: React.FC = () => {
   // Form states
   const [name, setName] = useState("");
@@ -80,13 +92,14 @@ const SavingPlan: React.FC = () => {
 
   useEffect(() => {
     fetchPlans();
+    // eslint-disable-next-line
   }, []);
 
   const fetchPlans = async () => {
     setLoading(true);
     setError("");
     try {
-      const resp = await api.get("/wallet/savings-plans/"); // Adjust endpoint as needed
+      const resp = await api.get("/wallet/saving-plans/"); // Adjust endpoint as needed
       setPlans(resp.data);
     } catch (e: any) {
       setError(e?.response?.data?.detail || "Failed to load savings plans.");
@@ -101,7 +114,7 @@ const SavingPlan: React.FC = () => {
     setError("");
     setSuccess("");
     try {
-      await api.post("/wallet/savings-plans/", {
+      await api.post("/wallet/saving-plans/", {
         name,
         target_amount: targetAmount,
         currency,
@@ -129,67 +142,47 @@ const SavingPlan: React.FC = () => {
   const totalSaved = plans.reduce((sum, item) => sum + parseFloat(item.amount_saved), 0);
   const totalTarget = plans.reduce((sum, item) => sum + parseFloat(item.target_amount), 0);
 
-  const pieData = {
-    labels: plans.map((p) => p.name),
-    datasets: [
-      {
-        data: plans.map((p) => parseFloat(p.amount_saved)),
-        backgroundColor: [
-          "#009688", "#00bcd4", "#1976d2", "#4caf50", "#ffc107", "#f44336", "#7c4dff", "#ec407a",
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
+  // --- Prepare data for Line Chart (Savings Progress Over Time) ---
+  // We'll aggregate by created_at date (YYYY-MM-DD), summing all amount_saved for a progressive timeline
+  const lineData: { date: string; cumulative: number }[] = [];
+  let cumSum = 0;
+  [...plans]
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .forEach((plan) => {
+      cumSum += parseFloat(plan.amount_saved);
+      lineData.push({ date: plan.created_at.slice(0, 10), cumulative: cumSum });
+    });
 
-  // Prepare line data for savings over time (mock if not available)
-  const lineDates = [...Array(7).keys()].map(i => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    return date.toISOString().slice(0, 10);
-  });
-
-  const aggregateByDate: { [date: string]: number } = {};
-  plans.forEach((p) => {
-    // Simulate "amount_saved" per date spread linearly between start and end
-    if (p.start_date && p.end_date) {
-      const s = new Date(p.start_date);
-      const e = new Date(p.end_date);
-      const days = Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)));
-      for (let d = 0; d < days; d++) {
-        const currDate = new Date(s);
-        currDate.setDate(currDate.getDate() + d);
-        const dayStr = currDate.toISOString().slice(0, 10);
-        // Uniform distribution
-        const amount = parseFloat(p.amount_saved) / days;
-        aggregateByDate[dayStr] = (aggregateByDate[dayStr] || 0) + amount;
-      }
-    }
-  });
-  const lineData = {
-    labels: lineDates,
-    datasets: [
-      {
-        label: "Total Saved",
-        data: lineDates.map(date => Math.round((aggregateByDate[date] || 0) * 100) / 100),
-        borderColor: "#1976d2",
-        backgroundColor: "rgba(25, 118, 210, 0.1)",
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
+  // --- Prepare data for Pie Chart (Plan-wise Contribution) ---
+  const pieData =
+    plans.length > 0
+      ? plans.map((plan) => ({
+          name: plan.name,
+          value: parseFloat(plan.amount_saved),
+        }))
+      : [];
 
   // Main dashboard
   return (
-    <Box sx={{ px: { xs: 1, sm: 3, md: 6 }, pt: 3, maxWidth: 1200, mx: "auto" }}>
-      {/* Header */}
-      <Typography variant="h4" fontWeight={700} color="primary" mb={1}>
-        My Savings Dashboard
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={3}>
-        Build your savings habit. Create tailored savings plans and watch your financial goals take shape!
-      </Typography>
+    <Box
+      sx={{
+        px: { xs: 1, sm: 2, md: 4 },
+        py: { xs: 1, sm: 2 },
+        width: "100%",
+        maxWidth: 1400,
+        mx: "auto",
+      }}
+    >      {/* Header */}
+
+      <CustomerPageHeader>
+        <Typography variant="h4" className="font-bold mb-2">
+          My Savings Dashboard
+        </Typography>
+        <Typography variant="body1" className="text-gray-700 mb-4">
+          Build your savings habit. Create tailored savings plans and watch your financial goals take shape!
+        </Typography>
+      </CustomerPageHeader>
+
 
       {/* Summary cards & graphs */}
       <Stack
@@ -247,8 +240,46 @@ const SavingPlan: React.FC = () => {
           <Card sx={{ height: "100%" }}>
             <CardHeader title="Savings Progress Over Time" />
             <CardContent>
-              <Box sx={{ height: 230 }}>
-                <Line data={lineData} options={{ plugins: { legend: { display: false } } }} />
+              <Box sx={{ width: '100%', height: 235 }}>
+                {lineData && lineData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={lineData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" fontSize={12} />
+                      <YAxis fontSize={12} />
+                      <Tooltip
+                        formatter={(value: any) => `₦${Number(value).toLocaleString()}`}
+                        labelFormatter={(label: string) => `Date: ${label}`}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="cumulative"
+                        stroke="#1976d2"
+                        activeDot={{ r: 6 }}
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: "#009688", stroke: "#fff", strokeWidth: 2 }}
+                        name="Total Saved"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{
+                      height: 195,
+                      color: "#bdbdbd",
+                      fontWeight: 700,
+                      fontSize: 18,
+                      background: "#fafbfc",
+                      borderRadius: 2,
+                      border: "1px dashed #e0e0e0"
+                    }}
+                  >
+                    No data for savings progress.
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -257,8 +288,51 @@ const SavingPlan: React.FC = () => {
           <Card sx={{ height: "100%" }}>
             <CardHeader title="Plan-wise Contribution" />
             <CardContent>
-              <Box sx={{ height: 230 }}>
-                <Pie data={pieData} options={{ plugins: { legend: { position: "bottom" } } }} />
+              <Box sx={{ width: '100%', height: 235 }}>
+                {pieData && pieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="#1976d2"
+                        labelLine={false}
+                        label={({ name, percent }) =>
+                          `${name} (${percent !== undefined ? (percent * 100).toFixed(0) : 0}%)`
+                        }
+                      >
+                        {pieData.map((_entry, index) => (
+                          <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: any) => `₦${Number(value).toLocaleString()}`}
+                        />
+                      <Legend layout="vertical" align="right" verticalAlign="middle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{
+                      height: 195,
+                      color: "#bdbdbd",
+                      fontWeight: 700,
+                      fontSize: 18,
+                      background: "#fafbfc",
+                      borderRadius: 2,
+                      border: "1px dashed #e0e0e0"
+                    }}
+                  >
+                    No data for plan-wise contribution.
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>

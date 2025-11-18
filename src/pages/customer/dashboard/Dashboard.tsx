@@ -145,7 +145,7 @@ const actionResultRoutes: Record<string, string> = {
   "Reserve Hotel": "/travel/hotel-reservation",
   "Apply for Visa": "/travel/study-visa",
   "Chat with Agent": "/support/chat",
-  "Create Savings Plan": "/customer/dashboard/savings-result",
+  "Create Savings Plan": "/dashboard/savings-plan",
   "Apply for Study Loan": "/customer/dashboard/study-loan-result",
   "Study Abroad Loan": "/customer/dashboard/study-abroad-loan-result",
   "Pilgrimage Package": "/customer/dashboard/pilgrimage-result",
@@ -352,7 +352,7 @@ export const Dashboard: React.FC = () => {
         route = "/travel/vacation";
         break;
       case "Create Savings Plan":
-        route = "/customer/dashboard/savings-result";
+        route = "/dashboard/savings-plan";
         break;
       case "Study Visa Offers":
         route = "/travel/study-visa/offers";

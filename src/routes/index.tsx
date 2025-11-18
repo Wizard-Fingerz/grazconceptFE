@@ -91,6 +91,7 @@ import SettingsPage from "../pages/customer/accountsettings/SettingsPage";
 import LiveChatWithAgent from "../pages/customer/helpcenter/LiveChatWithAgent";
 import InvestmentPlanPage from "../pages/customer/citizenship/InvestmentPlan";
 import StudyLoanDetails from "../pages/customer/edufinance/Study/StudyLoanDetails";
+import SavingPlan from "../pages/customer/dashboard/SavingPlan";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -286,6 +287,11 @@ export const protectedRoutes: RouteObject[] = [
         path: "dashboard",
         element: <Dashboard />,
       },
+      {
+        path: "dashboard/savings-plan",
+        element: <SavingPlan />,
+      },
+      
       {
         path: "profile",
         element: <ProfilePage />,
