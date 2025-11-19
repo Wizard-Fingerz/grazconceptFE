@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
     Box,
     Button,
@@ -32,6 +32,8 @@ import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
+import { useAuth } from "../../../../context/AuthContext";
+
 
 const initialPersonal = {
     fullName: "",
@@ -119,10 +121,52 @@ const countries = [
 const skillExamples = [
     "JavaScript", "Python", "Project Management", "Data Analysis", "Teaching", "Team Leadership", "Public Speaking", "C++", "Machine Learning", "Research Writing"
 ];
+
 const CVBuilder: React.FC = () => {
+    // Get user from useAuth
+    const { user } = useAuth();
+
     // State
     const [step, setStep] = useState(0);
+
+    // Prepopulate personal info from user, fallback to initialPersonal if not available.
+    const getInitialPersonal = () => ({
+        fullName:
+            user?.full_name
+                ? user.full_name
+                : user?.first_name && user?.last_name
+                ? `${user.first_name} ${user.last_name}`.trim()
+                : "",
+        email: user?.email || "",
+        phone: user?.phone_number || "",
+        address: user?.address || "",
+        country: user?.country || "",
+        summary: "",
+        photo: null as File | null,
+    });
+
     const [personal, setPersonal] = useState({ ...initialPersonal });
+
+    useEffect(() => {
+        setPersonal(prev => {
+            // Only prefill if the personal fields are blank (for first mount)
+            // If the user edits, don't overwrite.
+            // If a field (like email) is already set, don't auto-overwrite.
+            if (
+                !prev.fullName &&
+                !prev.email &&
+                !prev.phone &&
+                !prev.address &&
+                !prev.country
+            ) {
+                return getInitialPersonal();
+            }
+            return prev;
+        });
+        // Exclude personal in deps (would loop). Update only if user changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
     const [education, setEducation] = useState([...initialEducation]);
     const [experience, setExperience] = useState([...initialExperience]);
     const [certifications, setCertifications] = useState([...initialCertifications]);
