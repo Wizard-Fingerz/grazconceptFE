@@ -33,6 +33,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useAuth } from "../../../../context/AuthContext";
+import api from "../../../../services/api";
 
 
 const initialPersonal = {
@@ -122,51 +123,18 @@ const skillExamples = [
     "JavaScript", "Python", "Project Management", "Data Analysis", "Teaching", "Team Leadership", "Public Speaking", "C++", "Machine Learning", "Research Writing"
 ];
 
+// ----------- API INTEGRATION -----------
+
+const API_ENDPOINT = "/app/cv-profiles/";
+
+type ApiState = "idle" | "submitting" | "success" | "error";
+
 const CVBuilder: React.FC = () => {
-    // Get user from useAuth
     const { user } = useAuth();
 
     // State
     const [step, setStep] = useState(0);
-
-    // Prepopulate personal info from user, fallback to initialPersonal if not available.
-    const getInitialPersonal = () => ({
-        fullName:
-            user?.full_name
-                ? user.full_name
-                : user?.first_name && user?.last_name
-                ? `${user.first_name} ${user.last_name}`.trim()
-                : "",
-        email: user?.email || "",
-        phone: user?.phone_number || "",
-        address: user?.address || "",
-        country: user?.country || "",
-        summary: "",
-        photo: null as File | null,
-    });
-
     const [personal, setPersonal] = useState({ ...initialPersonal });
-
-    useEffect(() => {
-        setPersonal(prev => {
-            // Only prefill if the personal fields are blank (for first mount)
-            // If the user edits, don't overwrite.
-            // If a field (like email) is already set, don't auto-overwrite.
-            if (
-                !prev.fullName &&
-                !prev.email &&
-                !prev.phone &&
-                !prev.address &&
-                !prev.country
-            ) {
-                return getInitialPersonal();
-            }
-            return prev;
-        });
-        // Exclude personal in deps (would loop). Update only if user changes.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
-
     const [education, setEducation] = useState([...initialEducation]);
     const [experience, setExperience] = useState([...initialExperience]);
     const [certifications, setCertifications] = useState([...initialCertifications]);
@@ -178,8 +146,40 @@ const CVBuilder: React.FC = () => {
     const [submissionDialog, setSubmissionDialog] = useState(false);
     const [generating, setGenerating] = useState(false);
     const [cvGenerated, setCvGenerated] = useState(false);
+    const [apiState, setApiState] = useState<ApiState>("idle");
+    const [, setApiResponse] = useState<any | null>(null);
 
-    // Refs
+    // Get & prefill user info
+    useEffect(() => {
+        setPersonal(prev => {
+            if (
+                !prev.fullName &&
+                !prev.email &&
+                !prev.phone &&
+                !prev.address &&
+                !prev.country
+            ) {
+                return {
+                    fullName:
+                        user?.full_name
+                            ? user.full_name
+                            : user?.first_name && user?.last_name
+                            ? `${user.first_name} ${user.last_name}`.trim()
+                            : "",
+                    email: user?.email || "",
+                    phone: user?.phone_number || "",
+                    address: user?.address || "",
+                    country: user?.country || "",
+                    summary: "",
+                    photo: null as File | null,
+                };
+            }
+            return prev;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
+    // Misc refs
     const photoInputRef = useRef<HTMLInputElement>(null);
 
     // Navigation
@@ -188,13 +188,12 @@ const CVBuilder: React.FC = () => {
         if (!validateStep()) return;
         setStep((prev) => prev + 1);
     };
-
     const handleBack = () => {
         setError(null);
         setStep((prev) => Math.max(prev - 1, 0));
     };
 
-    // Validation per step
+    // Validation
     function validateStep() {
         switch (step) {
             case 0:
@@ -235,7 +234,6 @@ const CVBuilder: React.FC = () => {
                 }
                 return true;
             case 3:
-                // Certification is optional but validate if filled
                 if (
                     certifications.some(
                         (c) =>
@@ -243,9 +241,7 @@ const CVBuilder: React.FC = () => {
                             !(c.name && c.issuer && c.issueYear)
                     )
                 ) {
-                    setError(
-                        "If you add a certification, please fill in name, issuer, and year."
-                    );
+                    setError("If you add a certification, please fill in name, issuer, and year.");
                     return false;
                 }
                 return true;
@@ -269,8 +265,8 @@ const CVBuilder: React.FC = () => {
         }
     }
 
-    // Handlers for dynamic fields
-    // --- EDUCATION ---
+    // --- DYNAMIC FIELD HANDLERS ---
+    // Education
     const handleEducationChange = (idx: number, field: string, value: any) => {
         setEducation((prev) => {
             const updated = [...prev];
@@ -283,7 +279,7 @@ const CVBuilder: React.FC = () => {
     const handleRemoveEducation = (idx: number) =>
         setEducation((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)));
 
-    // --- EXPERIENCE ---
+    // Experience
     const handleExperienceChange = (idx: number, field: string, value: any) => {
         setExperience((prev) => {
             const updated = [...prev];
@@ -294,7 +290,6 @@ const CVBuilder: React.FC = () => {
                     updated[idx].endYear = "";
                 }
             } else {
-                // Safely assign value only if 'field' is a valid key of the experience object
                 if (
                     [
                         "organization",
@@ -321,7 +316,7 @@ const CVBuilder: React.FC = () => {
     const handleRemoveExperience = (idx: number) =>
         setExperience((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)));
 
-    // --- CERTIFICATIONS ---
+    // Certifications
     const handleCertificationChange = (idx: number, field: string, value: any) => {
         setCertifications((prev) => {
             const updated = [...prev];
@@ -334,7 +329,7 @@ const CVBuilder: React.FC = () => {
     const handleRemoveCertification = (idx: number) =>
         setCertifications((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)));
 
-    // --- SKILLS ---
+    // Skills
     const handleAddSkill = () => {
         const val = skillInput.trim();
         if (val && !skills.includes(val)) {
@@ -344,7 +339,7 @@ const CVBuilder: React.FC = () => {
     };
     const handleRemoveSkill = (s: string) => setSkills((prev) => prev.filter((sk) => sk !== s));
 
-    // --- LANGUAGES ---
+    // Languages
     const handleLanguageChange = (idx: number, field: string, value: string) => {
         setLanguages((prev) => {
             const updated = [...prev];
@@ -359,7 +354,7 @@ const CVBuilder: React.FC = () => {
             prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)
         );
 
-    // --- PUBLICATIONS ---
+    // Publications
     const handlePublicationChange = (idx: number, field: string, value: string) => {
         setPublications((prev) => {
             const updated = [...prev];
@@ -374,7 +369,7 @@ const CVBuilder: React.FC = () => {
     const handleRemovePublication = (idx: number) =>
         setPublications((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)));
 
-    // --- PHOTO UPLOAD ---
+    // Photo upload
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (
@@ -389,23 +384,135 @@ const CVBuilder: React.FC = () => {
     };
     const removePhoto = () => setPersonal((p) => ({ ...p, photo: null }));
 
-    // --- EXPORT/CV GENERATE ---
-    const handleGenerateCV = () => {
+    // ----------- MAIN SUBMISSION TO BACKEND (CVProfile endpoint) -----------
+
+    // Prep conversion from UI data to DRF serializer
+    const mapFieldsForSerializer = () => {
+        // DRF serializes as snake_case (see serializer fields in your prompt)
+        // Also, skills is a list of objects: {skill: "..."}
+        // Photo may need FormData upload
+        const educationSerialized = education.map(e => ({
+            institution: e.institution,
+            degree: e.degree,
+            field: e.field,
+            start_year: e.startYear,
+            end_year: e.endYear,
+            grade: e.grade,
+            description: e.description,
+        }));
+        const experienceSerialized = experience.map(xp => ({
+            organization: xp.organization,
+            position: xp.position,
+            start_month: xp.startMonth,
+            start_year: xp.startYear,
+            end_month: xp.endMonth,
+            end_year: xp.endYear,
+            location: xp.location,
+            description: xp.description,
+            current: xp.current,
+        }));
+        const certificationsSerialized = certifications.filter(c =>
+            c.name || c.issuer || c.issueMonth || c.issueYear
+        ).map(c => ({
+            name: c.name,
+            issuer: c.issuer,
+            issue_month: c.issueMonth,
+            issue_year: c.issueYear,
+            description: c.description,
+        }));
+        const skillsSerialized = skills.map(skill => ({ skill }));
+        const languagesSerialized = languages.filter(l => l.name).map(l => ({
+            name: l.name,
+            proficiency: l.proficiency,
+        }));
+        const publicationsSerialized = publications.filter(p => p.title).map(p => ({
+            title: p.title,
+            journal: p.journal,
+            year: p.year,
+            link: p.link,
+            description: p.description,
+        }));
+
+        // photo: File
+        return {
+            summary: personal.summary,
+            // Fill this if you want to submit for user (optional depending on backend)
+            photo: personal.photo,
+            // The enrichers below: you can pass these in "extra fields" if DRF supports.
+            education: educationSerialized,
+            experience: experienceSerialized,
+            certifications: certificationsSerialized,
+            skills: skillsSerialized,
+            languages: languagesSerialized,
+            publications: publicationsSerialized,
+        }
+    };
+
+    // Build the payload
+    const buildPayloadFormData = (): FormData => {
+        const values = mapFieldsForSerializer();
+
+        const data = new FormData();
+
+        // user likely to be set in the backend, or you could use: data.append("user", user.id);
+        data.append("summary", values.summary ?? "");
+        if (personal.photo) {
+            data.append("photo", personal.photo, personal.photo.name)
+        }
+        // Array fields sent as JSON strings, unless DRF expects nested objects
+        data.append("education", JSON.stringify(values.education));
+        data.append("experience", JSON.stringify(values.experience));
+        data.append("certifications", JSON.stringify(values.certifications));
+        data.append("skills", JSON.stringify(values.skills));
+        data.append("languages", JSON.stringify(values.languages));
+        data.append("publications", JSON.stringify(values.publications));
+
+        return data;
+    };
+
+    // API submit handler (POST to /app/cv-profiles/)
+    const handleGenerateCV = async () => {
         setError(null);
         setSubmissionDialog(false);
+        setApiState("submitting");
         setGenerating(true);
-        setTimeout(() => {
+
+        try {
+            const formData = buildPayloadFormData();
+
+            // Use api from your custom api utility instead of fetch.
+            // api.post supports form-data uploads as well because it handles the content type.
+            const response = await api.post(API_ENDPOINT, formData);
+
+            // If api.post throws, catch will run. Otherwise:
+            setApiResponse(response.data);
+            setApiState("success");
             setCvGenerated(true);
-            setGenerating(false);
-        }, 2000); // simulate export
+        } catch (err: any) {
+            // Typical api util: err.response?.data etc
+            let msg = "Failed to save CV profile.";
+            if (err && err.response && err.response.data) {
+                const errData = err.response.data;
+                if (Array.isArray(errData.detail)) {
+                    msg = errData.detail.join(" ");
+                } else if (errData.detail) {
+                    msg = errData.detail;
+                }
+            }
+            setError(msg);
+            setApiState("error");
+        }
+        setGenerating(false);
     };
 
     const handleEdit = () => {
         setCvGenerated(false);
         setStep(0);
+        setApiState("idle");
+        setApiResponse(null);
     };
 
-    // --- UI PER STEP ---
+    // UI per step...
     function StepPersonal() {
         return (
             <Box display="flex" flexDirection="column" gap={2}>
@@ -1158,7 +1265,6 @@ const CVBuilder: React.FC = () => {
                 mx: "auto",
             }}
         >
-
             <CustomerPageHeader>
                 <Typography variant="h4" fontWeight={700} sx={{ mb: 2 }}>
                     Professional & Academic CV Builder
@@ -1169,7 +1275,6 @@ const CVBuilder: React.FC = () => {
                 >
                     Build a comprehensive, recruiter-friendly CV: fill in details, review, and export.
                 </Typography>
-
             </CustomerPageHeader>
 
             <Card>
@@ -1188,15 +1293,18 @@ const CVBuilder: React.FC = () => {
                         </Alert>
                     )}
 
-                    {cvGenerated ? (
+                    {apiState === "success" && cvGenerated ? (
                         <Box textAlign="center" py={6}>
                             <Alert
                                 severity="success"
                                 sx={{ mb: 3, mx: "auto", maxWidth: 470, fontSize: "1.1rem" }}
                             >
-                                <b>Your CV export is ready!</b>
+                                <b>Your CV profile has been saved!</b>
                                 <br />
-                                For a downloadable file, use browser print or PDF plugins (custom download/export coming soon).
+                                You may print/save this page as a PDF. &nbsp;
+                                <span style={{ color: "#4caf50" }}>
+                                    (You can now access your CV from your profile dashboard.)
+                                </span>
                             </Alert>
                             <Button
                                 variant="outlined"
@@ -1255,7 +1363,7 @@ const CVBuilder: React.FC = () => {
                                             color="success"
                                             sx={{ minWidth: 180, fontWeight: 700 }}
                                         >
-                                            Generate & Export CV
+                                            Save CV
                                         </Button>
                                     )}
                                 </Box>
@@ -1264,7 +1372,7 @@ const CVBuilder: React.FC = () => {
                                 <Box display="flex" alignItems="center" mt={4} justifyContent="center">
                                     <CircularProgress size={36} color="success" sx={{ mr: 2 }} />
                                     <Typography variant="h6" fontWeight={600}>
-                                        Generating your CV...
+                                        Saving your CV...
                                     </Typography>
                                 </Box>
                             )}
@@ -1273,12 +1381,12 @@ const CVBuilder: React.FC = () => {
                 </CardContent>
             </Card>
 
-            {/* Final Export Confirmation Dialog */}
+            {/* Final Export/Save Confirmation Dialog */}
             <Dialog open={submissionDialog} onClose={() => setSubmissionDialog(false)}>
-                <DialogTitle>Export CV</DialogTitle>
+                <DialogTitle>Save CV Profile</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Are you sure you want to export your CV? You will be able to print or save it as a PDF.
+                        Are you sure you want to save your CV profile? After saving, you can print or export it as PDF.
                     </Typography>
                 </DialogContent>
                 <DialogActions>
@@ -1290,8 +1398,9 @@ const CVBuilder: React.FC = () => {
                         variant="contained"
                         color="success"
                         sx={{ fontWeight: 700 }}
+                        disabled={generating}
                     >
-                        Export
+                        Save
                     </Button>
                 </DialogActions>
             </Dialog>
