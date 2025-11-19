@@ -1010,6 +1010,30 @@ export const MainLayout: React.FC = () => {
     }
   };
 
+  // New: navigate to notification page when clicking a notification
+  const handleNotificationClick = (notif: Notification) => {
+    handleNotifClose();
+    // Default behavior for notification navigation:
+    // Check if notification has a link property or always route to /settings/notifications
+    if (
+      notif.link &&
+      typeof notif.link === "string" &&
+      notif.link.startsWith("/")
+    ) {
+      navigate(notif.link);
+    } else {
+      // fallback, always route to the notications page for now
+      if (role === "agent") {
+        navigate("/staff/settings/notifications");
+      } else if (role === "admin") {
+        navigate("/admin/settings");
+      } else {
+        // default customer
+        navigate("/settings/notifications");
+      }
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <CssBaseline />
@@ -1096,7 +1120,7 @@ export const MainLayout: React.FC = () => {
                         ? theme.palette.action.selected
                         : "inherit",
                     }}
-                    onClick={handleNotifClose}
+                    onClick={() => handleNotificationClick(notif)}
                   >
                     <ListItemIcon sx={{ mt: 0.2 }}>
                       <NotifTypeIcon type={notif.type} />
