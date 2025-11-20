@@ -13,6 +13,7 @@ import FilterPanel from "../../../../components/Filter/FilterPanel";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { VacationCard } from "../../../../components/VacationCard";
 import { getAllVacations } from "../../../../services/vacationService";
+import { useNavigate } from "react-router-dom"; // <-- Add this
 
 const PAGE_SIZE = 15; // Adjustable based on desired page size
 
@@ -27,18 +28,15 @@ const getMainImage = (vac: any) => {
   return "/vacation.jpg";
 };
 
-// Optionally, for demonstration purposes. You might want to get these from API in real cases.
-const destinations = [
-  { label: "Mexico to Accra", value: "mexico-accra" },
-  { label: "India to Mexico", value: "india-mexico" },
-  { label: "America to Cameroon", value: "america-cameroon" },
-];
-
-const flightTypes = [
-  { label: "One-Way", value: "oneWay" },
-  { label: "Round Trip", value: "roundTrip" },
-  { label: "Multi-City", value: "multiCity" },
-];
+function getRangeMinMax(arr: number[]): [number, number] {
+  if (!arr.length) return [0, 0];
+  let min = arr[0], max = arr[0];
+  for (const n of arr) {
+    if (n < min) min = n;
+    if (n > max) max = n;
+  }
+  return [min, max];
+}
 
 const VacationPage: React.FC = () => {
   const [filters, setFilters] = useState<any>({});
@@ -52,30 +50,13 @@ const VacationPage: React.FC = () => {
   // Standalone search
   const [search, setSearch] = useState<string>("");
 
-  // For filter panel dynamic options (countries, etc) if needed
-  const filterConfig = useMemo(() => [
-    {
-      type: "slider",
-      name: "price",
-      title: "Price Range",
-      min: 100,
-      max: 1000,
-      step: 50,
-    },
-    {
-      type: "checkbox",
-      name: "destination",
-      title: "Destination",
-      options: destinations,
-    },
-    {
-      type: "radio",
-      name: "flightType",
-      title: "Flight Type",
-      options: flightTypes,
-    },
-    // Add more based on actual API fields/columns
-  ], []);
+  // For dynamic filter options
+  const [destinationOptions, setDestinationOptions] = useState<{ label: string, value: string }[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
+  const [currencyOptions, setCurrencyOptions] = useState<{ label: string, value: string }[]>([]);
+  const [hotelStarOptions, setHotelStarOptions] = useState<{ label: string, value: string }[]>([]);
+
+  const navigate = useNavigate(); // <-- Add this
 
   // Build query parameters for API based on filters and pagination
   const buildQueryParams = useCallback(() => {
@@ -83,12 +64,14 @@ const VacationPage: React.FC = () => {
       page,
       page_size: PAGE_SIZE,
     };
-    // Add filters to params as needed for your backend API contract
     if (filters.destination && Array.isArray(filters.destination) && filters.destination.length > 0) {
       params.destination = filters.destination.join(",");
     }
-    if (filters.flightType) {
-      params.flight_type = filters.flightType;
+    if (filters.currency && Array.isArray(filters.currency) && filters.currency.length > 0) {
+      params.currency = filters.currency.join(",");
+    }
+    if (filters.hotel_stars && Array.isArray(filters.hotel_stars) && filters.hotel_stars.length > 0) {
+      params.hotel_stars = filters.hotel_stars.join(",");
     }
     if (filters.price && Array.isArray(filters.price) && filters.price.length === 2) {
       params.price__gte = filters.price[0];
@@ -112,15 +95,107 @@ const VacationPage: React.FC = () => {
       try {
         const params = buildQueryParams();
         const data = await getAllVacations(params);
-        // If the API returns { results: [...], count, num_pages }, use accordingly
-        setVacationData(Array.isArray(data) ? data : data.results || []);
-        setCount(typeof data.count === "number" ? data.count : (Array.isArray(data) ? data.length : 0));
-        setNumPages(typeof data.num_pages === "number" ? data.num_pages : Math.ceil((Array.isArray(data) ? data.length : (data.count || 0)) / PAGE_SIZE));
+        const vacations = Array.isArray(data) ? data : data.results || [];
+
+        setVacationData(vacations);
+        setCount(
+          typeof data.count === "number"
+            ? data.count
+            : Array.isArray(data)
+            ? data.length
+            : 0
+        );
+        setNumPages(
+          typeof data.num_pages === "number"
+            ? data.num_pages
+            : Math.ceil(
+                Array.isArray(data)
+                  ? data.length
+                  : data.count
+                  ? data.count
+                  : 0 / PAGE_SIZE
+              )
+        );
+
+        // Derive dynamic filter data from the vacation list (results for current query/page)
+        // Ideally you'd have endpoints for options, but in absence, extract from list.
+        const _destinationsSet = new Set<string>();
+        const _destinationsLabels = new Map<string, string>(); // dest value -> title name
+        const _currencySet = new Set<string>();
+        const _hotelStarSet = new Set<number>();
+
+        const _allPrices: number[] = [];
+
+        vacations.forEach((vac: any) => {
+          // Destination
+          if (typeof vac.destination === "string" && vac.destination) {
+            _destinationsSet.add(vac.destination);
+            if (typeof vac.title === "string" && vac.title && !vac.title.toLowerCase().includes("vacation")) {
+              _destinationsLabels.set(vac.destination, vac.title);
+            }
+          }
+          // Currency
+          if (typeof vac.currency === "string" && vac.currency) {
+            _currencySet.add(vac.currency);
+          }
+          // Hotel Stars
+          if (
+            vac.hotel_stars !== undefined &&
+            vac.hotel_stars !== null &&
+            !isNaN(Number(vac.hotel_stars))
+          ) {
+            _hotelStarSet.add(Number(vac.hotel_stars));
+          }
+          // Price
+          const parsedPrice = parseFloat(vac.price);
+          if (!isNaN(parsedPrice)) {
+            _allPrices.push(parsedPrice);
+          }
+        });
+
+        // Destinations: Try to show label of destination, fallback to code.
+        const destinations = Array.from(_destinationsSet).map((dest) => ({
+          label: _destinationsLabels.get(dest) || dest,
+          value: dest,
+        }));
+        setDestinationOptions(destinations);
+
+        // Currencies
+        setCurrencyOptions(
+          Array.from(_currencySet).map((cur) => ({
+            label: cur,
+            value: cur,
+          }))
+        );
+        // Hotel stars
+        setHotelStarOptions(
+          Array.from(_hotelStarSet)
+            .sort((a, b) => a - b)
+            .map((star) => ({
+              label: `${star} Star${star !== 1 ? "s" : ""}`,
+              value: String(star),
+            }))
+        );
+
+        // Price Range
+        if (_allPrices.length > 0) {
+          let [min, max] = getRangeMinMax(_allPrices);
+          // Optionally give some headroom
+          min = Math.floor(min);
+          max = Math.ceil(max);
+          setPriceRange([min, max]);
+        } else {
+          setPriceRange([0, 0]);
+        }
       } catch (err: any) {
         setError("Failed to load vacation packages.");
         setVacationData([]);
         setCount(0);
         setNumPages(1);
+        setDestinationOptions([]);
+        setCurrencyOptions([]);
+        setHotelStarOptions([]);
+        setPriceRange([0, 0]);
       } finally {
         setLoading(false);
       }
@@ -143,7 +218,10 @@ const VacationPage: React.FC = () => {
     setSearch("");
   };
 
-  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+  const handlePageChange = (
+    _event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
     setPage(value);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -165,8 +243,63 @@ const VacationPage: React.FC = () => {
     }));
   };
 
+  // Build filter panel config based on API data (destinations, etc)
+  const filterConfig = useMemo(() => {
+    const filtersArr: any[] = [];
+    // Only show price slider if a useful range
+    if (priceRange[1] - priceRange[0] > 0) {
+      filtersArr.push({
+        type: "slider",
+        name: "price",
+        title: "Price Range",
+        min: priceRange[0],
+        max: priceRange[1],
+        step: Math.ceil((priceRange[1] - priceRange[0]) / 20) || 1,
+      });
+    }
+    if (destinationOptions.length) {
+      filtersArr.push({
+        type: "checkbox",
+        name: "destination",
+        title: "Destination",
+        options: destinationOptions,
+      });
+    }
+    if (currencyOptions.length) {
+      filtersArr.push({
+        type: "checkbox",
+        name: "currency",
+        title: "Currency",
+        options: currencyOptions,
+      });
+    }
+    if (hotelStarOptions.length) {
+      filtersArr.push({
+        type: "checkbox",
+        name: "hotel_stars",
+        title: "Hotel Stars",
+        options: hotelStarOptions,
+      });
+    }
+    // Feel free to extend with more filters (e.g. date range, included_items, etc)
+    return filtersArr;
+  }, [destinationOptions, priceRange, currencyOptions, hotelStarOptions]);
+
+  // Handler to be passed to each VacationCard for Book Now button
+  const handleBookNow = (vacId: string | number) => {
+    navigate(`/travel/vacation/${vacId}`);
+  };
+
   return (
-    <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
+    <Box
+      sx={{
+        px: { xs: 1, sm: 2, md: 4 },
+        py: { xs: 1, sm: 2 },
+        width: "100%",
+        maxWidth: 1400,
+        mx: "auto",
+      }}
+    >
       <CustomerPageHeader>
         {/* Page Header */}
         <Typography variant="h4" className="font-bold mb-2">
@@ -270,6 +403,12 @@ const VacationPage: React.FC = () => {
                   price={vac.price}
                   currency={vac.currency}
                   description={vac.description}
+                  // Add Book Now handler:
+                  onButtonClick={
+                    vac.id
+                      ? () => handleBookNow(vac.id)
+                      : undefined
+                  }
                 />
               ))
             )}
