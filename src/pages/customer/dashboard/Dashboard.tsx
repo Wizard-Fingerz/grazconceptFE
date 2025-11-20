@@ -211,6 +211,9 @@ export const Dashboard: React.FC = () => {
   // Fund Wallet modal state
   const [openFundWallet, setOpenFundWallet] = useState(false);
 
+  // Transactions modal state (for viewing all)
+  const [openTransactionsModal, setOpenTransactionsModal] = useState(false);
+
   // Form state for modal forms
   const [formState, setFormState] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -402,6 +405,14 @@ export const Dashboard: React.FC = () => {
     setOpenFundWallet(false);
   };
 
+  // Modal for all transactions
+  const handleOpenTransactionsModal = () => {
+    setOpenTransactionsModal(true);
+  };
+  const handleCloseTransactionsModal = () => {
+    setOpenTransactionsModal(false);
+  };
+
   // Handle form submit: call API, then navigate to result page with response
   const handleModalSubmit = async () => {
     if (!modalLabel) return;
@@ -430,6 +441,9 @@ export const Dashboard: React.FC = () => {
       setFormState({});
     }
   };
+
+  // Only display the last two transactions in the card
+  const latestTransactions = transactions.slice(0, 2);
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
@@ -491,9 +505,21 @@ export const Dashboard: React.FC = () => {
                 )}
               </Box>
               <Box mt={4}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  Recent Transactions
-                </Typography>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Recent Transactions
+                  </Typography>
+                  {transactions.length > 2 && !transactionsLoading && !transactionsError && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      sx={{ minWidth: 0, py: 0.2, px: 1.3, fontSize: '0.85rem', fontWeight: 600, textTransform: 'none' }}
+                      onClick={handleOpenTransactionsModal}
+                    >
+                      View All
+                    </Button>
+                  )}
+                </Box>
                 {/* Recent Transactions loading & error state handling */}
                 {transactionsLoading ? (
                   <Box display="flex" alignItems="center" justifyContent="center" height={64} minHeight={64}>
@@ -510,7 +536,7 @@ export const Dashboard: React.FC = () => {
                   </Box>
                 ) : (
                   <List dense={true}>
-                    {transactions.map((tx: any) => (
+                    {latestTransactions.map((tx: any) => (
                       <ListItem
                         key={tx.id}
                         disableGutters
@@ -594,6 +620,81 @@ export const Dashboard: React.FC = () => {
           </Box>
         </Box>
       </Stack>
+
+      {/* Modal for All Transactions */}
+      <Dialog
+        open={openTransactionsModal}
+        onClose={handleCloseTransactionsModal}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>All Transactions</DialogTitle>
+        <DialogContent dividers sx={{ px: 0, pb: 0 }}>
+          {transactionsLoading ? (
+            <Box display="flex" alignItems="center" justifyContent="center" py={4}>
+              <CircularProgress size={22} />
+              <Typography sx={{ ml: 1.5 }} color="text.secondary" fontSize="0.95rem">
+                Loading...
+              </Typography>
+            </Box>
+          ) : transactionsError ? (
+            <Box py={2}>
+              <Typography color="error" variant="body2">
+                {transactionsError}
+              </Typography>
+            </Box>
+          ) : (
+            <List dense>
+              {transactions.map((tx: any) => (
+                <ListItem
+                  key={tx.id}
+                  disableGutters
+                  sx={{
+                    px: 2, py: 0.5,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <ListItemText
+                    primary={getTransactionDescription(tx)}
+                    secondary={tx.date}
+                    sx={{
+                      span: { fontSize: '1rem', fontWeight: 500 },
+                      '.MuiListItemText-secondary': { fontSize: '0.85rem', color: 'text.secondary' }
+                    }}
+                  />
+                  <Box display="flex" flexDirection="column" alignItems="flex-end">
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: tx.amount < 0 ? "error.main" : "success.main",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {tx.amount < 0 ? "-" : "+"}{tx.currency || (walletBalance.currency ?? 'NGN')} {Math.abs(tx.amount)}
+                    </Typography>
+                    {tx.type === "debit" || tx.transaction_type === "withdrawal" ? (
+                      <Chip label="Debit" size="small" color="error" sx={{ mt: 0.2 }} />
+                    ) : (
+                      <Chip label="Credit" size="small" color="success" sx={{ mt: 0.2 }} />
+                    )}
+                  </Box>
+                </ListItem>
+              ))}
+              {transactions.length === 0 && (
+                <ListItem disableGutters>
+                  <ListItemText primary="No transactions found." />
+                </ListItem>
+              )}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTransactionsModal} color="primary" variant="contained">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Applications (Start a New Application) */}
       {!loadingBanners && banners && banners.length > 0 && (

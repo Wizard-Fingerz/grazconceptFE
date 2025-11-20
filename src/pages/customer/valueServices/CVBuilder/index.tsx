@@ -34,6 +34,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { useAuth } from "../../../../context/AuthContext";
 import api from "../../../../services/api";
+import { CountrySelect } from "../../../../components/CountrySelect";
 
 
 const initialPersonal = {
@@ -115,9 +116,6 @@ const steps = [
     "Review & Export",
 ];
 
-const countries = [
-    "United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "India", "China", "Japan", "Sweden", "Nigeria", "Brazil",
-];
 
 const skillExamples = [
     "JavaScript", "Python", "Project Management", "Data Analysis", "Teaching", "Team Leadership", "Public Speaking", "C++", "Machine Learning", "Research Writing"
@@ -164,8 +162,8 @@ const CVBuilder: React.FC = () => {
                         user?.full_name
                             ? user.full_name
                             : user?.first_name && user?.last_name
-                            ? `${user.first_name} ${user.last_name}`.trim()
-                            : "",
+                                ? `${user.first_name} ${user.last_name}`.trim()
+                                : "",
                     email: user?.email || "",
                     phone: user?.phone_number || "",
                     address: user?.address || "",
@@ -546,18 +544,15 @@ const CVBuilder: React.FC = () => {
                     fullWidth
                 />
                 <FormControl fullWidth required>
-                    <InputLabel>Country</InputLabel>
-                    <Select
-                        value={personal.country}
+                    <CountrySelect
                         label="Country"
-                        onChange={(e) =>
-                            setPersonal((p) => ({ ...p, country: e.target.value as string }))
+                        value={personal.country}
+                        onChange={(newValue) =>
+                            setPersonal((p) => ({ ...p, country: newValue as string }))
                         }
-                    >
-                        {countries.map((c) => (
-                            <MenuItem key={c} value={c}>{c}</MenuItem>
-                        ))}
-                    </Select>
+                        required
+                        fullWidth
+                    />
                 </FormControl>
                 <TextField
                     label="Professional Summary"
