@@ -19,7 +19,13 @@ import {
   Alert,
   Chip,
   Stack,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import api from "../../../services/api";
 import { CustomerPageHeader } from "../../../components/CustomerPageHeader";
 // --- Charts Imports (using Recharts) ---
@@ -74,6 +80,73 @@ const statusColor = (status: string) => {
 
 const pieColors = ["#009688", "#1976d2", "#ffc107", "#4caf50", "#ff7043", "#8e24aa", "#00bcd4"];
 
+// Utility functions for frequency calculation
+function getDaysDiff(start: string, end: string) {
+  // Dates are YYYY-MM-DD or similar
+  const s = new Date(start);
+  const e = new Date(end);
+  return Math.max(
+    1,
+    Math.floor((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  ); // include both start and end day
+}
+function getWeeksDiff(start: string, end: string) {
+  const days = getDaysDiff(start, end);
+  return Math.ceil(days / 7);
+}
+function getMonthsDiff(start: string, end: string) {
+  // Compute months between two dates
+  const s = new Date(start);
+  const e = new Date(end);
+  // Months are counted from 0
+  return (
+    Math.max(
+      1,
+      e.getFullYear() * 12 +
+        e.getMonth() -
+        (s.getFullYear() * 12 + s.getMonth()) +
+        (e.getDate() >= s.getDate() ? 1 : 0)
+    )
+  );
+}
+
+// Compute deduction amount based on recurrence
+function getDeductionInfo({
+  isRecurring,
+  recurrencePeriod,
+  targetAmount,
+  startDate,
+  endDate,
+}: {
+  isRecurring: boolean;
+  recurrencePeriod: string;
+  targetAmount: number;
+  startDate: string;
+  endDate: string;
+}) {
+  if (!isRecurring || !recurrencePeriod || !startDate || !endDate || !targetAmount)
+    return { label: "", value: null, freqNum: null };
+  let freqNum = 1;
+  if (recurrencePeriod === "daily") {
+    freqNum = getDaysDiff(startDate, endDate);
+  } else if (recurrencePeriod === "weekly") {
+    freqNum = getWeeksDiff(startDate, endDate);
+  } else if (recurrencePeriod === "monthly") {
+    freqNum = getMonthsDiff(startDate, endDate);
+  }
+  if (freqNum <= 0) freqNum = 1;
+  const deduction = Math.ceil(targetAmount / freqNum);
+  let label = "";
+  if (recurrencePeriod === "daily") {
+    label = `₦${deduction.toLocaleString()} per day for ${freqNum} days`;
+  } else if (recurrencePeriod === "weekly") {
+    label = `₦${deduction.toLocaleString()} per week for ${freqNum} weeks`;
+  } else if (recurrencePeriod === "monthly") {
+    label = `₦${deduction.toLocaleString()} per month for ${freqNum} months`;
+  }
+  return { label, value: deduction, freqNum };
+}
+
 const SavingPlan: React.FC = () => {
   // Form states
   const [name, setName] = useState("");
@@ -89,6 +162,10 @@ const SavingPlan: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [creating, setCreating] = useState<boolean>(false);
   const [success, setSuccess] = useState<string>("");
+  // Cancel modal
+  const [cancelling, setCancelling] = useState<number | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelError, setCancelError] = useState<string>("");
 
   useEffect(() => {
     fetchPlans();
@@ -108,6 +185,27 @@ const SavingPlan: React.FC = () => {
     }
   };
 
+  // --- Handle plan cancellation ---
+  const handleCancelRequest = (planId: number) => {
+    setCancelling(planId);
+    setCancelDialogOpen(true);
+    setCancelError("");
+  };
+
+  const handleCancelPlan = async () => {
+    if (!cancelling) return;
+    setCancelError("");
+    try {
+      await api.post(`/wallet/saving-plans/${cancelling}/cancel/`);
+      setCancelDialogOpen(false);
+      setCancelling(null);
+      fetchPlans();
+    } catch (e: any) {
+      setCancelError(e?.response?.data?.detail || "Failed to cancel plan.");
+    }
+  };
+
+  // --- Enhanced CREATE PLAN submit, still works as before ---
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
@@ -161,6 +259,15 @@ const SavingPlan: React.FC = () => {
           value: parseFloat(plan.amount_saved),
         }))
       : [];
+
+  // --- Calculate deduction info for recurring plans ---
+  const deductionInfo = getDeductionInfo({
+    isRecurring,
+    recurrencePeriod,
+    targetAmount: parseFloat(targetAmount || "0"),
+    startDate,
+    endDate,
+  });
 
   // Main dashboard
   return (
@@ -427,7 +534,12 @@ const SavingPlan: React.FC = () => {
                       margin="normal"
                       select
                       value={isRecurring ? "yes" : "no"}
-                      onChange={(e) => setIsRecurring(e.target.value === "yes")}
+                      onChange={(e) => {
+                        setIsRecurring(e.target.value === "yes");
+                        if (e.target.value !== "yes") {
+                          setRecurrencePeriod("");
+                        }
+                      }}
                     >
                       <MenuItem value="no">No</MenuItem>
                       <MenuItem value="yes">Yes</MenuItem>
@@ -450,6 +562,12 @@ const SavingPlan: React.FC = () => {
                       </MenuItem>
                     ))}
                   </TextField>
+                )}
+                {/* Summary of auto-deduction calculation */}
+                {isRecurring && deductionInfo.label && (
+                  <Alert severity="info" sx={{ mt: 1 }}>
+                    <b>Auto-Deduction:</b> {deductionInfo.label}
+                  </Alert>
                 )}
                 <Button
                   type="submit"
@@ -514,6 +632,7 @@ const SavingPlan: React.FC = () => {
                     <TableCell>Start</TableCell>
                     <TableCell>End</TableCell>
                     <TableCell>Created</TableCell>
+                    <TableCell align="center">Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -547,6 +666,19 @@ const SavingPlan: React.FC = () => {
                       <TableCell>
                         {plan.created_at.slice(0, 10)}
                       </TableCell>
+                      <TableCell align="center">
+                        {plan.status === "active" && (
+                          <>
+                            <IconButton
+                              aria-label="Cancel Plan"
+                              color="error"
+                              onClick={() => handleCancelRequest(plan.id)}
+                            >
+                              <CloseIcon />
+                            </IconButton>
+                          </>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -555,6 +687,41 @@ const SavingPlan: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      {/* Cancel Plan Dialog */}
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={() => {
+          setCancelDialogOpen(false);
+          setCancelling(null);
+        }}
+      >
+        <DialogTitle>Cancel Savings Plan?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to cancel this savings plan? This action can't be undone.
+          </Typography>
+          {cancelError && (
+            <Alert severity="error" sx={{ mt: 2 }}>{cancelError}</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setCancelDialogOpen(false);
+              setCancelling(null);
+            }}
+          >
+            No, keep plan
+          </Button>
+          <Button
+            color="error"
+            onClick={handleCancelPlan}
+            variant="contained"
+          >
+            Yes, Cancel Plan
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
