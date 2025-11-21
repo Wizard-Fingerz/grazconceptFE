@@ -7,13 +7,19 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterPanel from "../../../../components/Filter/FilterPanel";
 import { CustomerPageHeader } from "../../../../components/CustomerPageHeader";
 import { VacationCard } from "../../../../components/VacationCard";
 import { getAllVacations } from "../../../../services/vacationService";
-import { useNavigate } from "react-router-dom"; // <-- Add this
+import { useNavigate } from "react-router-dom";
+// You may need to provide or implement this component:
+const VacationApplicationsTab = React.lazy(() =>
+  import("./AllVactionApplications")
+);
 
 const PAGE_SIZE = 15; // Adjustable based on desired page size
 
@@ -39,6 +45,8 @@ function getRangeMinMax(arr: number[]): [number, number] {
 }
 
 const VacationPage: React.FC = () => {
+  const [tab, setTab] = useState<"vacations" | "applications">("vacations");
+
   const [filters, setFilters] = useState<any>({});
   const [vacationData, setVacationData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -56,7 +64,7 @@ const VacationPage: React.FC = () => {
   const [currencyOptions, setCurrencyOptions] = useState<{ label: string, value: string }[]>([]);
   const [hotelStarOptions, setHotelStarOptions] = useState<{ label: string, value: string }[]>([]);
 
-  const navigate = useNavigate(); // <-- Add this
+  const navigate = useNavigate();
 
   // Build query parameters for API based on filters and pagination
   const buildQueryParams = useCallback(() => {
@@ -89,6 +97,7 @@ const VacationPage: React.FC = () => {
 
   // Fetch vacation data with filters and pagination
   useEffect(() => {
+    if (tab !== "vacations") return;
     const fetchVacations = async () => {
       setLoading(true);
       setError(null);
@@ -202,7 +211,7 @@ const VacationPage: React.FC = () => {
     };
     fetchVacations();
     // eslint-disable-next-line
-  }, [buildQueryParams]);
+  }, [buildQueryParams, tab]);
 
   // When filters change, reset to page 1
   useEffect(() => {
@@ -290,6 +299,10 @@ const VacationPage: React.FC = () => {
     navigate(`/travel/vacation/${vacId}`);
   };
 
+  const handleTabChange = (_event: React.ChangeEvent<{}>, newValue: number) => {
+    setTab(newValue === 0 ? "vacations" : "applications");
+  };
+
   return (
     <Box
       sx={{
@@ -310,143 +323,166 @@ const VacationPage: React.FC = () => {
         </Typography>
       </CustomerPageHeader>
 
-      {/* Show count and search field above the main content */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: { xs: "stretch", sm: "center" },
-          justifyContent: "space-between",
-          mb: 2,
-          gap: 2,
-        }}
-      >
-        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-          {loading
-            ? "Loading vacation packages..."
-            : error
-            ? ""
-            : `${count} package${count === 1 ? "" : "s"} found`}
-        </Typography>
-        {/* Standalone search field for quick search */}
-        <Box
-          component="form"
-          onSubmit={handleSearchSubmit}
-          sx={{ width: { xs: "100%", sm: 320 } }}
+      {/* TABS for switching between packages and applications */}
+      <Box sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}>
+        <Tabs
+          value={tab === "vacations" ? 0 : 1}
+          onChange={handleTabChange}
+          aria-label="Vacation page tabs"
         >
-          <TextField
-            size="small"
-            fullWidth
-            placeholder="Search by title, destination..."
-            value={search}
-            onChange={handleSearchChange}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    type="submit"
-                    aria-label="search"
-                    edge="end"
-                    size="small"
-                  >
-                    <SearchIcon />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ background: "#fff" }}
-          />
-        </Box>
+          <Tab label="Vacation Packages" />
+          <Tab label="My Applications" />
+        </Tabs>
       </Box>
 
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          alignItems: { xs: "flex-start", md: "flex-start" },
-          justifyContent: "space-between",
-          mb: 8,
-          gap: { xs: 0, md: 4 }, // Add gap between cards and filter on desktop
-        }}
-      >
-        {/* Vacation Cards */}
-        <Box sx={{ flex: 1 }}>
+      {tab === "vacations" && (
+        <>
+          {/* Show count and search field above the main content */}
           <Box
             sx={{
               display: "flex",
-              flexWrap: "wrap",
-              gap: 3,
-              mt: 2,
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "stretch", sm: "center" },
+              justifyContent: "space-between",
+              mb: 2,
+              gap: 2,
             }}
           >
-            {loading ? (
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              {loading
+                ? "Loading vacation packages..."
+                : error
+                ? ""
+                : `${count} package${count === 1 ? "" : "s"} found`}
+            </Typography>
+            {/* Standalone search field for quick search */}
+            <Box
+              component="form"
+              onSubmit={handleSearchSubmit}
+              sx={{ width: { xs: "100%", sm: 320 } }}
+            >
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Search by title, destination..."
+                value={search}
+                onChange={handleSearchChange}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        type="submit"
+                        aria-label="search"
+                        edge="end"
+                        size="small"
+                      >
+                        <SearchIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ background: "#fff" }}
+              />
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "flex-start", md: "flex-start" },
+              justifyContent: "space-between",
+              mb: 8,
+              gap: { xs: 0, md: 4 }, // Add gap between cards and filter on desktop
+            }}
+          >
+            {/* Vacation Cards */}
+            <Box sx={{ flex: 1 }}>
               <Box
                 sx={{
-                  width: "100%",
                   display: "flex",
-                  justifyContent: "center",
-                  mt: 6,
+                  flexWrap: "wrap",
+                  gap: 3,
+                  mt: 2,
                 }}
               >
-                <Typography>Loading vacation packages...</Typography>
+                {loading ? (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "center",
+                      mt: 6,
+                    }}
+                  >
+                    <Typography>Loading vacation packages...</Typography>
+                  </Box>
+                ) : error ? (
+                  <Typography color="error">{error}</Typography>
+                ) : vacationData.length === 0 ? (
+                  <Typography>No vacation packages found.</Typography>
+                ) : (
+                  vacationData.map((vac: any, idx: number) => (
+                    <VacationCard
+                      key={vac.id || idx}
+                      image={getMainImage(vac)}
+                      title={vac.title}
+                      price={vac.price}
+                      currency={vac.currency}
+                      description={vac.description}
+                      // Add Book Now handler:
+                      onButtonClick={
+                        vac.id
+                          ? () => handleBookNow(vac.id)
+                          : undefined
+                      }
+                    />
+                  ))
+                )}
               </Box>
-            ) : error ? (
-              <Typography color="error">{error}</Typography>
-            ) : vacationData.length === 0 ? (
-              <Typography>No vacation packages found.</Typography>
-            ) : (
-              vacationData.map((vac: any, idx: number) => (
-                <VacationCard
-                  key={vac.id || idx}
-                  image={getMainImage(vac)}
-                  title={vac.title}
-                  price={vac.price}
-                  currency={vac.currency}
-                  description={vac.description}
-                  // Add Book Now handler:
-                  onButtonClick={
-                    vac.id
-                      ? () => handleBookNow(vac.id)
-                      : undefined
-                  }
-                />
-              ))
-            )}
-          </Box>
-          {/* Pagination */}
-          {!loading && !error && numPages > 1 && (
-            <Stack direction="row" justifyContent="center" sx={{ mt: 4 }}>
-              <Pagination
-                count={numPages}
-                page={page}
-                onChange={handlePageChange}
-                color="primary"
-                shape="rounded"
-                showFirstButton
-                showLastButton
-              />
-            </Stack>
-          )}
-        </Box>
+              {/* Pagination */}
+              {!loading && !error && numPages > 1 && (
+                <Stack direction="row" justifyContent="center" sx={{ mt: 4 }}>
+                  <Pagination
+                    count={numPages}
+                    page={page}
+                    onChange={handlePageChange}
+                    color="primary"
+                    shape="rounded"
+                    showFirstButton
+                    showLastButton
+                  />
+                </Stack>
+              )}
+            </Box>
 
-        {/* Filter Panel */}
-        <Box
-          sx={{
-            width: { xs: "100%", md: 320 },
-            flexShrink: 0,
-            mb: { xs: 3, md: 0 },
-            // On desktop, align filter panel to the top of the cards
-            alignSelf: { xs: "auto", md: "flex-start" },
-          }}
-        >
-          <FilterPanel
-            filters={filterConfig as any}
-            values={filters}
-            onChange={handleChange}
-            onClear={handleClear}
-          />
-        </Box>
-      </Box>
+            {/* Filter Panel */}
+            <Box
+              sx={{
+                width: { xs: "100%", md: 320 },
+                flexShrink: 0,
+                mb: { xs: 3, md: 0 },
+                // On desktop, align filter panel to the top of the cards
+                alignSelf: { xs: "auto", md: "flex-start" },
+              }}
+            >
+              <FilterPanel
+                filters={filterConfig as any}
+                values={filters}
+                onChange={handleChange}
+                onClear={handleClear}
+              />
+            </Box>
+          </Box>
+        </>
+      )}
+
+      {/* Tab 2: Applications */}
+      {tab === "applications" && (
+        <React.Suspense fallback={<Box sx={{ py: 6, textAlign: "center" }}><Typography>Loading applications...</Typography></Box>}>
+          <VacationApplicationsTab />
+        </React.Suspense>
+      )}
     </Box>
   );
 };

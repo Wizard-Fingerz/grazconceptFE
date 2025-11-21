@@ -589,6 +589,53 @@ const InvestmentPlanPage: React.FC = () => {
           Invest in our solution through one of our curated packages. Track returns, view history, and manage your portfolio effortlessly.
         </Typography>
       </CustomerPageHeader>
+      
+      {/* Analytics Section */}
+      <Box mt={6} mb={6} borderRadius={4} bgcolor={cardBg} boxShadow={2} p={3}>
+        <Typography fontWeight={600} variant="h6" mb={1.4} color={textPrimary}>
+          Dashboard Analytics
+        </Typography>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={3}
+          alignItems="center"
+          justifyContent="space-between"
+          divider={<Divider orientation="vertical" flexItem sx={{ display: { xs: "none", sm: "block" } }} />}
+          mb={3}
+        >
+          <AnalyticsWidget
+            label="Total Invested"
+            value={totalInvested}
+            color="#1565c0"
+            icon={<MonetizationOnOutlinedIcon sx={{ color: "#1565c0", fontSize: 28 }} />}
+          />
+          <AnalyticsWidget
+            label="Cumulative ROI"
+            value={totalROI}
+            color="#f9a825"
+            icon={<TrendingUpOutlinedIcon sx={{ color: "#f9a825", fontSize: 28 }} />}
+          />
+          <AnalyticsWidget
+            label="Next Withdraw"
+            value={nextWithdraw ? formatDate(nextWithdraw) : "N/A"}
+            color="#009688"
+            icon={<CalendarMonthOutlinedIcon sx={{ color: "#009688", fontSize: 28 }} />}
+          />
+        </Stack>
+        {/* Summary */}
+        <Box>
+          <Typography fontWeight={600} mb={1} color={textPrimary}>My Investments</Typography>
+          {loadingInvestments ? (
+            <Box display="flex" alignItems="center" justifyContent="center" minHeight={70}>
+              <CircularProgress size={22} />
+            </Box>
+          ) : userInvestments.length ? (
+            userInvestments.map((inv, i) => <MyInvestmentCard inv={inv} key={inv.id || i} />)
+          ) : (
+            <Typography color={textSecondary} variant="body2">No investments yet.</Typography>
+          )}
+        </Box>
+      </Box>
 
       {/* Error State */}
       {error && (
@@ -734,52 +781,6 @@ const InvestmentPlanPage: React.FC = () => {
         </Alert>
       </Snackbar>
 
-      {/* Analytics Section */}
-      <Box mt={6} borderRadius={4} bgcolor={cardBg} boxShadow={2} p={3}>
-        <Typography fontWeight={600} variant="h6" mb={1.4} color={textPrimary}>
-          Dashboard Analytics
-        </Typography>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={3}
-          alignItems="center"
-          justifyContent="space-between"
-          divider={<Divider orientation="vertical" flexItem sx={{ display: { xs: "none", sm: "block" } }} />}
-          mb={3}
-        >
-          <AnalyticsWidget
-            label="Total Invested"
-            value={totalInvested}
-            color="#1565c0"
-            icon={<MonetizationOnOutlinedIcon sx={{ color: "#1565c0", fontSize: 28 }} />}
-          />
-          <AnalyticsWidget
-            label="Cumulative ROI"
-            value={totalROI}
-            color="#f9a825"
-            icon={<TrendingUpOutlinedIcon sx={{ color: "#f9a825", fontSize: 28 }} />}
-          />
-          <AnalyticsWidget
-            label="Next Withdraw"
-            value={nextWithdraw ? formatDate(nextWithdraw) : "N/A"}
-            color="#009688"
-            icon={<CalendarMonthOutlinedIcon sx={{ color: "#009688", fontSize: 28 }} />}
-          />
-        </Stack>
-        {/* Summary */}
-        <Box>
-          <Typography fontWeight={600} mb={1} color={textPrimary}>My Investments</Typography>
-          {loadingInvestments ? (
-            <Box display="flex" alignItems="center" justifyContent="center" minHeight={70}>
-              <CircularProgress size={22} />
-            </Box>
-          ) : userInvestments.length ? (
-            userInvestments.map((inv, i) => <MyInvestmentCard inv={inv} key={inv.id || i} />)
-          ) : (
-            <Typography color={textSecondary} variant="body2">No investments yet.</Typography>
-          )}
-        </Box>
-      </Box>
       <Typography
         variant="caption"
         color={textSecondary}

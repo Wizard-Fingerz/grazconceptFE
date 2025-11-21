@@ -34,6 +34,15 @@ export async function getAllVacationBookings() {
 }
 
 
+export async function getAllVacationApplications(params?: Record<string, any>) {
+  try {
+    const response = await api.get(`/app/vacation-application/`, { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
 // Get vacation ad banners (limit 3)
 export async function getVacationBanners() {
   try {
