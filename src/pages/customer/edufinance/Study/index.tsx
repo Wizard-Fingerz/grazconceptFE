@@ -214,7 +214,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
     const [loanAnalyticsLoading, setLoanAnalyticsLoading] = useState<boolean>(true);
     const [loanAnalyticsError, setLoanAnalyticsError] = useState<string | null>(null);
 
-    // Tab - 0: Recent Applications, 1: Offers
+    // Tab - 0: Offers, 1: Recent Applications          <<<< CHANGED ORDER
     const [tabIndex, setTabIndex] = useState<number>(0);
 
     const [walletLoading] = useState(false);
@@ -578,7 +578,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                 </>
             )}
 
-            {/* Tabs for Applications and Offers */}
+            {/* Tabs for Offers and Applications -- Changed order */}
             <Box sx={{ mt: 4, mb: 2 }}>
                 <Tabs
                     value={tabIndex}
@@ -589,16 +589,104 @@ export const StudyAbroadLoanPage: React.FC = () => {
                         mb: 0,
                         pt: 0,
                     }}
-                    aria-label="Applications and Offers Tabs"
+                    aria-label="Offers and Applications Tabs"
                     variant={isXs ? "scrollable" : "standard"}
                     scrollButtons={isXs ? "auto" : undefined}
                 >
-                    <Tab label="Recent Applications" />
                     <Tab label="Available Offers" />
+                    <Tab label="Recent Applications" />
                 </Tabs>
             </Box>
             {/* Tab Panels */}
             {tabIndex === 0 && (
+                <>
+                    <Box sx={{
+                        mb: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexDirection: { xs: "column", sm: "row" } // keep for offer
+                    }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: { xs: 1, sm: 0 } }}>
+                            Available Offers
+                        </Typography>
+                    </Box>
+                    <Box
+                        sx={{
+                            overflowX: "auto",
+                            width: "100%",
+                            pb: 1,
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                display: "flex",
+                                flexDirection: { xs: "column", sm: "row" },
+                                gap: 2,
+                                flexWrap: "nowrap",
+                            }}
+                        >
+                            {loadingOffers ? (
+                                <Box sx={{ width: "100%" }}>
+                                    <Box className="flex items-center justify-center w-full py-8">
+                                        <CircularProgress size={32} />
+                                    </Box>
+                                </Box>
+                            ) : offers.length === 0 ? (
+                                <Box sx={{ width: "100%" }}>
+                                    <Typography
+                                        variant="body2"
+                                        className="text-gray-500 flex items-center"
+                                    >
+                                        No available offers at this time.
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                offers
+                                    .filter((loan: any) => !appliedLoanIds.includes(loan.id))
+                                    .map((loan: any) => (
+                                        <Box
+                                            key={loan.id}
+                                            sx={getColumnWidth({
+                                                xs: "100%",
+                                                sm: 280,
+                                                md: 320,
+                                                max: 380
+                                            })}
+                                        >
+                                            <OfferCard
+                                                id={loan.id}
+                                                name={loan.name}
+                                                description={loan.description}
+                                                min_amount={loan.min_amount}
+                                                max_amount={loan.max_amount}
+                                                currency={loan.currency}
+                                                interest_rate={loan.interest_rate}
+                                                duration_months={loan.duration_months}
+                                                required_documents={loan.required_documents}
+                                                requirements={loan.requirements}
+                                                onApply={() => {
+                                                    navigate(`/edufinance/study-abroad-loan/offers/${loan.id}`);
+                                                }}
+                                            />
+                                        </Box>
+                                    ))
+                            )}
+                            {!loadingOffers && offers.filter((loan: any) => !appliedLoanIds.includes(loan.id)).length === 0 && (
+                                <Box sx={{ width: "100%" }}>
+                                    <Typography
+                                        variant="body2"
+                                        className="text-gray-500 flex items-center"
+                                    >
+                                        No available offers at this time.
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    </Box>
+                </>
+            )}
+            {tabIndex === 1 && (
                 <>
                     <Box sx={{
                         mb: 2,
@@ -778,94 +866,6 @@ export const StudyAbroadLoanPage: React.FC = () => {
                                         </Box>
                                     );
                                 })
-                            )}
-                        </Box>
-                    </Box>
-                </>
-            )}
-            {tabIndex === 1 && (
-                <>
-                    <Box sx={{
-                        mb: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        flexDirection: { xs: "column", sm: "row" }
-                    }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: { xs: 1, sm: 0 } }}>
-                            Available Offers
-                        </Typography>
-                    </Box>
-                    <Box
-                        sx={{
-                            overflowX: "auto",
-                            width: "100%",
-                            pb: 1,
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                display: "flex",
-                                flexDirection: { xs: "column", sm: "row" },
-                                gap: 2,
-                                flexWrap: "nowrap",
-                            }}
-                        >
-                            {loadingOffers ? (
-                                <Box sx={{ width: "100%" }}>
-                                    <Box className="flex items-center justify-center w-full py-8">
-                                        <CircularProgress size={32} />
-                                    </Box>
-                                </Box>
-                            ) : offers.length === 0 ? (
-                                <Box sx={{ width: "100%" }}>
-                                    <Typography
-                                        variant="body2"
-                                        className="text-gray-500 flex items-center"
-                                    >
-                                        No available offers at this time.
-                                    </Typography>
-                                </Box>
-                            ) : (
-                                offers
-                                    .filter((loan: any) => !appliedLoanIds.includes(loan.id))
-                                    .map((loan: any) => (
-                                        <Box
-                                            key={loan.id}
-                                            sx={getColumnWidth({
-                                                xs: "100%",
-                                                sm: 280,
-                                                md: 320,
-                                                max: 380
-                                            })}
-                                        >
-                                            <OfferCard
-                                                id={loan.id}
-                                                name={loan.name}
-                                                description={loan.description}
-                                                min_amount={loan.min_amount}
-                                                max_amount={loan.max_amount}
-                                                currency={loan.currency}
-                                                interest_rate={loan.interest_rate}
-                                                duration_months={loan.duration_months}
-                                                required_documents={loan.required_documents}
-                                                requirements={loan.requirements}
-                                                onApply={() => {
-                                                    navigate(`/edufinance/study-abroad-loan/offers/${loan.id}`);
-                                                }}
-                                            />
-                                        </Box>
-                                    ))
-                            )}
-                            {!loadingOffers && offers.filter((loan: any) => !appliedLoanIds.includes(loan.id)).length === 0 && (
-                                <Box sx={{ width: "100%" }}>
-                                    <Typography
-                                        variant="body2"
-                                        className="text-gray-500 flex items-center"
-                                    >
-                                        No available offers at this time.
-                                    </Typography>
-                                </Box>
                             )}
                         </Box>
                     </Box>
