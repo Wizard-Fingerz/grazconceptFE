@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   Box,
   Button,
@@ -13,82 +13,74 @@ import {
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
 import api from "../../../../../services/api";
-import { useNavigate } from "react-router-dom"; // <-- Added import
+import { useNavigate } from "react-router-dom";
 
 /**
- * Network providers and logos (public assets assumed to exist)
+ * Fetch available airtime network providers from the new endpoint:
+ * /api/airtime-network-providers/
  */
-const networks: { label: string; value: string; logo: string; accent?: string }[] = [
-  {
-    label: "MTN",
-    value: "mtn",
-    logo: "/assets/networks/mtn.png",
-    accent: "#ffe600",
-  },
-  {
-    label: "Airtel",
-    value: "airtel",
-    logo: "/assets/networks/airtel.png",
-    accent: "#ee1c25",
-  },
-  {
-    label: "Glo",
-    value: "glo",
-    logo: "/assets/networks/glo.png",
-    accent: "#21b04b",
-  },
-  {
-    label: "9mobile",
-    value: "9mobile",
-    logo: "/assets/networks/9mobile.png",
-    accent: "#36b32b",
-  },
-];
+function useAirtimeNetworkProviders() {
+  const [providers, setProviders] = useState<
+    { id: number; name: string; slug: string; logo?: string; accent?: string }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export const BuyAirtime: React.FC = () => {
-  const [network, setNetwork] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [amount, setAmount] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Add navigate using react-router
-  const navigate = useNavigate();
-  // Find selected network details
-  const selectedNetwork = networks.find((nt) => nt.value === network);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSuccessMsg(null);
-    setErrorMsg(null);
+  useEffect(() => {
+    let mounted = true;
     setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    api
+      .get("/app/airtime-network-providers/")
+      .then((res) => {
+        if (mounted) {
+          let data = res.data.results || [];
+          const adapted = data.map((item: any) => {
+            if ("value" in item && "label" in item) {
+              return {
+                id: item.id,
+                name: item.label,
+                slug: item.value,
+                logo: item.logo,
+                accent: item.accent,
+              };
+            }
+            return item;
+          });
+          setProviders(adapted);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (mounted) {
+          setError(
+            err?.response?.data?.detail ||
+              "Failed to load network providers. Please refresh."
+          );
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-      await api.post(
-        "/value-services/airtime/buy/",
-        { network, phone, amount },
-        { headers }
-      );
-      setSuccessMsg("Airtime purchase successful!");
-      setNetwork("");
-      setPhone("");
-      setAmount("");
-    } catch (err: any) {
-      setErrorMsg(
-        err?.response?.data?.detail ||
-        "Failed to process airtime purchase. Please try again."
-      );
-    }
-    setLoading(false);
-  };
+  return { providers, loading, error };
+}
 
-  /**
-   * Custom Network Selector (uses flex grid, not MUI's Grid)
-   */
-  const NetworkSelector = () => (
+const NetworkSelector = React.memo(function NetworkSelector({
+  network,
+  setNetwork,
+  providers,
+  loading,
+  error,
+}: {
+  network: string;
+  setNetwork: (network: string) => void;
+  providers: { id: number; name: string; slug: string; logo?: string; accent?: string }[];
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         sx={{
@@ -99,92 +91,109 @@ export const BuyAirtime: React.FC = () => {
           py: { xs: 1.5, sm: 2 },
         }}
       >
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
           Select Network
         </Typography>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 16,
-            justifyContent: "center",
-            marginBottom: 4,
-          }}
-        >
-          {networks.map((nt) => (
-            <div
-              key={nt.value}
-              style={{
-                flex: "1 1 40%",
-                minWidth: 100,
-                maxWidth: 140,
-                marginBottom: 8,
-                boxSizing: "border-box",
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Button
-                onClick={() => setNetwork(nt.value)}
-                variant={network === nt.value ? "contained" : "outlined"}
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  bgcolor:
-                    network === nt.value
-                      ? nt.accent || "primary.main"
-                      : "#fff",
-                  color:
-                    network === nt.value
-                      ? "#222"
-                      : "inherit",
-                  border:
-                    network === nt.value
-                      ? `2px solid ${nt.accent || "#aaa"}`
-                      : "1.5px solid #eee",
-                  boxShadow:
-                    network === nt.value
-                      ? "0 6px 24px 2px rgba(60,60,0,0.06)"
-                      : "none",
-                  transition: "all 0.18s",
-                  borderRadius: 3,
-                  py: 1.5,
-                  px: 0,
-                  minHeight: 80,
-                  gap: 0.5,
-                  "&:hover": {
-                    borderColor: nt.accent,
-                    bgcolor: nt.accent + "11",
-                  },
-                }}
-              >
-                <Avatar
-                  src={nt.logo}
-                  alt={nt.label}
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Typography color="error" variant="caption" sx={{ mt: 1, textAlign: "center" }}>
+            {error}
+          </Typography>
+        ) : providers.length === 0 ? (
+          <Typography color="error" variant="caption" sx={{ mt: 1, textAlign: "center" }}>
+            No network providers found. Please check back soon.
+          </Typography>
+        ) : (
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 2,
+              justifyContent: { xs: "flex-start", sm: "center" },
+              marginBottom: 0,
+              width: "100%",
+            }}
+          >
+            {providers.map((nt) => {
+              const isSelected = network === nt.slug;
+              return (
+                <Button
+                  key={nt.id ?? nt.slug}
+                  onClick={() => setNetwork(nt.slug)}
                   sx={{
-                    width: 36,
-                    height: 36,
-                    mb: 0.5,
-                    bgcolor: "white",
-                    border: nt.value === "mtn" ? "1px solid #eee" : undefined,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    minWidth: 0,
+                    px: 1.3,
+                    py: 1.1,
+                    width: { xs: "100%", sm: 175 },
+                    maxWidth: 220,
+                    borderRadius: 3,
+                    bgcolor: isSelected ? (nt.accent || "primary.main") : "#fff",
+                    color: isSelected ? "#252525" : "inherit",
+                    border: isSelected
+                      ? `2.5px solid ${nt.accent || "#aaa"}`
+                      : "1.5px solid #eee",
+                    boxShadow: isSelected
+                      ? "0 6px 32px 0.5px rgba(60,60,0,0.09)"
+                      : "none",
+                    fontWeight: 600,
+                    fontSize: 17,
+                    textTransform: "none",
+                    gap: 1.3,
+                    transition: "all 0.19s cubic-bezier(.25,.8,.25,1)",
+                    "&:hover": {
+                      borderColor: nt.accent,
+                      bgcolor: nt.accent ? nt.accent + "18" : "#fafafa",
+                    },
+                    mb: 1,
                   }}
-                  imgProps={{
-                    style: { objectFit: "contain" },
-                  }}
-                />
-                <span style={{ fontSize: 15, fontWeight: 500 }}>{nt.label}</span>
-              </Button>
-            </div>
-          ))}
-        </div>
-        {!network && (
+                  disableElevation
+                >
+                  <Avatar
+                    src={nt.logo}
+                    alt={nt.name}
+                    sx={{
+                      width: 37,
+                      height: 37,
+                      bgcolor: "#fff",
+                      border: isSelected
+                        ? `2px solid ${nt.accent || "#cfb"}`
+                        : "1px solid #e8e8e8",
+                      boxShadow: isSelected
+                        ? `0 2px 7px 0 ${nt.accent || "#aaa"}33`
+                        : "none",
+                      mr: 1.5,
+                      ml: 0.5,
+                      my: 0,
+                    }}
+                    imgProps={{ style: { objectFit: "contain" } }}
+                  />
+                  <span
+                    style={{
+                      fontWeight: isSelected ? 800 : 600,
+                      color: isSelected ? "#212126" : "#36393c",
+                      fontSize: 15.5,
+                      letterSpacing: "0.01em",
+                      textShadow: isSelected ? "0 1.5px 0 #fff5" : "none",
+                    }}
+                  >
+                    {nt.name}
+                  </span>
+                </Button>
+              );
+            })}
+          </Box>
+        )}
+        {(!network && !loading && !error && providers.length > 0) && (
           <Typography
             color="error"
             variant="caption"
-            sx={{ mt: 1, textAlign: "center" }}
+            sx={{ mt: 1.5, textAlign: "center", fontWeight: 500 }}
           >
             Please select a network.
           </Typography>
@@ -192,11 +201,29 @@ export const BuyAirtime: React.FC = () => {
       </CardContent>
     </Card>
   );
+});
 
-  /**
-   * Phone input UI
-   */
-  const PhoneInput = () => (
+// Utility to clean up Nigerian phone numbers (remove initial zero)
+function cleanPhoneNumber(val: string) {
+  // If the user started input with '0', remove it for +234 format
+  if (val && val.length > 0 && val[0] === "0" && val.length === 11) {
+    return val.slice(1);
+  }
+  return val;
+}
+
+const PhoneInput = React.memo(function PhoneInput({
+  phone,
+  setPhone,
+  error,
+}: {
+  phone: string;
+  setPhone: (phone: string) => void;
+  error?: string | null;
+}) {
+  const lastValue = useRef(phone || "");
+
+  return (
     <Card className="rounded-2xl shadow-md">
       <CardContent
         className="flex flex-col items-center justify-center"
@@ -207,7 +234,16 @@ export const BuyAirtime: React.FC = () => {
           label="Phone Number"
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+          onChange={(e) => {
+            let val = e.target.value.replace(/[^0-9]/g, "");
+            if (val.length > 11) val = val.substring(0, 11);
+            // If user starts with 0, always drop just one leading zero (so they see what they'll send)
+            if (val.length > 0 && val[0] === '0') {
+              val = val.slice(1);
+            }
+            lastValue.current = val;
+            setPhone(val);
+          }}
           InputProps={{
             sx: { fontWeight: 500 },
             startAdornment: (
@@ -224,29 +260,37 @@ export const BuyAirtime: React.FC = () => {
               </InputAdornment>
             ),
           }}
-          inputProps={{ maxLength: 11, pattern: "^[0-9]{11}$" }}
+          inputProps={{ maxLength: 10, pattern: "^[0-9]{10}$" }}
           InputLabelProps={{
             sx: { fontWeight: 500 },
           }}
           variant="outlined"
           required
-          placeholder="e.g 8012345678"
+          placeholder="e.g 7012345678"
+          error={!!error}
+          helperText={error}
         />
       </CardContent>
     </Card>
   );
+});
 
-  /**
-   * Amount input with accent border on selected network
-   */
-  const AmountInput = () => (
+const AmountInput = React.memo(function AmountInput({
+  amount,
+  setAmount,
+  accent,
+}: {
+  amount: string;
+  setAmount: (amt: string) => void;
+  accent?: string;
+}) {
+  const lastValue = useRef(amount || "");
+
+  return (
     <Card
       className="rounded-2xl shadow-md"
       sx={{
-        border:
-          selectedNetwork && selectedNetwork.accent
-            ? `2px solid ${selectedNetwork.accent}`
-            : undefined,
+        border: accent ? `2px solid ${accent}` : undefined,
         transition: "border 0.2s",
       }}
     >
@@ -259,7 +303,13 @@ export const BuyAirtime: React.FC = () => {
           label="Amount"
           type="number"
           value={amount}
-          onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
+          onChange={(e) => {
+            let val = e.target.value.replace(/[^0-9]/g, "");
+            if (val && val.length > 1 && val.startsWith("0")) val = val.replace(/^0+/, "");
+            if (parseInt(val, 10) > 20000) val = "20000";
+            lastValue.current = val;
+            setAmount(val);
+          }}
           variant="outlined"
           InputProps={{
             sx: { fontWeight: 500 },
@@ -277,11 +327,170 @@ export const BuyAirtime: React.FC = () => {
       </CardContent>
     </Card>
   );
+});
+
+export const BuyAirtime: React.FC = () => {
+  const [network, setNetwork] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [amount, setAmount] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // New: Field-level error state to show specific field errors from API
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string} | null>(null);
+
+  const navigate = useNavigate();
+
+  const {
+    providers: networkProviders,
+    loading: providersLoading,
+    error: providersError,
+  } = useAirtimeNetworkProviders();
+
+  const selectedNetwork = networkProviders.find((p) => p.slug === network);
+
+  const setNetworkStable = useCallback(setNetwork, []);
+  const setPhoneStable = useCallback(setPhone, []);
+  const setAmountStable = useCallback(setAmount, []);
+
+  // --------- FIXED SUBMIT LOGIC with field-level error handling ---------
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    setFieldErrors(null);
+
+    // Validate: phone should be exactly 10 digits (since we force remove leading 0)
+    if (!network || !phone || phone.length !== 10 || !amount) {
+      setErrorMsg("All fields are required and must be valid.");
+      return;
+    }
+    const amtNum = Number(amount);
+    if (isNaN(amtNum) || amtNum < 50 || amtNum > 20000) {
+      setErrorMsg("Amount must be between ₦50 and ₦20,000.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      // Phone to send: always +234 then the 10 digits (no lead zero)
+      // This is also useful if the API expects phone_number in 234xxxxxxxxxx form
+      const cleanPhone = cleanPhoneNumber(phone);
+
+      // Try main endpoint first, then fallback to /app/ if needed
+      let response = null;
+      let error = null;
+
+      try {
+        response = await api.post(
+          "/app/airtime-purchases/",
+          {
+            provider_id: network,
+            phone: cleanPhone,
+            amount: amtNum,
+          },
+          { headers }
+        );
+      } catch (err: any) {
+        error = err;
+        // Check for 4xx (especially 400) only, otherwise fallback to /airtime-purchases/
+        if (
+          err?.response &&
+          err.response.status >= 400 &&
+          err.response.status < 500
+        ) {
+          throw err;
+        }
+        try {
+          response = await api.post(
+            "/airtime-purchases/",
+            {
+              network_provider: network,
+              phone_number: cleanPhone,
+              amount: amtNum,
+            },
+            { headers }
+          );
+        } catch (err2: any) {
+          error = err2;
+          throw err2;
+        }
+      }
+
+      if (
+        response &&
+        (response.status === 201 ||
+          response.status === 200 ||
+          response.data?.status === "success")
+      ) {
+        setSuccessMsg("Airtime purchase successful!");
+        setNetwork("");
+        setPhone("");
+        setAmount("");
+      } else {
+        // Try to surface field errors
+        if (response?.data && typeof response.data === "object") {
+          if (
+            response.data.provider_id?.length > 0 ||
+            response.data.phone?.length > 0
+          ) {
+            const fieldErrs: {[key:string]: string} = {};
+            if (response.data.provider_id?.length > 0) {
+              fieldErrs['network'] = response.data.provider_id[0];
+            }
+            if (response.data.phone?.length > 0) {
+              fieldErrs['phone'] = response.data.phone[0];
+            }
+            setFieldErrors(fieldErrs);
+            setErrorMsg(null);
+            setLoading(false);
+            return;
+          }
+        }
+        setErrorMsg(
+          response?.data?.detail ||
+            "Failed to process airtime purchase. Please try again."
+        );
+      }
+    } catch (err: any) {
+      // Trap and map field errors from err.response?.data
+      const errData = err?.response?.data;
+      if (errData && typeof errData === "object") {
+        // Check for server field errors
+        if (
+          errData.provider_id?.length > 0 ||
+          errData.phone?.length > 0
+        ) {
+          const fieldErrs: {[key:string]: string} = {};
+          if (errData.provider_id?.length > 0) {
+            fieldErrs['network'] = errData.provider_id[0];
+          }
+          if (errData.phone?.length > 0) {
+            fieldErrs['phone'] = errData.phone[0];
+          }
+          setFieldErrors(fieldErrs);
+          setErrorMsg(null);
+          setLoading(false);
+          return;
+        }
+      }
+      setErrorMsg(
+        errData?.detail ||
+        errData?.message ||
+        err?.message ||
+        "Failed to process airtime purchase. Please try again."
+      );
+    }
+    setLoading(false);
+  };
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
-
-
       <CustomerPageHeader>
         <Typography
           variant="h4"
@@ -293,7 +502,6 @@ export const BuyAirtime: React.FC = () => {
             lineHeight: 1.1,
           }}
         >
-
           Buy Instant Airtime
         </Typography>
       </CustomerPageHeader>
@@ -305,26 +513,29 @@ export const BuyAirtime: React.FC = () => {
         <Button
           variant="contained"
           className="bg-[#f5ebe1] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
-          onClick={() => {
-            // Use navigate hook to navigate programmatically
-            navigate("/support/chat");
-          }}
+          onClick={() => navigate("/support/chat")}
         >
           Chat with Agent
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <div className="grid grid-cols-1 gap-6 mb-6">
-          <NetworkSelector />
+          <NetworkSelector
+            network={network}
+            setNetwork={setNetworkStable}
+            providers={networkProviders}
+            loading={providersLoading}
+            error={providersError || (fieldErrors?.network ?? null)}
+          />
           <Fade in={!!network}>
             <div>
-              <PhoneInput />
+              <PhoneInput phone={phone} setPhone={setPhoneStable} error={fieldErrors?.phone} />
             </div>
           </Fade>
           <Fade in={!!network}>
             <div>
-              <AmountInput />
+              <AmountInput amount={amount} setAmount={setAmountStable} accent={selectedNetwork?.accent} />
             </div>
           </Fade>
         </div>
@@ -336,9 +547,12 @@ export const BuyAirtime: React.FC = () => {
           disabled={
             !network ||
             !phone ||
-            phone.length !== 11 ||
+            phone.length !== 10 ||
             !amount ||
-            loading
+            loading ||
+            providersLoading ||
+            !!providersError ||
+            networkProviders.length === 0
           }
           type="submit"
           sx={{
@@ -358,7 +572,7 @@ export const BuyAirtime: React.FC = () => {
               {selectedNetwork && (
                 <Avatar
                   src={selectedNetwork.logo}
-                  alt={selectedNetwork.label}
+                  alt={selectedNetwork.name}
                   sx={{
                     width: 24,
                     height: 24,
@@ -398,7 +612,7 @@ export const BuyAirtime: React.FC = () => {
           1. Tap your preferred network above.
         </Typography>
         <Typography variant="body2">
-          2. Enter the 11-digit phone number (without +234).
+          2. Enter the 10-digit phone number (without the leading zero, e.g. 7067602193).
         </Typography>
         <Typography variant="body2">
           3. Enter the amount to buy (&#8358;50 minimum).
