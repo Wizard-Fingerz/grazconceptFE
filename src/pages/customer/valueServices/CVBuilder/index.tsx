@@ -1052,7 +1052,6 @@ const CVBuilder: React.FC = () => {
             try {
                 const resp = await api.get("/app/cv-profiles/");
                 if (isActive) {
-                    // Defensive: only set if we have a valid API response with a "results" array
                     if (resp?.data && Array.isArray(resp.data.results)) {
                         setMyCVs(resp.data.results);
                     } else {
@@ -1649,12 +1648,11 @@ const CVBuilder: React.FC = () => {
      * Opens a modal to select a template for printing the CV.
      * Shows live preview, allows the user to select a template, then prints the formatted CV to PDF.
      */
-    function handlePrint(cv: any): React.MouseEventHandler<HTMLButtonElement> {
-        return (_event) => {
-            setActivePrintCV(cv);
-            setPrintTemplateId(availableTemplates.length > 0 ? availableTemplates[0].id : null);
-            setPrintPreviewOpen(true);
-        };
+    function handlePrint(cv: any) {
+        // Triggers the print preview modal. 
+        setActivePrintCV(cv);
+        setPrintTemplateId(availableTemplates.length > 0 ? availableTemplates[0].id : null);
+        setPrintPreviewOpen(true);
     }
 
     // --- Printing modal state ---
@@ -1740,9 +1738,8 @@ const CVBuilder: React.FC = () => {
         );
     }
 
-    // Add this line before your return statement:
-    {printPreviewOpen && <PrintPreviewModal />}
-
+    // Show print preview modal if open
+    const printPreviewModalElem = printPreviewOpen ? <PrintPreviewModal /> : null;
 
     // ---- MAIN RENDER ----
     return (
@@ -1766,6 +1763,9 @@ const CVBuilder: React.FC = () => {
                     Build a comprehensive, recruiter-friendly CV: fill in details, review, and export.
                 </Typography>
             </CustomerPageHeader>
+
+            {/* Print Preview Modal */}
+            {printPreviewModalElem}
 
             <Card>
                 <CardContent>
@@ -1808,7 +1808,8 @@ const CVBuilder: React.FC = () => {
                                                         size="small"
                                                         variant="contained"
                                                         color="primary"
-                                                        onClick={() => handlePrint(cv)} // Call handlePrint with this CV
+                                                        // Here: Print button triggers preview modal
+                                                        onClick={() => handlePrint(cv)}
                                                     >
                                                         Print
                                                     </Button>
@@ -1888,7 +1889,10 @@ const CVBuilder: React.FC = () => {
                                             </Button>
                                             <Button
                                                 variant="contained"
-                                                onClick={handlePrint}
+                                                // Here: Print/Save button triggers preview modal for the current CV
+                                                onClick={() => handlePrint({
+                                                    personal, education, experience, certifications, skills, languages, publications, summary: personal.summary, photo: personal.photo
+                                                })}
                                                 sx={{
                                                     fontWeight: 600,
                                                     bgcolor: "#1976d2",
