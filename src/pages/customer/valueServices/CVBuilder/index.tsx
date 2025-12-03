@@ -153,6 +153,16 @@ function updateArrayItemById_inplace<T extends { id: string }>(
     }
 }
 
+type PersonalType = {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    country: string;
+    summary: string;
+    photo: File | null;
+};
+
 const StepPersonal = React.memo(function StepPersonal({
     personal,
     setPersonal,
@@ -161,8 +171,8 @@ const StepPersonal = React.memo(function StepPersonal({
     removePhoto,
     user,
 }: {
-    personal: typeof initialPersonal,
-    setPersonal: React.Dispatch<React.SetStateAction<typeof initialPersonal>>,
+    personal: PersonalType,
+    setPersonal: React.Dispatch<React.SetStateAction<PersonalType>>,
     photoInputRef: React.RefObject<HTMLInputElement>,
     handlePhotoChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
     removePhoto: () => void,
@@ -1023,15 +1033,32 @@ const StepReview = React.memo(function StepReview({
 // Dummy hook for fetching previous CVs (replace with real implementation!)
 // You may want to move this out and connect to your backend.
 
+const getUserPersonalFromUser = (user: any) => ({
+    fullName:
+        user?.full_name
+            ? user.full_name
+            : user?.first_name && user?.last_name
+            ? `${user.first_name} ${user.last_name}`.trim()
+            : "",
+    email: user?.email || "",
+    phone: user?.phone_number || "",
+    address: user?.current_address || user?.address || "",
+    country: user?.country_of_residence || user?.country || "",
+    summary: "",
+    photo: null,
+});
 
 const CVBuilder: React.FC = () => {
     const { user } = useAuth();
+
+    // Always fill personal info from user.
+    const userPersonal = getUserPersonalFromUser(user);
 
     // ------------- New state for Tab --------------
     const [tab, setTab] = useState<"create" | "mycvs">("create");
 
     // ------------- CV From API --------------------
-    const [loadingCV, setLoadingCV] = useState<boolean>(false);
+    const [, setLoadingCV] = useState<boolean>(false);
     const [, setCVLoaded] = useState<boolean>(false);
 
     // ------------- Manage CVs List ----------------
@@ -1071,7 +1098,7 @@ const CVBuilder: React.FC = () => {
 
     // ------------- Main Builder State -------------
     const [step, setStep] = useState(0);
-    const [personal, setPersonal] = useState({ ...initialPersonal });
+    const [personal, setPersonal] = useState({ ...userPersonal }); // Always initialized from user
     const [education, setEducation] = useState([...initialEducation]);
     const [experience, setExperience] = useState([...initialExperience]);
     const [certifications, setCertifications] = useState([...initialCertifications]);
@@ -1086,6 +1113,18 @@ const CVBuilder: React.FC = () => {
     const [apiState, setApiState] = useState<ApiState>("idle");
     const [, setApiResponse] = useState<any | null>(null);
 
+    // Enforce personal info always matches user, whenever user changes, except for summary/photo
+    useEffect(() => {
+        setPersonal((prev) => ({
+            ...prev,
+            ...userPersonal,
+            summary: typeof prev.summary !== "undefined" ? prev.summary : "",
+            photo: typeof prev.photo !== "undefined" ? prev.photo : null,
+        }));
+        // eslint-disable-next-line
+    }, [user]);
+
+    // Fetch CV data from API, but always set personal from user
     useEffect(() => {
         const fetchCV = async () => {
             setLoadingCV(true);
@@ -1093,17 +1132,12 @@ const CVBuilder: React.FC = () => {
                 const response = await api.get(API_ENDPOINT);
                 if (response && response.data) {
                     const cv = response.data;
-                    setPersonal({
-                        ...initialPersonal,
-                        ...cv.personal,
-                        fullName: cv.personal?.fullName ?? cv.personal?.full_name ?? "",
-                        email: cv.personal?.email ?? "",
-                        phone: cv.personal?.phone ?? "",
-                        address: cv.personal?.address ?? "",
-                        country: cv.personal?.country ?? "",
-                        summary: cv.personal?.summary ?? cv.summary ?? "",
-                        photo: cv.photo ?? null,
-                    });
+                    setPersonal(prev => ({
+                        ...prev,
+                        ...userPersonal,
+                        summary: cv.personal?.summary ?? cv.summary ?? prev.summary ?? "",
+                        photo: typeof cv.photo !== "undefined" ? cv.photo : prev.photo,
+                    }));
                     setEducation(Array.isArray(cv.education)
                         ? cv.education.map((ed: any) => ({
                             id: ed.id,
@@ -1171,28 +1205,6 @@ const CVBuilder: React.FC = () => {
         fetchCV();
         // eslint-disable-next-line
     }, []);
-
-    useEffect(() => {
-        if (user) {
-            setPersonal(prev => ({
-                ...prev,
-                fullName:
-                    prev.fullName ||
-                    (user?.full_name
-                        ? user.full_name
-                        : user?.first_name && user?.last_name
-                            ? `${user.first_name} ${user.last_name}`.trim()
-                            : ""),
-                email: prev.email || user?.email || "",
-                phone: prev.phone || user?.phone_number || "",
-                address: prev.address || user?.current_address || user?.address || "",
-                country: prev.country || user?.country_of_residence || user?.country || "",
-                summary: prev.summary ?? "",
-                photo: prev.photo ?? null
-            }));
-        }
-        // eslint-disable-next-line
-    }, [user]);
 
     const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -1361,7 +1373,7 @@ const CVBuilder: React.FC = () => {
     const handleRemovePublication = useCallback((id: string) =>
         setPublications(prev => (prev.length === 1 ? prev : prev.filter(item => item.id !== id))), []);
 
-    // Photo upload
+    // Photo upload: only allow to set the photo field, rest user info comes from user
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (
@@ -1369,7 +1381,7 @@ const CVBuilder: React.FC = () => {
             ["image/png", "image/jpeg", "image/jpg"].includes(file.type) &&
             file.size < 3 * 1024 * 1024
         ) {
-            setPersonal((p) => ({ ...p, photo: file }));
+            setPersonal((p) => ({ ...p, photo: file as any }));
         } else if (file) {
             setError("Invalid photo file (max 3MB, JPG/PNG only)");
         }
@@ -1438,7 +1450,9 @@ const CVBuilder: React.FC = () => {
 
         data.append("summary", values.summary ?? "");
         if (personal.photo) {
-            data.append("photo", personal.photo, personal.photo.name);
+            // TypeScript lint fix: assert personal.photo is a File
+            const file = personal.photo as File;
+            data.append("photo", file, file.name);
         }
 
         function appendArrayFields(
@@ -1498,17 +1512,12 @@ const CVBuilder: React.FC = () => {
 
     // Handler to edit an existing CV (from myCVs list)
     const handleEditCV = (cv: any) => {
-        setPersonal({
-            ...initialPersonal,
-            ...cv.personal,
-            fullName: cv.personal?.fullName ?? cv.personal?.full_name ?? "",
-            email: cv.personal?.email ?? "",
-            phone: cv.personal?.phone ?? "",
-            address: cv.personal?.address ?? "",
-            country: cv.personal?.country ?? "",
-            summary: cv.summary || cv.personal?.summary || "",
-            photo: cv.photo ?? null,
-        });
+        setPersonal((prev) => ({
+            ...prev,
+            ...userPersonal,
+            summary: cv.summary || cv.personal?.summary || prev.summary || "",
+            photo: typeof cv.photo !== "undefined" ? cv.photo : prev.photo,
+        }));
         setEducation(Array.isArray(cv.education)
             ? cv.education.map((ed: any) => ({
                 id: ed.id,
@@ -1584,7 +1593,7 @@ const CVBuilder: React.FC = () => {
         <StepPersonal
             key="personal"
             personal={personal}
-            setPersonal={setPersonal}
+            setPersonal={setPersonal as React.Dispatch<React.SetStateAction<any>>}
             photoInputRef={photoInputRef as React.RefObject<HTMLInputElement>}
             handlePhotoChange={handlePhotoChange}
             removePhoto={removePhoto}
@@ -1846,12 +1855,6 @@ const CVBuilder: React.FC = () => {
                     {/* --- Tab: CV Builder Steps --- */}
                     {tab === "create" && (
                         <Box>
-                            {loadingCV ? (
-                                <Box display="flex" alignItems="center" justifyContent="center" sx={{ py: 8 }}>
-                                    <CircularProgress size={36} />
-                                    <Typography variant="h6" sx={{ ml: 2 }}>Loading your CV...</Typography>
-                                </Box>
-                            ) : (
                                 <>
                                     <Stepper activeStep={step} alternativeLabel sx={{ mb: 2 }}>
                                         {steps.map((label) => (
@@ -1950,7 +1953,7 @@ const CVBuilder: React.FC = () => {
                                         </Box>
                                     )}
                                 </>
-                            )}
+                            
                         </Box>
                     )}
 
@@ -1982,7 +1985,6 @@ const CVBuilder: React.FC = () => {
         </Box>
     );
 };
-
 
 
 export default CVBuilder;
