@@ -382,9 +382,8 @@ export const BuyAirtime: React.FC = () => {
       // This is also useful if the API expects phone_number in 234xxxxxxxxxx form
       const cleanPhone = cleanPhoneNumber(phone);
 
-      // Try main endpoint first, then fallback to /app/ if needed
+      // Try main endpoint first, then fallback to /airtime-purchases/ if needed
       let response = null;
-      let error = null;
 
       try {
         response = await api.post(
@@ -397,7 +396,6 @@ export const BuyAirtime: React.FC = () => {
           { headers }
         );
       } catch (err: any) {
-        error = err;
         // Check for 4xx (especially 400) only, otherwise fallback to /airtime-purchases/
         if (
           err?.response &&
@@ -417,7 +415,6 @@ export const BuyAirtime: React.FC = () => {
             { headers }
           );
         } catch (err2: any) {
-          error = err2;
           throw err2;
         }
       }
