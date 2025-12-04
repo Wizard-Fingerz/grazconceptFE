@@ -54,7 +54,7 @@ function useAirtimeNetworkProviders() {
         if (mounted) {
           setError(
             err?.response?.data?.detail ||
-              "Failed to load network providers. Please refresh."
+            "Failed to load network providers. Please refresh."
           );
           setLoading(false);
         }
@@ -338,7 +338,7 @@ export const BuyAirtime: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // New: Field-level error state to show specific field errors from API
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string} | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string } | null>(null);
 
   const navigate = useNavigate();
 
@@ -401,6 +401,7 @@ export const BuyAirtime: React.FC = () => {
           "/app/airtime-purchases/",
           {
             provider_id: providerId, // Use the id, not the slug
+            network: network,
             phone: cleanPhone,
             amount: amtNum,
           },
@@ -417,9 +418,10 @@ export const BuyAirtime: React.FC = () => {
         }
         try {
           response = await api.post(
-            "/airtime-purchases/",
+            "app/airtime-purchases/",
             {
               network_provider: providerId, // Use the id, not the slug
+              network: network,
               phone_number: cleanPhone,
               amount: amtNum,
             },
@@ -447,7 +449,7 @@ export const BuyAirtime: React.FC = () => {
             response.data.provider_id?.length > 0 ||
             response.data.phone?.length > 0
           ) {
-            const fieldErrs: {[key:string]: string} = {};
+            const fieldErrs: { [key: string]: string } = {};
             if (response.data.provider_id?.length > 0) {
               fieldErrs['network'] = response.data.provider_id[0];
             }
@@ -462,7 +464,7 @@ export const BuyAirtime: React.FC = () => {
         }
         setErrorMsg(
           response?.data?.detail ||
-            "Failed to process airtime purchase. Please try again."
+          "Failed to process airtime purchase. Please try again."
         );
       }
     } catch (err: any) {
@@ -474,7 +476,7 @@ export const BuyAirtime: React.FC = () => {
           errData.provider_id?.length > 0 ||
           errData.phone?.length > 0
         ) {
-          const fieldErrs: {[key:string]: string} = {};
+          const fieldErrs: { [key: string]: string } = {};
           if (errData.provider_id?.length > 0) {
             fieldErrs['network'] = errData.provider_id[0];
           }
