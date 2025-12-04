@@ -348,6 +348,7 @@ export const BuyAirtime: React.FC = () => {
     error: providersError,
   } = useAirtimeNetworkProviders();
 
+  // Find the selected network provider object (by slug)
   const selectedNetwork = networkProviders.find((p) => p.slug === network);
 
   const setNetworkStable = useCallback(setNetwork, []);
@@ -372,6 +373,16 @@ export const BuyAirtime: React.FC = () => {
       return;
     }
 
+    // Find the provider object by slug and get its id (pk)
+    const selectedProvider = networkProviders.find((p) => p.slug === network);
+    const providerId = selectedProvider?.id;
+
+    // Provider id is required for posting
+    if (!providerId) {
+      setErrorMsg("Invalid network selected. Please choose another.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -389,7 +400,7 @@ export const BuyAirtime: React.FC = () => {
         response = await api.post(
           "/app/airtime-purchases/",
           {
-            provider_id: network,
+            provider_id: providerId, // Use the id, not the slug
             phone: cleanPhone,
             amount: amtNum,
           },
@@ -408,7 +419,7 @@ export const BuyAirtime: React.FC = () => {
           response = await api.post(
             "/airtime-purchases/",
             {
-              network_provider: network,
+              network_provider: providerId, // Use the id, not the slug
               phone_number: cleanPhone,
               amount: amtNum,
             },
