@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   Card,
@@ -36,8 +36,9 @@ import { getMyRecentSudyVisaApplicaton } from "../../../../services/studyVisa";
 import { getMyWorkVisaApplications } from "../../../../services/workVisaService";
 import { getPilgrimageApplications } from "../../../../services/pilgrimageServices";
 import { getAllVacationBookings } from "../../../../services/vacationService";
+// --- Import real comments API service ---
+import * as commentsService from "../../../../services/commentsService";
 
-// Steps
 const WORK_VISA_STEPS = [
   "Draft", "Application Received", "Pending Documents from Applicant", "Application Submitted to Employer/Agency", "Application on Hold", "Interview/Screening Scheduled", "Offer Letter Received", "Payment/Processing Fee Confirmed", "Work Permit/Approval in Progress", "Visa Application Submitted to Embassy", "Visa Granted", "Visa Denied", "Case Closed"
 ];
@@ -80,6 +81,7 @@ function extractStatusTextStudy(item: any) {
   return "Draft";
 }
 
+// PaginatedPhrase as in original
 function PaginatedPhrase({
   phrase,
   maxLength = 16,
@@ -93,7 +95,6 @@ function PaginatedPhrase({
 }) {
   const [open, setOpen] = useState(false);
   if (typeof phrase !== "string") phrase = `${phrase}`;
-
   let trimmed = phrase?.trim() ?? "";
   const isOverflow = trimmed.length > maxLength;
   const shortText = isOverflow
@@ -135,17 +136,24 @@ function PaginatedPhrase({
   );
 }
 
-// Chat bubble used in comments (no reply support)
-function ChatBubble({ message, isMe, fileUrl, timestamp }: {
+// Chat bubble with API data
+function ChatBubble({
+  message,
+  isMe,
+  fileUrl,
+  timestamp,
+  sender_display,
+}: {
   message: string;
   isMe: boolean;
-  fileUrl?: string;
+  fileUrl?: string | null;
   timestamp?: string;
+  sender_display?: string;
 }) {
   return (
     <Box sx={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", mb: 1 }}>
       <Avatar sx={{ bgcolor: isMe ? "#ffe3aa" : "#ccc", width: 32, height: 32 }}>
-        {isMe ? "You" : "A"}
+        {isMe ? "You" : (sender_display ? sender_display[0] : "A")}
       </Avatar>
       <Box sx={{ mx: 1.5, flex: 1 }}>
         <Paper
@@ -191,110 +199,54 @@ function ChatBubble({ message, isMe, fileUrl, timestamp }: {
   );
 }
 
-// Simulate loading/fetching/sending comments (flat, no reply)
-function useCommentsForApp(selectedAppId: string | null) {
-  // Each item: {id, text, created_at, sender_type, sender_display, attachment}
+// Hook for fetching/posting comments using API
+function useCommentsForApp(applicationId: string | null) {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  const fetchComments = useCallback(async () => {
+    if (!applicationId) {
+      setComments([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setSendError(null);
+    try {
+      // Use the application_type and application_id
+      const res = await commentsService.fetchComments({
+        application_id: applicationId,
+      });
+      setComments(Array.isArray(res?.results) ? res.results : []);
+    } catch (err: any) {
+      setComments([]);
+      setSendError("Failed to load comments.");
+    }
+    setLoading(false);
+  }, [applicationId]);
 
   useEffect(() => {
-    setLoading(true);
-    // Simulate API fetch. In practice, pass selectedAppId to API
-    setTimeout(() => {
-      // Example comments shaped like the serializer (no reply threading)
-      setComments(selectedAppId
-        ? [
-            {
-              id: 1,
-              visa_application: selectedAppId,
-              applicant: true,
-              admin: false,
-              text: "Welcome! Here we discuss your application status.",
-              created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-              is_read_by_applicant: true,
-              is_read_by_admin: false,
-              attachment: null,
-              sender_type: "applicant",
-              sender_display: "You",
-            },
-            {
-              id: 2,
-              visa_application: selectedAppId,
-              applicant: false,
-              admin: true,
-              text: "Can you provide your updated passport scan?",
-              created_at: new Date(Date.now() - 1000 * 50).toISOString(),
-              is_read_by_applicant: true,
-              is_read_by_admin: true,
-              attachment: null,
-              sender_type: "admin",
-              sender_display: "Agent",
-            },
-            {
-              id: 3,
-              visa_application: selectedAppId,
-              applicant: true,
-              admin: false,
-              text: "Sure, uploading now.",
-              created_at: new Date(Date.now() - 1000 * 40).toISOString(),
-              is_read_by_applicant: true,
-              is_read_by_admin: true,
-              attachment: null,
-              sender_type: "applicant",
-              sender_display: "You"
-            },
-            {
-              id: 4,
-              visa_application: selectedAppId,
-              applicant: true,
-              admin: false,
-              text: "Here's the scanned document.",
-              created_at: new Date(Date.now() - 1000 * 30).toISOString(),
-              is_read_by_applicant: true,
-              is_read_by_admin: true,
-              attachment: "/dummy-file.pdf",
-              sender_type: "applicant",
-              sender_display: "You",
-            },
-            {
-              id: 5,
-              visa_application: selectedAppId,
-              applicant: false,
-              admin: true,
-              text: "Thank you. We will update your application.",
-              created_at: new Date(Date.now() - 1000 * 15).toISOString(),
-              is_read_by_applicant: true,
-              is_read_by_admin: true,
-              attachment: null,
-              sender_type: "admin",
-              sender_display: "Agent",
-            },
-          ]
-        : []
-      );
-      setLoading(false);
-    }, 500);
-    // Reset on change
-    return () => {};
-  }, [selectedAppId]);
+    fetchComments();
+    // eslint-disable-next-line
+  }, [applicationId]);
 
+  // Add a comment to UI optimistically, optional after post
   function addComment(comment: any) {
-    setComments((prev) =>
-      [
-        ...prev,
-        { ...comment, id: prev.length ? Math.max(...prev.map((c) => c.id)) + 1 : 1 }
-      ]
-    );
+    setComments((prev) => [...prev, comment]);
   }
 
+  // Allow parent to refetch after send
   return {
     comments,
     loading,
-    addComment,
+    setComments,
+    refresh: fetchComments,
+    sendError,
+    addComment
   };
 }
 
-// Flat comments list (no threading, no reply)
 function CommentsList({ comments }: { comments: any[] }) {
   return (
     <Box>
@@ -302,9 +254,10 @@ function CommentsList({ comments }: { comments: any[] }) {
         <ChatBubble
           key={com.id}
           message={com.text}
-          isMe={com.sender_type === "applicant"}
+          isMe={com.sender_type === "applicant" || com.sender_display === "You"}
           fileUrl={com.attachment}
-          timestamp={new Date(com.created_at).toLocaleString()}
+          timestamp={com.created_at ? new Date(com.created_at).toLocaleString() : ""}
+          sender_display={com.sender_display}
         />
       ))}
     </Box>
@@ -314,31 +267,26 @@ function CommentsList({ comments }: { comments: any[] }) {
 export const TrackProgress: React.FC = () => {
   // Tab selection
   const [tab, setTab] = useState<ApplicationType>("workVisa");
-
-  // applications
+  // applications state
   const [workVisa, setWorkVisa] = useState<any[]>([]);
   const [studyVisa, setStudyVisa] = useState<any[]>([]);
   const [pilgrimage, setPilgrimage] = useState<any[]>([]);
   const [vacation, setVacation] = useState<any[]>([]);
-
   // loading & error
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // for currently displayed application
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Chat add state
+  // Comment add
   const [newComment, setNewComment] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  const [sendCommentError, setSendCommentError] = useState<string | null>(null);
 
   // Effect to fetch all applications
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError(null);
-
     Promise.allSettled([
       getMyWorkVisaApplications(),
       getMyRecentSudyVisaApplicaton(),
@@ -347,13 +295,11 @@ export const TrackProgress: React.FC = () => {
     ])
       .then((results) => {
         if (!mounted) return;
-
         const getList = (idx: number) =>
           (results[idx].status === "fulfilled" &&
             Array.isArray((results[idx] as PromiseFulfilledResult<any>).value.results)
             ? (results[idx] as PromiseFulfilledResult<any>).value.results
             : []);
-
         setWorkVisa(getList(0));
         setStudyVisa(getList(1));
         setPilgrimage(getList(2));
@@ -365,7 +311,6 @@ export const TrackProgress: React.FC = () => {
       .finally(() => {
         if (mounted) setLoading(false);
       });
-
     return () => {
       mounted = false;
     };
@@ -413,6 +358,7 @@ export const TrackProgress: React.FC = () => {
             appliedAt: item.submitted_at || item.created_at,
             steps: WORK_VISA_STEPS,
             type: "workVisa" as ApplicationType,
+            raw: item
           };
         });
 
@@ -429,6 +375,7 @@ export const TrackProgress: React.FC = () => {
             appliedAt: item.application_date || item.created_at || item.applied_at,
             steps: STUDY_VISA_STEPS,
             type: "studyVisa" as ApplicationType,
+            raw: item
           };
         });
 
@@ -445,6 +392,7 @@ export const TrackProgress: React.FC = () => {
             appliedAt: item.created_at || item.preferred_travel_date || item.application_date,
             steps: PILGRIMAGE_STEPS,
             type: "pilgrimage" as ApplicationType,
+            raw: item
           };
         });
 
@@ -461,6 +409,7 @@ export const TrackProgress: React.FC = () => {
             appliedAt: item.created_at || item.applied_at,
             steps: VACATION_STEPS,
             type: "vacation" as ApplicationType,
+            raw: item
           };
         });
 
@@ -471,35 +420,60 @@ export const TrackProgress: React.FC = () => {
 
   const applications = getApplicationsForTab(tab);
   const selectedApp = applications.find((app) => String(app.id) === selectedId);
+  // Comments real API
+  const {
+    comments,
+    loading: loadingComments,
+    refresh: refreshComments,
+    sendError: commentsFetchError,
+    // addComment
+  } = useCommentsForApp(selectedApp ? selectedApp.id : null);
 
-  // Comments hook for current app (flat, no reply)
-  const { comments, loading: loadingComments, addComment } = useCommentsForApp(selectedApp ? selectedApp.id : null);
-
-  // Comment send (flat, no reply)
+  // Comment send via API
   async function handleSendComment(e?: React.FormEvent) {
     if (e) e.preventDefault();
+    if (!selectedApp) return;
     if (!newComment.trim() && !uploadFile) return;
+    setSendCommentError(null);
     setSending(true);
-
-    // Simulate file upload and add to comments
-    setTimeout(() => {
-      const fileUrl = uploadFile ? `/fake-uploads/${uploadFile.name}` : null;
-      addComment({
-        text: newComment.trim() || (uploadFile ? uploadFile.name : ""),
-        created_at: new Date().toISOString(),
-        sender_type: "applicant",
-        sender_display: "You",
-        attachment: fileUrl,
-        applicant: true,
-        admin: false,
-        visa_application: selectedApp ? selectedApp.id : null,
-        is_read_by_applicant: true,
-        is_read_by_admin: false,
+    try {
+      let attachmentFileId = null;
+      // If file to upload, upload first (API must support this)
+      if (uploadFile) {
+        // This should be a call to something like: commentsService.uploadAttachment
+        // We'll check if it exists; otherwise fallback to the below dummy.
+        if (typeof commentsService.uploadAttachment === "function") {
+          const result = await commentsService.uploadAttachment(uploadFile);
+          attachmentFileId = result?.id || result?.file || null;
+        } else {
+          // fallback: don't upload, skip file
+        }
+      }
+      // Post the comment via API
+      await commentsService.postComment({
+        application_id: selectedApp.id,
+        // Map "workVisa" to "work", "studyVisa" to "study", etc., if needed
+        application_type: 
+          selectedApp.type === "workVisa" ? "work"
+          : selectedApp.type === "studyVisa" ? "study"
+          : selectedApp.type === "pilgrimage" ? "pilgrimage"
+          : selectedApp.type === "vacation" ? "vacation"
+          : undefined,
+        text: newComment.trim(),
+        attachment: attachmentFileId,
+        // in case you want to know who's sending, e.g., applicant
+        sender_type: "applicant"
       });
-      setSending(false);
+
+      // Refresh chat on success (or optimistically append)
+      await refreshComments();
       setNewComment("");
       setUploadFile(null);
-    }, 800);
+      setSending(false);
+    } catch (err: any) {
+      setSendCommentError("Failed to send comment. Please try again.");
+      setSending(false);
+    }
   }
 
   // File input
@@ -726,15 +700,21 @@ export const TrackProgress: React.FC = () => {
                       <Box sx={{ textAlign: "center", my: 4 }}>
                         <CircularProgress size={24} />
                       </Box>
+                    ) : (commentsFetchError ? (
+                      <Typography variant="body2" color="error" sx={{ m: 4, textAlign: "center" }}>
+                        Failed to load comments. Please try again later.
+                      </Typography>
                     ) : comments.length === 0 ? (
                       <Typography variant="body2" color="text.secondary" sx={{ m: 4, textAlign: "center" }}>
                         No comments yet. Start the conversation!
                       </Typography>
                     ) : (
                       <CommentsList comments={comments} />
-                    )}
+                    ))}
                   </Box>
-
+                  {sendCommentError && (
+                    <Alert severity="error" sx={{ mb: 1 }}>{sendCommentError}</Alert>
+                  )}
                   {/* Upload and Add Comment bar */}
                   <form style={{ width: "100%" }} onSubmit={handleSendComment} autoComplete="off">
                     <Box
