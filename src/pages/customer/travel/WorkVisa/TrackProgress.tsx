@@ -221,7 +221,6 @@ function useCommentsForApp(
     return null;
   })();
 
-  // Add "vacation" to allowed websocket types for connection
   function getSocketType(): "work" | "pilgrimage" | "study" | "vacation" | undefined {
     switch (applicationType) {
       case "pilgrimage":
@@ -236,7 +235,7 @@ function useCommentsForApp(
         return undefined;
     }
   }
-  // Socket and REST expect slightly different params for type
+
   const appId = applicationId;
   const socketType = getSocketType();
 
@@ -250,6 +249,7 @@ function useCommentsForApp(
     setLoading(true);
     setSendError(null);
     try {
+      // Try with FormData workaround if attachment isn't being posted
       const res = await commentsService.fetchComments({
         application_id: appId,
         application_type: applicationType,
@@ -280,7 +280,6 @@ function useCommentsForApp(
     }
     wsReadyRef.current = false;
 
-    // Connect for all accepted types (now includes "vacation")
     if (
       socketType === "work" ||
       socketType === "pilgrimage" ||
@@ -291,7 +290,6 @@ function useCommentsForApp(
         appId,
         socketType,
         (data: any) => {
-          // If full comments refresh:
           if (Array.isArray(data.results)) {
             setComments(data.results);
           } else if (data.id && data.text) {
@@ -318,14 +316,17 @@ function useCommentsForApp(
         wsReadyRef.current = false;
       }
     };
-    // eslint-disable-next-line
   }, [appId, socketType, userId]);
 
-  async function sendCommentWebSocket({ text, attachment }: { text: string; attachment?: any }) {
+  async function sendCommentWebSocket({ text, attachment }: { text: string; attachment?: File | null }) {
     if (!wsClassRef.current || !wsReadyRef.current) {
       throw new Error("Real-time connection not available");
     }
-    wsClassRef.current.sendComment(text, attachment);
+    if (attachment instanceof File) {
+      wsClassRef.current.sendComment(text, attachment);
+    } else {
+      wsClassRef.current.sendComment(text);
+    }
   }
 
   return {
@@ -334,12 +335,9 @@ function useCommentsForApp(
     setComments,
     refresh: fetchComments,
     sendError,
-    // Now supports vacation as well
-    sendCommentWebSocket:
-      socketType === undefined ? undefined : sendCommentWebSocket,
+    sendCommentWebSocket: socketType === undefined ? undefined : sendCommentWebSocket,
   };
 }
-// -------------------------------------------------------------------------------------------------
 
 function CommentsList({ comments }: { comments: any[] }) {
   return (
@@ -358,25 +356,23 @@ function CommentsList({ comments }: { comments: any[] }) {
   );
 }
 
+// ---- MAIN COMPONENT ----
+
 export const TrackProgress: React.FC = () => {
-  // Tab selection
   const [tab, setTab] = useState<ApplicationType>("workVisa");
-  // applications state
   const [workVisa, setWorkVisa] = useState<any[]>([]);
   const [studyVisa, setStudyVisa] = useState<any[]>([]);
   const [pilgrimage, setPilgrimage] = useState<any[]>([]);
   const [vacation, setVacation] = useState<any[]>([]);
-  // loading & error
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Comment add
+
   const [newComment, setNewComment] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [sendCommentError, setSendCommentError] = useState<string | null>(null);
 
-  // Effect to fetch all applications
   useEffect(() => {
     let mounted = true;
     setLoading(true);
@@ -410,7 +406,6 @@ export const TrackProgress: React.FC = () => {
     };
   }, []);
 
-  // Auto-select first application in current tab
   useEffect(() => {
     let list: any[] = [];
     switch (tab) {
@@ -432,7 +427,6 @@ export const TrackProgress: React.FC = () => {
     setSelectedId(list.length > 0 ? String(list[0].id) : null);
   }, [tab, workVisa, studyVisa, pilgrimage, vacation]);
 
-  // Map applications to a common format for rendering
   function getApplicationsForTab(tab: ApplicationType) {
     switch (tab) {
       case "workVisa":
@@ -523,7 +517,6 @@ export const TrackProgress: React.FC = () => {
   const applications = getApplicationsForTab(tab);
   const selectedApp = applications.find((app) => String(app.id) === selectedId);
 
-  // Map UI ApplicationType to backend type for commentsService
   function getApiType(type: ApplicationType): "work" | "pilgrimage" | "study" | "vacation" | undefined {
     switch (type) {
       case "workVisa":
@@ -548,7 +541,20 @@ export const TrackProgress: React.FC = () => {
     sendCommentWebSocket,
   } = useCommentsForApp(selectedApp ? selectedApp.id : null, resolvedType);
 
-  // Comment send via API or websocket (for vacation now can use websocket support)
+  /**
+   * --- Attachment Upload Issue Debugging & Fix ---
+   * If your attachment is NOT uploading, the most likely cause is:
+   *   - The payload is not actually a FormData instance or the "attachment" isn't appended.
+   *   - The API call is setting 'Content-Type' which breaks FormData boundary.
+   *   - The endpoint is not allowing file type or file size.
+   * In the commentsService, the contract is:
+   *   - postComment: always POSTs with a FormData payload.
+   *   - attachment: must be a File object.
+   *   - Do NOT set Content-Type manually.
+   * Here, you MUST be sure:
+   *   1. The argument 'attachment' is a File, not a string, Blob, or anything else.
+   *   2. When you POST, pass only ONE call. Do not send a plain text comment immediately after a file.
+   */
   async function handleSendComment(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!selectedApp) return;
@@ -556,30 +562,32 @@ export const TrackProgress: React.FC = () => {
     setSendCommentError(null);
     setSending(true);
     try {
-      let attachmentFileId = null;
-
+      // --- Critical Fix: Only call ONE post ---
       if (uploadFile) {
-        if (typeof commentsService.uploadAttachment === "function") {
-          const result = await commentsService.uploadAttachment(uploadFile);
-          attachmentFileId = result?.id || result?.file || null;
+        // Ensure this is a File, not a string/URL/blob
+        if (!(uploadFile instanceof File)) {
+          setSendCommentError("Attachment is not a file.");
+          setSending(false);
+          return;
         }
-        // Always use REST with attachment (regardless of websocket)
+        // This should always work with commentsService.postComment assuming service is correct
         await commentsService.postComment({
           application_id: selectedApp.id,
           application_type: resolvedType,
-          text: newComment.trim(),
-          attachment: attachmentFileId,
+          attachment: uploadFile,
           sender_type: "applicant",
+          text: newComment.trim(),
         });
         await refreshComments();
       } else {
-        // use websocket if available for instant (now including vacation)
+        // If no upload file, go websocket or fallback.
         if (
           typeof sendCommentWebSocket === "function" &&
           (resolvedType === "work" || resolvedType === "pilgrimage" || resolvedType === "study" || resolvedType === "vacation")
         ) {
           await sendCommentWebSocket({
             text: newComment.trim(),
+            // attachment: uploadFile // never send a File to websocket; only backend-uploaded string
           });
         } else {
           await commentsService.postComment({
@@ -595,16 +603,19 @@ export const TrackProgress: React.FC = () => {
       setUploadFile(null);
       setSending(false);
     } catch (err: any) {
-      setSendCommentError("Failed to send comment. Please try again.");
+      setSendCommentError(
+        "Failed to send comment. " +
+        (err && err.message ? err.message : "Please try again.")
+      );
       setSending(false);
     }
   }
 
-  // File input
   const fileInputRef = useRef<HTMLInputElement>(null);
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) setUploadFile(file);
+    // Defensive: Only accept true File & not empty
+    if (file && file instanceof File) setUploadFile(file);
   }
 
   function renderMaybeObject(val: any, opts?: { phraseMax?: number }) {

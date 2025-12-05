@@ -24,6 +24,25 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // If the request body is FormData, remove Content-Type header to let browser set multipart boundary
+    // Axios will automatically set the correct Content-Type with boundary for FormData
+    if (config.data instanceof FormData) {
+      // Remove Content-Type header so axios/browser can set it with proper boundary
+      // This ensures multipart/form-data is sent correctly with boundary parameter
+      if (config.headers && 'Content-Type' in config.headers) {
+        delete config.headers['Content-Type'];
+      }
+      // Also handle axios headers object structure
+      if (config.headers && typeof config.headers === 'object') {
+        const headers = config.headers as any;
+        if (headers.common && headers.common['Content-Type']) {
+          delete headers.common['Content-Type'];
+        }
+        if (headers.post && headers.post['Content-Type']) {
+          delete headers.post['Content-Type'];
+        }
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)

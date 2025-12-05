@@ -5,8 +5,9 @@
 // - WebSocket for study visa is at ws/study/visa-application/:application_id/
 //
 // NOTE: "sendComment" MUST provide user_id in payload or backend will reject.
+// NOTE: "create" endpoint is used for work visa comments POST, not .../comments/
 
-import { API_BASE_URL } from "./api";
+import api, { API_BASE_URL } from "./api";
 import { useRef, useEffect } from "react";
 
 export type ApplicationType = "work" | "pilgrimage" | "study" | "vacation";
@@ -44,14 +45,33 @@ function getCommentsEndpoint(opts: {
   } else if (application_type === "pilgrimage") {
     return `${baseUrl}/app/pilgrimage-application-comments/${application_id}/comments/`;
   } else if (application_type === "study") {
-    // Study visa REST uses DRF viewset: /study-visa-application-comments/
     return `${baseUrl}/app/study-visa-application-comments/${application_id}/comments/`;
   } else if (application_type === "vacation") {
-    // Vacation endpoint is its own comments endpoint
     return `${baseUrl}/app/vacation-visa-application-comments/${application_id}/comments/`;
   }
-  // fallback to work
   return `${baseUrl}/app/work-visa-application-comments/${application_id}/comments/`;
+}
+
+// Returns the correct CREATE endpoint for POSTing a new comment
+function getCreateCommentEndpoint(opts: {
+  application_id: string | number;
+  application_type?: ApplicationType;
+}): string {
+  const { application_id, application_type } = opts || {};
+  let baseUrl = API_BASE_URL.replace(/\/$/, "");
+
+  if (!application_id) throw new Error("application_id required");
+
+  if (application_type === "work") {
+    return `${baseUrl}/app/work-visa-application-comments/${application_id}/create/`;
+  } else if (application_type === "pilgrimage") {
+    return `${baseUrl}/app/pilgrimage-application-comments/${application_id}/create/`;
+  } else if (application_type === "study") {
+    return `${baseUrl}/app/study-visa-application-comments/${application_id}/create/`;
+  } else if (application_type === "vacation") {
+    return `${baseUrl}/app/vacation-visa-application-comments/${application_id}/create/`;
+  }
+  return `${baseUrl}/app/work-visa-application-comments/${application_id}/create/`;
 }
 
 // ----------- REST: Fetch Comments -----------
@@ -60,10 +80,15 @@ export async function fetchComments(opts: {
   application_type?: ApplicationType;
 }) {
   const url = getCommentsEndpoint(opts);
+  const token = localStorage.getItem("token");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   const res = await fetch(url, {
     method: "GET",
     credentials: "include",
-    headers: { "Content-Type": "application/json" }
+    headers
   });
   if (!res.ok) {
     throw new Error(
@@ -77,60 +102,55 @@ export async function fetchComments(opts: {
   return await res.json();
 }
 
-// ----------- REST: Post a Comment -----------
+// ----------- REST: Post a Comment (with text and/or attachment) -----------
+// Make sure the payload is always FormData, so attachments are sent correctly.
+// Never set manual Content-Type headers; let the browser set multipart boundaries.
 export async function postComment(opts: {
   application_id: string | number;
   application_type?: ApplicationType;
-  text: string;
-  attachment?: string | number | null;
+  text?: string;
+  attachment?: File;
   sender_type?: "applicant" | "admin";
 }) {
   const { text, attachment, sender_type } = opts;
   if (!opts.application_id) throw new Error("application_id required");
-  if (!text && !attachment) throw new Error("No comment text or attachment.");
+  if ((!text || text.trim() === "") && !attachment)
+    throw new Error("No comment text or attachment.");
 
-  const url = getCommentsEndpoint(opts);
-  const payload: any = { text };
-  if (attachment != null) payload.attachment = attachment;
-  if (sender_type) payload.sender_type = sender_type;
+  const url = getCreateCommentEndpoint(opts);
 
-  const res = await fetch(url, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  // Always use FormData for this endpoint.
+  const formData = new FormData();
+  if (text && text.trim()) formData.append("text", text.trim());
+  if (attachment instanceof File) {
+    formData.append("attachment", attachment, attachment.name);
+  }
+  if (sender_type) formData.append("sender_type", sender_type);
 
-  if (!res.ok) {
+  try {
+    // Use axios config that ensures FormData is sent correctly
+    // The interceptor in api.ts will remove Content-Type header for FormData
+    const res = await api.post(url.replace(API_BASE_URL, ""), formData, {
+      withCredentials: true,
+    });
+    return res.data;
+  } catch (err: any) {
+    if (
+      err?.response &&
+      (err.response.status === 404 || err.response.status === 400)
+    ) {
+      throw new Error(
+        `Failed to post comment with attachment (${err.response.status})${
+          err.response.status === 404
+            ? ": Not found (invalid endpoint for this visa type or wrong id)"
+            : ""
+        }`
+      );
+    }
     throw new Error(
-      `Failed to post comment (${res.status})${
-        res.status === 404
-          ? ": Not found (invalid endpoint for this visa type or wrong id)"
-          : ""
-      }`
+      err?.message || "Failed to post comment with attachment"
     );
   }
-
-  return await res.json();
-}
-
-// ----------- REST: Upload Attachment -----------
-export async function uploadAttachment(
-  file: File
-): Promise<{ id: string; file: string }> {
-  let url = `${API_BASE_URL.replace(/\/$/, "")}/comments/attachments/`;
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch(url, {
-    method: "POST",
-    credentials: "include",
-    body: formData
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to upload attachment (${res.status})`);
-  }
-  return await res.json();
 }
 
 // ----------- WebSocket Utility: get WS URL for comment threads -----------
@@ -147,13 +167,10 @@ export function getCommentsWebSocketUrl(
   if (applicationType === "pilgrimage") {
     wsPath = `/ws/pilgrimage/visa-application/${applicationId}/`;
   } else if (applicationType === "study") {
-    // Study visa WebSocket route: ws/study/visa-application/:application_id/
     wsPath = `/ws/study/visa-application/${applicationId}/`;
   } else if (applicationType === "vacation") {
-    // Vacation visa WebSocket shares with work (per comment, or update if backend adds one)
     wsPath = `/ws/vacation/visa-application/${applicationId}/`;
   } else {
-    // default to work
     wsPath = `/ws/work/visa-application/${applicationId}/`;
   }
 
@@ -245,19 +262,27 @@ export class VisaApplicationCommentsWebSocket {
    * userId must be set either in constructor opts or by calling setUserId().
    * Backend will reject missing user_id.
    * The send will fail silently if not connected or user_id is missing.
+   * NOTE: For attachments, pass the *file URL or handle* as "attachment" (not a File instance).
    */
-  sendComment(text: string, attachment?: any) {
+  sendComment(text: string, attachment?: any, sender_type?: "applicant" | "admin") {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     if (!this.userId) {
       console.error("VisaApplicationCommentsWebSocket: Can't send comment, userId not set.");
       return;
     }
+    // Only include attachment in payload if it is a non-empty string, otherwise don't include or set to null
     const payload: any = {
       action: "send_comment",
       text,
       user_id: this.userId
     };
-    if (attachment !== undefined) payload.attachment = attachment;
+
+    if (attachment !== undefined && attachment !== null && attachment !== "") {
+      payload.attachment = attachment;
+    }
+    if (sender_type) {
+      payload.sender_type = sender_type;
+    }
     this.ws.send(JSON.stringify(payload));
   }
 }
@@ -279,7 +304,7 @@ export function usePilgrimageCommentsSocket(
       socket.disconnect();
       socketRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationId, userId, ...deps]);
 
   return socketRef;
@@ -302,7 +327,7 @@ export function useWorkVisaCommentsSocket(
       socket.disconnect();
       socketRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationId, userId, ...deps]);
 
   return socketRef;
@@ -325,7 +350,7 @@ export function useStudyVisaCommentsSocket(
       socket.disconnect();
       socketRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationId, userId, ...deps]);
 
   return socketRef;
@@ -348,7 +373,7 @@ export function useVacationVisaCommentsSocket(
       socket.disconnect();
       socketRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationId, userId, ...deps]);
 
   return socketRef;
