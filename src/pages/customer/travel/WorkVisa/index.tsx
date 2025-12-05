@@ -301,7 +301,7 @@ export const ApplyWorkVisa: React.FC = () => {
           Apply for
         </Typography>
         <Typography variant="h4" className="font-bold mb-6">
-          Work visa
+          Work visa, Visit visa & Visa assistant offer
         </Typography>
       </CustomerPageHeader>
 
