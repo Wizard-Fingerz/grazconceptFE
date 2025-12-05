@@ -36,7 +36,6 @@ import { getMyRecentSudyVisaApplicaton } from "../../../../services/studyVisa";
 import { getMyWorkVisaApplications } from "../../../../services/workVisaService";
 import { getPilgrimageApplications } from "../../../../services/pilgrimageServices";
 import { getAllVacationBookings } from "../../../../services/vacationService";
-// --- Import real comments API service ---
 import * as commentsService from "../../../../services/commentsService";
 
 const WORK_VISA_STEPS = [
@@ -81,7 +80,6 @@ function extractStatusTextStudy(item: any) {
   return "Draft";
 }
 
-// PaginatedPhrase as in original
 function PaginatedPhrase({
   phrase,
   maxLength = 16,
@@ -136,7 +134,6 @@ function PaginatedPhrase({
   );
 }
 
-// Chat bubble with API data
 function ChatBubble({
   message,
   isMe,
@@ -199,14 +196,53 @@ function ChatBubble({
   );
 }
 
-// Hook for fetching/posting comments using API
-function useCommentsForApp(applicationId: string | null) {
+// ------------- Hook: useCommentsForApp including study & vacation visa websocket support -------------
+function useCommentsForApp(
+  applicationId: string | null,
+  applicationType?: "work" | "pilgrimage" | "study" | "vacation"
+) {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
+  // WebSocket Class instance from commentsService
+  const wsClassRef = useRef<any>(null);
+  const wsReadyRef = useRef(false);
+
+  // Get userId (from localStorage or user context)
+  const userId = (() => {
+    try {
+      let userData = localStorage.getItem("user");
+      if (userData) {
+        let parsed = JSON.parse(userData);
+        return parsed?.id || parsed?.user_id || null;
+      }
+    } catch {}
+    return null;
+  })();
+
+  // Add "vacation" to allowed websocket types for connection
+  function getSocketType(): "work" | "pilgrimage" | "study" | "vacation" | undefined {
+    switch (applicationType) {
+      case "pilgrimage":
+        return "pilgrimage";
+      case "study":
+        return "study";
+      case "work":
+        return "work";
+      case "vacation":
+        return "vacation";
+      default:
+        return undefined;
+    }
+  }
+  // Socket and REST expect slightly different params for type
+  const appId = applicationId;
+  const socketType = getSocketType();
+
+  // Fetch comments via REST
   const fetchComments = useCallback(async () => {
-    if (!applicationId) {
+    if (!appId) {
       setComments([]);
       setLoading(false);
       return;
@@ -214,9 +250,9 @@ function useCommentsForApp(applicationId: string | null) {
     setLoading(true);
     setSendError(null);
     try {
-      // Use the application_type and application_id
       const res = await commentsService.fetchComments({
-        application_id: applicationId,
+        application_id: appId,
+        application_type: applicationType,
       });
       setComments(Array.isArray(res?.results) ? res.results : []);
     } catch (err: any) {
@@ -224,28 +260,86 @@ function useCommentsForApp(applicationId: string | null) {
       setSendError("Failed to load comments.");
     }
     setLoading(false);
-  }, [applicationId]);
+  }, [appId, applicationType]);
 
   useEffect(() => {
     fetchComments();
     // eslint-disable-next-line
-  }, [applicationId]);
+  }, [appId, applicationType]);
 
-  // Add a comment to UI optimistically, optional after post
-  function addComment(comment: any) {
-    setComments((prev) => [...prev, comment]);
+  // WebSocket: connect via ws class with appropriate type (now including vacation)
+  useEffect(() => {
+    // For types with websocket, connect; else fallback to REST only
+    if (!(socketType && appId && userId)) return;
+
+    if (wsClassRef.current) {
+      try {
+        wsClassRef.current.disconnect();
+      } catch {}
+      wsClassRef.current = null;
+    }
+    wsReadyRef.current = false;
+
+    // Connect for all accepted types (now includes "vacation")
+    if (
+      socketType === "work" ||
+      socketType === "pilgrimage" ||
+      socketType === "study" ||
+      socketType === "vacation"
+    ) {
+      wsClassRef.current = new commentsService.VisaApplicationCommentsWebSocket(
+        appId,
+        socketType,
+        (data: any) => {
+          // If full comments refresh:
+          if (Array.isArray(data.results)) {
+            setComments(data.results);
+          } else if (data.id && data.text) {
+            setComments((prev) => {
+              if (prev.find((c) => c.id === data.id)) return prev;
+              return [...prev, data];
+            });
+          }
+        },
+        {
+          userId,
+          onOpen: () => { wsReadyRef.current = true; },
+          onClose: () => { wsReadyRef.current = false; },
+          onError: () => { wsReadyRef.current = false; },
+        }
+      );
+      wsClassRef.current.connect();
+    }
+
+    return () => {
+      if (wsClassRef.current) {
+        wsClassRef.current.disconnect();
+        wsClassRef.current = null;
+        wsReadyRef.current = false;
+      }
+    };
+    // eslint-disable-next-line
+  }, [appId, socketType, userId]);
+
+  async function sendCommentWebSocket({ text, attachment }: { text: string; attachment?: any }) {
+    if (!wsClassRef.current || !wsReadyRef.current) {
+      throw new Error("Real-time connection not available");
+    }
+    wsClassRef.current.sendComment(text, attachment);
   }
 
-  // Allow parent to refetch after send
   return {
     comments,
     loading,
     setComments,
     refresh: fetchComments,
     sendError,
-    addComment
+    // Now supports vacation as well
+    sendCommentWebSocket:
+      socketType === undefined ? undefined : sendCommentWebSocket,
   };
 }
+// -------------------------------------------------------------------------------------------------
 
 function CommentsList({ comments }: { comments: any[] }) {
   return (
@@ -398,18 +492,26 @@ export const TrackProgress: React.FC = () => {
 
       case "vacation":
         return vacation.map((item) => {
-          const status = item.status_name || item.status || "Draft";
+          const status =
+            item.status_display ||
+            item.status_name ||
+            item.status ||
+            "Draft";
+
           return {
             id: String(item.id),
             country: item.country || "-",
-            job: item.package?.title || "-",
-            organization: item.package?.organization || "-",
-            status: status,
+            job: item.offer_title || item.package?.offer_title || "-",
+            organization:
+              item.applicant_detail?.name ||
+              item.package?.organization ||
+              "-",
+            status,
             currentStep: 0,
             appliedAt: item.created_at || item.applied_at,
             steps: VACATION_STEPS,
             type: "vacation" as ApplicationType,
-            raw: item
+            raw: item,
           };
         });
 
@@ -420,16 +522,33 @@ export const TrackProgress: React.FC = () => {
 
   const applications = getApplicationsForTab(tab);
   const selectedApp = applications.find((app) => String(app.id) === selectedId);
-  // Comments real API
+
+  // Map UI ApplicationType to backend type for commentsService
+  function getApiType(type: ApplicationType): "work" | "pilgrimage" | "study" | "vacation" | undefined {
+    switch (type) {
+      case "workVisa":
+        return "work";
+      case "pilgrimage":
+        return "pilgrimage";
+      case "studyVisa":
+        return "study";
+      case "vacation":
+        return "vacation";
+      default:
+        return undefined;
+    }
+  }
+  const resolvedType = selectedApp ? getApiType(selectedApp.type) : undefined;
+
   const {
     comments,
     loading: loadingComments,
     refresh: refreshComments,
     sendError: commentsFetchError,
-    // addComment
-  } = useCommentsForApp(selectedApp ? selectedApp.id : null);
+    sendCommentWebSocket,
+  } = useCommentsForApp(selectedApp ? selectedApp.id : null, resolvedType);
 
-  // Comment send via API
+  // Comment send via API or websocket (for vacation now can use websocket support)
   async function handleSendComment(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!selectedApp) return;
@@ -438,35 +557,40 @@ export const TrackProgress: React.FC = () => {
     setSending(true);
     try {
       let attachmentFileId = null;
-      // If file to upload, upload first (API must support this)
+
       if (uploadFile) {
-        // This should be a call to something like: commentsService.uploadAttachment
-        // We'll check if it exists; otherwise fallback to the below dummy.
         if (typeof commentsService.uploadAttachment === "function") {
           const result = await commentsService.uploadAttachment(uploadFile);
           attachmentFileId = result?.id || result?.file || null;
+        }
+        // Always use REST with attachment (regardless of websocket)
+        await commentsService.postComment({
+          application_id: selectedApp.id,
+          application_type: resolvedType,
+          text: newComment.trim(),
+          attachment: attachmentFileId,
+          sender_type: "applicant",
+        });
+        await refreshComments();
+      } else {
+        // use websocket if available for instant (now including vacation)
+        if (
+          typeof sendCommentWebSocket === "function" &&
+          (resolvedType === "work" || resolvedType === "pilgrimage" || resolvedType === "study" || resolvedType === "vacation")
+        ) {
+          await sendCommentWebSocket({
+            text: newComment.trim(),
+          });
         } else {
-          // fallback: don't upload, skip file
+          await commentsService.postComment({
+            application_id: selectedApp.id,
+            application_type: resolvedType,
+            text: newComment.trim(),
+            sender_type: "applicant",
+          });
+          await refreshComments();
         }
       }
-      // Post the comment via API
-      await commentsService.postComment({
-        application_id: selectedApp.id,
-        // Map "workVisa" to "work", "studyVisa" to "study", etc., if needed
-        application_type: 
-          selectedApp.type === "workVisa" ? "work"
-          : selectedApp.type === "studyVisa" ? "study"
-          : selectedApp.type === "pilgrimage" ? "pilgrimage"
-          : selectedApp.type === "vacation" ? "vacation"
-          : undefined,
-        text: newComment.trim(),
-        attachment: attachmentFileId,
-        // in case you want to know who's sending, e.g., applicant
-        sender_type: "applicant"
-      });
-
-      // Refresh chat on success (or optimistically append)
-      await refreshComments();
       setNewComment("");
       setUploadFile(null);
       setSending(false);
@@ -483,7 +607,6 @@ export const TrackProgress: React.FC = () => {
     if (file) setUploadFile(file);
   }
 
-  // Helper for maybe-object text rendering
   function renderMaybeObject(val: any, opts?: { phraseMax?: number }) {
     if (val == null) return "-";
     let display =
