@@ -203,14 +203,6 @@ const NetworkSelector = React.memo(function NetworkSelector({
   );
 });
 
-// Utility to clean up Nigerian phone numbers (remove initial zero)
-function cleanPhoneNumber(val: string) {
-  // If the user started input with '0', remove it for +234 format
-  if (val && val.length > 0 && val[0] === "0" && val.length === 11) {
-    return val.slice(1);
-  }
-  return val;
-}
 
 const PhoneInput = React.memo(function PhoneInput({
   phone,
@@ -237,36 +229,21 @@ const PhoneInput = React.memo(function PhoneInput({
           onChange={(e) => {
             let val = e.target.value.replace(/[^0-9]/g, "");
             if (val.length > 11) val = val.substring(0, 11);
-            // If user starts with 0, always drop just one leading zero (so they see what they'll send)
-            if (val.length > 0 && val[0] === '0') {
-              val = val.slice(1);
-            }
+            // Do not remove leading zero, just take up to 11
             lastValue.current = val;
             setPhone(val);
           }}
           InputProps={{
             sx: { fontWeight: 500 },
-            startAdornment: (
-              <InputAdornment position="start">
-                <Typography
-                  sx={{
-                    fontWeight: 600,
-                    color: "#888",
-                    fontSize: "16px",
-                  }}
-                >
-                  +234
-                </Typography>
-              </InputAdornment>
-            ),
+            // Removed the +234 adornment
           }}
-          inputProps={{ maxLength: 10, pattern: "^[0-9]{10}$" }}
+          inputProps={{ maxLength: 11, pattern: "^[0-9]{11}$" }}
           InputLabelProps={{
             sx: { fontWeight: 500 },
           }}
           variant="outlined"
           required
-          placeholder="e.g 7012345678"
+          placeholder="e.g 08012345678"
           error={!!error}
           helperText={error}
         />
@@ -362,8 +339,8 @@ export const BuyAirtime: React.FC = () => {
     setErrorMsg(null);
     setFieldErrors(null);
 
-    // Validate: phone should be exactly 10 digits (since we force remove leading 0)
-    if (!network || !phone || phone.length !== 10 || !amount) {
+    // Validate: phone should be exactly 11 digits (Nigerian full format)
+    if (!network || !phone || phone.length !== 11 || !amount) {
       setErrorMsg("All fields are required and must be valid.");
       return;
     }
@@ -389,9 +366,8 @@ export const BuyAirtime: React.FC = () => {
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Phone to send: always +234 then the 10 digits (no lead zero)
-      // This is also useful if the API expects phone_number in 234xxxxxxxxxx form
-      const cleanPhone = cleanPhoneNumber(phone);
+      // This time, send phone number as entered by user (11 digits, may start with zero), no +234 prefix/cleaning
+      const phoneToSend = phone;
 
       // Try main endpoint first, then fallback to /airtime-purchases/ if needed
       let response = null;
@@ -402,7 +378,7 @@ export const BuyAirtime: React.FC = () => {
           {
             provider_id: providerId, // Use the id, not the slug
             network: network,
-            phone: cleanPhone,
+            phone: phoneToSend, // Send phone as plain 11 digits (with initial zero)
             amount: amtNum,
           },
           { headers }
@@ -422,7 +398,7 @@ export const BuyAirtime: React.FC = () => {
             {
               network_provider: providerId, // Use the id, not the slug
               network: network,
-              phone_number: cleanPhone,
+              phone_number: phoneToSend, // Send phone_number as plain 11 digits (with initial zero)
               amount: amtNum,
             },
             { headers }
@@ -557,7 +533,7 @@ export const BuyAirtime: React.FC = () => {
           disabled={
             !network ||
             !phone ||
-            phone.length !== 10 ||
+            phone.length !== 11 ||
             !amount ||
             loading ||
             providersLoading ||
@@ -622,7 +598,7 @@ export const BuyAirtime: React.FC = () => {
           1. Tap your preferred network above.
         </Typography>
         <Typography variant="body2">
-          2. Enter the 10-digit phone number (without the leading zero, e.g. 7067602193).
+          2. Enter the 11-digit phone number (e.g. 08012345678) – use the full number, including the initial zero.
         </Typography>
         <Typography variant="body2">
           3. Enter the amount to buy (&#8358;50 minimum).
