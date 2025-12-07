@@ -179,7 +179,7 @@ export const Login: React.FC = () => {
           {loading ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Submit'}
         </Button>
 
-        <Typography variant="body2" mb={3}>
+        <Typography variant="body2" color="text.secondary"  mb={3}>
           Don’t have an account?{' '}
           <Link
             component="button"
