@@ -92,6 +92,29 @@ import LiveChatWithAgent from "../pages/customer/helpcenter/LiveChatWithAgent";
 import InvestmentPlanPage from "../pages/customer/citizenship/InvestmentPlan";
 import StudyLoanDetails from "../pages/customer/edufinance/Study/StudyLoanDetails";
 import SavingPlan from "../pages/customer/dashboard/SavingPlan";
+import AdminDashboard from "../pages/admin/dashboard/AdminDashboard";
+import UserManagement from "../pages/admin/users/UserManagement";
+import RolesPermissions from "../pages/admin/users/RolesPermissions";
+import SystemSettings from "../pages/admin/system/SystemSettings";
+import AdminAnalytics from "../pages/admin/dashboard/Analytics";
+import ContentManagement from "../pages/admin/content/ContentManagement";
+import FinancialManagement from "../pages/admin/finance/FinancialManagement";
+import SecurityLogs from "../pages/admin/system/SecurityLogs";
+import AllApplications from "../pages/admin/applications/AllApplications";
+import StudyApplications from "../pages/admin/applications/StudyApplications";
+import VisaApplications from "../pages/admin/applications/VisaApplications";
+import WorkVisaApplications from "../pages/admin/applications/WorkVisaApplications";
+import AllServices from "../pages/admin/services/AllServices";
+import StudyServices from "../pages/admin/services/StudyServices";
+import VisaServices from "../pages/admin/services/VisaServices";
+import LoanServices from "../pages/admin/services/LoanServices";
+import AirtimeDataManagement from "../pages/admin/services/AirtimeDataManagement";
+import LandingPageCustomizer from "../pages/admin/landing/LandingPageCustomizer";
+import HotelsManagement from "../pages/admin/travel/HotelsManagement";
+import HotelBookingsManagement from "../pages/admin/travel/HotelBookingsManagement";
+import FlightBookingsManagement from "../pages/admin/travel/FlightBookingsManagement";
+import SupportTicketsManagement from "../pages/admin/support/SupportTicketsManagement";
+import FAQManagement from "../pages/admin/support/FAQManagement";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -500,6 +523,51 @@ export const protectedRoutes: RouteObject[] = [
         path: "profile-setup",
         element: <CustomerProfileSetup />,
       },
+    ],
+  },
+  // Admin routes
+  {
+    path: "admin",
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: "dashboard", element: <AdminDashboard /> },
+      { path: "analytics", element: <AdminAnalytics /> },
+      { path: "users", element: <UserManagement /> },
+      { path: "users/customers", element: <UserManagement /> },
+      { path: "users/staff", element: <UserManagement /> },
+      { path: "users/admins", element: <UserManagement /> },
+      { path: "users/permissions", element: <RolesPermissions /> },
+      { path: "financial", element: <FinancialManagement /> },
+      { path: "financial/wallets", element: <CustomerPlaceholderPage title="Wallet Management" /> },
+      { path: "financial/payments", element: <CustomerPlaceholderPage title="Payment Management" /> },
+      { path: "financial/reports", element: <CustomerPlaceholderPage title="Revenue Reports" /> },
+      { path: "landing", element: <LandingPageCustomizer /> },
+      { path: "content", element: <ContentManagement /> },
+      { path: "content/articles", element: <CustomerPlaceholderPage title="Articles & Blog" /> },
+      { path: "content/campaigns", element: <CustomerPlaceholderPage title="Campaigns" /> },
+      { path: "applications", element: <AllApplications /> },
+      { path: "applications/study", element: <StudyApplications /> },
+      { path: "applications/visa", element: <VisaApplications /> },
+      { path: "applications/work-visa", element: <WorkVisaApplications /> },
+      { path: "services", element: <AllServices /> },
+      { path: "services/study", element: <StudyServices /> },
+      { path: "services/visa", element: <VisaServices /> },
+      { path: "services/loans", element: <LoanServices /> },
+      { path: "services/airtime-data", element: <AirtimeDataManagement /> },
+      { path: "travel/hotels", element: <HotelsManagement /> },
+      { path: "travel/hotel-bookings", element: <HotelBookingsManagement /> },
+      { path: "travel/flight-bookings", element: <FlightBookingsManagement /> },
+      { path: "support/tickets", element: <SupportTicketsManagement /> },
+      { path: "support/faq", element: <FAQManagement /> },
+      { path: "settings", element: <SystemSettings /> },
+      { path: "security", element: <SecurityLogs /> },
+      { path: "system/health", element: <CustomerPlaceholderPage title="System Health" /> },
+      { path: "system/notifications", element: <CustomerPlaceholderPage title="System Notifications" /> },
     ],
   },
 ];

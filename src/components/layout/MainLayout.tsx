@@ -68,6 +68,8 @@ import {
   Error as ErrorIcon,
   Info as InfoIcon,
   Done as DoneIcon,
+  AdminPanelSettings as AdminIcon,
+  SupportAgent as SupportIcon,
 } from "@mui/icons-material";
 import { useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -900,13 +902,249 @@ export const MainLayout: React.FC = () => {
       ],
       admin: [
         {
-          section: "Menu",
+          section: "Dashboard",
           icon: <AppsOutlinedIcon />,
           items: [
             {
+              icon: <AppsOutlinedIcon />,
+              label: "Overview",
+              to: "/admin/dashboard",
+            },
+            {
+              icon: <FunctionsIcon />,
+              label: "Analytics & Reports",
+              to: "/admin/analytics",
+            },
+          ],
+        },
+        {
+          section: "User Management",
+          icon: <PeopleIcon />,
+          items: [
+            {
+              icon: <PeopleIcon />,
+              label: "All Users",
+              to: "/admin/users",
+            },
+            {
+              icon: <GroupIcon />,
+              label: "Customers",
+              to: "/admin/users/customers",
+            },
+            {
+              icon: <SupportAgentIcon />,
+              label: "Staff & Agents",
+              to: "/admin/users/staff",
+            },
+            {
+              icon: <AdminIcon />,
+              label: "Admins",
+              to: "/admin/users/admins",
+            },
+            {
+              icon: <PersonIcon />,
+              label: "Roles & Permissions",
+              to: "/admin/users/permissions",
+            },
+          ],
+        },
+        {
+          section: "Financial Management",
+          icon: <AccountBalanceIcon />,
+          items: [
+            {
+              icon: <AttachMoneyIcon />,
+              label: "Transactions",
+              to: "/admin/financial",
+            },
+            {
+              icon: <AccountBalanceIcon />,
+              label: "Wallets",
+              to: "/admin/financial/wallets",
+            },
+            {
+              icon: <PaymentSharp />,
+              label: "Payments",
+              to: "/admin/financial/payments",
+            },
+            {
+              icon: <MoneyRounded />,
+              label: "Revenue Reports",
+              to: "/admin/financial/reports",
+            },
+          ],
+        },
+        {
+          section: "Content Management",
+          icon: <MenuBookIcon />,
+          items: [
+            {
+              icon: <TransformIcon />,
+              label: "Landing Page Customizer",
+              to: "/admin/landing",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Banners & Media",
+              to: "/admin/content",
+            },
+            {
+              icon: <BookIcon />,
+              label: "Articles & Blog",
+              to: "/admin/content/articles",
+            },
+            {
+              icon: <EmojiEventsIcon />,
+              label: "Campaigns",
+              to: "/admin/content/campaigns",
+            },
+          ],
+        },
+        {
+          section: "Applications",
+          icon: <AssignmentIndIcon />,
+          items: [
+            {
+              icon: <SchoolIcon />,
+              label: "Study Applications",
+              to: "/admin/applications/study",
+            },
+            {
+              icon: <FlightTakeoffIcon />,
+              label: "Visa Applications",
+              to: "/admin/applications/visa",
+            },
+            {
+              icon: <WorkOutlineIcon />,
+              label: "Work Visa",
+              to: "/admin/applications/work-visa",
+            },
+            {
+              icon: <BookIcon />,
+              label: "All Applications",
+              to: "/admin/applications",
+            },
+          ],
+        },
+        // --- Start Offers Section ---
+        {
+          section: "Offers",
+          icon: <EmojiEventsIcon />,
+          items: [
+            {
+              icon: <EmojiEventsIcon />,
+              label: "All Offers",
+              to: "/admin/offers",
+            },
+            {
+              icon: <SchoolIcon />,
+              label: "Study Offers",
+              to: "/admin/offers/study",
+            },
+            {
+              icon: <FlightTakeoffIcon />,
+              label: "Visa Offers",
+              to: "/admin/offers/visa",
+            },
+            {
+              icon: <WorkOutlineIcon />,
+              label: "Work Offers",
+              to: "/admin/offers/work",
+            },
+          ],
+        },
+        // --- End Offers Section ---
+        {
+          section: "Services",
+          icon: <HandymanIcon />,
+          items: [
+            {
+              icon: <SchoolIcon />,
+              label: "Study Services",
+              to: "/admin/services/study",
+            },
+            {
+              icon: <FlightTakeoffIcon />,
+              label: "Visa Services",
+              to: "/admin/services/visa",
+            },
+            {
+              icon: <AttachMoneyIcon />,
+              label: "Loan Services",
+              to: "/admin/services/loans",
+            },
+            {
+              icon: <PhoneIphoneIcon />,
+              label: "Airtime & Data",
+              to: "/admin/services/airtime-data",
+            },
+            {
+              icon: <BusinessCenterIcon />,
+              label: "All Services",
+              to: "/admin/services",
+            },
+          ],
+        },
+        {
+          section: "Travel & Bookings",
+          icon: <ModeOfTravel />,
+          items: [
+            {
+              icon: <HotelIcon />,
+              label: "Hotels",
+              to: "/admin/travel/hotels",
+            },
+            {
+              icon: <HotelIcon />,
+              label: "Hotel Bookings",
+              to: "/admin/travel/hotel-bookings",
+            },
+            {
+              icon: <FlightTakeoffIcon />,
+              label: "Flight Bookings",
+              to: "/admin/travel/flight-bookings",
+            },
+          ],
+        },
+        {
+          section: "Support & Help",
+          icon: <HelpIcon />,
+          items: [
+            {
+              icon: <SupportIcon />,
+              label: "Support Tickets",
+              to: "/admin/support/tickets",
+            },
+            {
+              icon: <HelpIcon />,
+              label: "FAQ Management",
+              to: "/admin/support/faq",
+            },
+          ],
+        },
+        {
+          section: "System",
+          icon: <SettingsIcon />,
+          items: [
+            {
               icon: <SettingsIcon />,
-              label: "Settings",
+              label: "System Settings",
               to: "/admin/settings",
+            },
+            {
+              icon: <ErrorIcon />,
+              label: "Security & Logs",
+              to: "/admin/security",
+            },
+            {
+              icon: <InfoIcon />,
+              label: "System Health",
+              to: "/admin/system/health",
+            },
+            {
+              icon: <NotificationsIcon />,
+              label: "Notifications",
+              to: "/admin/system/notifications",
             },
           ],
         },
