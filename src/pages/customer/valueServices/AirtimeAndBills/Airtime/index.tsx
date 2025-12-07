@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
  * Fetch available airtime network providers from the new endpoint:
  * /api/airtime-network-providers/
  */
-function useAirtimeNetworkProviders() {
+export function useAirtimeNetworkProviders() {
   const [providers, setProviders] = useState<
     { id: number; name: string; slug: string; logo?: string; accent?: string }[]
   >([]);
