@@ -61,7 +61,7 @@ export const UserManagement: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
-  
+
   // Determine user type from route
   const userType = useMemo(() => {
     const path = location.pathname;
@@ -130,7 +130,7 @@ export const UserManagement: React.FC = () => {
   const tabFilters = [
     { label: "All Users", predicate: () => true, route: 'all' },
     { label: "Customers", predicate: (u: User) => u.role.toLowerCase() === "customer", route: 'customers' },
-    { label: "Staff", predicate: (u: User) => ["agent","admin"].includes(u.role.toLowerCase()), route: 'staff' },
+    { label: "Staff", predicate: (u: User) => ["agent", "admin"].includes(u.role.toLowerCase()), route: 'staff' },
     { label: "Admins", predicate: (u: User) => u.role.toLowerCase() === "admin", route: 'admins' }
   ];
 
@@ -270,8 +270,15 @@ export const UserManagement: React.FC = () => {
   }, [userType, allUsersCount, customerCount, staffCount, adminCount, theme]);
 
   return (
-    <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
-      {/* Header */}
+    <Box
+      sx={{
+        px: { xs: 1, sm: 2, md: 4 },
+        py: { xs: 1, sm: 2 },
+        width: '100%',
+        maxWidth: 1600,
+        mx: 'auto',
+      }}
+    >    {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>

@@ -336,8 +336,15 @@ export const LoanServices: React.FC = () => {
   );
 
   return (
-    <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
-      {/* Header */}
+    <Box
+    sx={{
+      px: { xs: 1, sm: 2, md: 4 },
+      py: { xs: 1, sm: 2 },
+      width: '100%',
+      maxWidth: 1600,
+      mx: 'auto',
+    }}
+  >   {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>

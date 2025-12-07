@@ -148,13 +148,15 @@ export const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <Box sx={{
-      px: { xs: 1, sm: 2, md: 3, lg: 6 },
-      py: { xs: 2, md: 4 },
+    <Box
+    sx={{
+      px: { xs: 1, sm: 2, md: 4 },
+      py: { xs: 1, sm: 2 },
       width: '100%',
-      maxWidth: '1440px',
-      mx: 'auto'
-    }}>
+      maxWidth: 1600,
+      mx: 'auto',
+    }}
+  >
       {/* Dashboard Header */}
       <Box sx={{
         display: 'flex',
