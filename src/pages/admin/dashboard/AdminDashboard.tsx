@@ -40,6 +40,17 @@ import {
   BarChart as ChartIcon,
 } from '@mui/icons-material';
 
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartTooltip,
+  Legend,
+} from 'recharts';
+
 // Remove Grid, use Box (with flex, gap, wrap, etc) for layout
 
 interface DashboardMetric {
@@ -66,6 +77,16 @@ const statusInfo = [
   { label: "Payment Gateway", status: "Operational", color: "success", value: 100 },
   { label: "Email Service", status: "Operational", color: "success", value: 98 },
   { label: "Storage", status: "Warning: 85% full", color: "warning", value: 85 },
+];
+
+// Demo analytics/mock data for Recharts
+const analyticsData = [
+  { month: 'Jan', Users: 400, Revenue: 2400, Applications: 35 },
+  { month: 'Feb', Users: 700, Revenue: 3200, Applications: 50 },
+  { month: 'Mar', Users: 820, Revenue: 4100, Applications: 54 },
+  { month: 'Apr', Users: 950, Revenue: 5600, Applications: 58 },
+  { month: 'May', Users: 1100, Revenue: 6200, Applications: 60 },
+  { month: 'Jun', Users: 1240, Revenue: 7200, Applications: 65 },
 ];
 
 export const AdminDashboard: React.FC = () => {
@@ -531,10 +552,58 @@ export const AdminDashboard: React.FC = () => {
               borderRadius: FLAT_RADIUS
             }}
           >
-            <Typography variant="body2" color="text.secondary" fontWeight={500}>
-              {/* Insert chart library here, e.g., Recharts, Chart.js, etc. */}
-              Analytics chart or key graph will be displayed here.
-            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={analyticsData}
+                margin={{ top: 28, right: 24, left: 10, bottom: 2 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.mode === 'light' ? '#e6eaea' : '#374151'} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} style={{ fontSize: 13 }} />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  style={{ fontSize: 13 }}
+                  tickFormatter={tick => tick < 1000 ? tick : `${tick / 1000}k`}
+                />
+                <RechartTooltip
+                  contentStyle={{
+                    background: theme.palette.background.paper,
+                    border: `1px solid ${theme.palette.grey[200]}`,
+                    borderRadius: 4,
+                    fontSize: 14,
+                  }}
+                  labelStyle={{ fontWeight: 700 }}
+                />
+                <Legend verticalAlign="top" height={36} />
+                <Line
+                  type="monotone"
+                  dataKey="Users"
+                  stroke={theme.palette.primary.main}
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: theme.palette.primary.main, stroke: "#fff", strokeWidth: 2 }}
+                  activeDot={{ r: 7 }}
+                  name="Users"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="Revenue"
+                  stroke={theme.palette.success.main}
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: theme.palette.success.main, stroke: "#fff", strokeWidth: 2 }}
+                  activeDot={{ r: 7 }}
+                  name="Revenue"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="Applications"
+                  stroke={theme.palette.warning.main}
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: theme.palette.warning.main, stroke: "#fff", strokeWidth: 2 }}
+                  activeDot={{ r: 7 }}
+                  name="Applications"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </Box>
         </CardContent>
       </Card>

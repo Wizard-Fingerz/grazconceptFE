@@ -27,12 +27,59 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 
+// Import Recharts
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+// Demo colors (from SavingPlan.tsx)
+const pieColors = [
+  "#009688", "#1976d2", "#ffc107", "#4caf50", "#ff7043", "#8e24aa", "#00bcd4"
+];
+
+const demoLineData = [
+  { date: "2024-05-01", value: 120000 },
+  { date: "2024-05-05", value: 230000 },
+  { date: "2024-05-10", value: 365000 },
+  { date: "2024-05-15", value: 420000 },
+  { date: "2024-05-20", value: 700000 },
+  { date: "2024-05-25", value: 1100000 },
+  { date: "2024-05-30", value: 1400000 },
+  { date: "2024-06-03", value: 2000000 },
+  { date: "2024-06-07", value: 2450000 },
+];
+
+const demoPieData = [
+  { name: "Web App", value: 1220000 },
+  { name: "Mobile App", value: 700000 },
+  { name: "API Access", value: 310000 },
+  { name: "Agent Portal", value: 220000 },
+];
+
+const demoUserGrowthData = [
+  { date: "2024-05-01", users: 200 },
+  { date: "2024-05-07", users: 420 },
+  { date: "2024-05-14", users: 900 },
+  { date: "2024-05-21", users: 1330 },
+  { date: "2024-05-28", users: 1500 },
+  { date: "2024-06-04", users: 1600 },
+];
+
 export const AdminAnalytics: React.FC = () => {
   const theme = useTheme();
   const [timeRange, setTimeRange] = useState('30days');
   const [tabValue, setTabValue] = useState(0);
 
-  // Design and style the stats cards/boxes like AdminDashboard
   const stats = [
     {
       label: 'Total Revenue',
@@ -72,7 +119,6 @@ export const AdminAnalytics: React.FC = () => {
     },
   ];
 
-  // Flat radii and elevation per AdminDashboard look
   const FLAT_RADIUS = 1;
   const FLAT_ELEVATION = 0;
 
@@ -214,7 +260,7 @@ export const AdminAnalytics: React.FC = () => {
         <Tab label="Service Analytics" />
       </Tabs>
 
-      {/* Analytics Chart: style as in AdminDashboard */}
+      {/* Analytics Chart using Recharts - as in SavingPlan.tsx */}
       <Card sx={{
         borderRadius: FLAT_RADIUS,
         boxShadow: 0,
@@ -225,7 +271,7 @@ export const AdminAnalytics: React.FC = () => {
           <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
             {tabValue === 0 && 'Revenue Trends'}
             {tabValue === 1 && 'User Growth'}
-            {tabValue === 2 && 'Application Statistics'}
+            {tabValue === 2 && 'Application Distribution'}
             {tabValue === 3 && 'Service Performance'}
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -236,13 +282,83 @@ export const AdminAnalytics: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               background: 'linear-gradient(110deg, #f8fafb 0%, #f1f7fa 100%)',
-              borderRadius: FLAT_RADIUS
+              borderRadius: FLAT_RADIUS,
+              px: { xs: 0, md: 2 },
             }}
           >
-            <Typography variant="body2" color="text.secondary" fontWeight={500}>
-              {/* Insert chart library here, e.g., Recharts, Chart.js, etc. */}
-              Chart visualization will be displayed here
-            </Typography>
+            {/* Show charts */}
+            {/* See SavingPlan.tsx 32-44 */}
+            {tabValue === 0 && (
+              <ResponsiveContainer width="99%" height={300}>
+                <LineChart data={demoLineData}>
+                  <CartesianGrid stroke="#eee" strokeDasharray="4 4" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Line type="monotone" dataKey="value" stroke={theme.palette.success.main} strokeWidth={3} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            {tabValue === 1 && (
+              <ResponsiveContainer width="99%" height={300}>
+                <LineChart data={demoUserGrowthData}>
+                  <CartesianGrid stroke="#eee" strokeDasharray="4 4" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Line type="monotone" dataKey="users" stroke={theme.palette.primary.main} strokeWidth={3} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            {tabValue === 2 && (
+              <ResponsiveContainer width="99%" height={300}>
+                {/* Pie chart for applications */}
+                <PieChart>
+                  <Pie
+                    data={demoPieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {demoPieData.map((_entry, idx) => (
+                      <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <Legend layout="vertical" align="right" verticalAlign="middle" />
+                  <RechartsTooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+            {tabValue === 3 && (
+              <ResponsiveContainer width="99%" height={300}>
+                {/* For service analytics, another Pie/Line placeholder */}
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Payment", value: 800000 },
+                      { name: "KYC", value: 300000 },
+                      { name: "Loan", value: 950000 },
+                      { name: "Reporting", value: 400000 },
+                    ]}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {[0,1,2,3].map(idx => (
+                      <Cell key={`serv-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <Legend layout="vertical" align="right" verticalAlign="middle" />
+                  <RechartsTooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </Box>
         </CardContent>
       </Card>
@@ -267,9 +383,31 @@ export const AdminAnalytics: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Box sx={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Service performance chart
-                </Typography>
+                {/* Pie Chart: Demo */}
+                <ResponsiveContainer width="99%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Payments", value: 420000 },
+                        { name: "Transfers", value: 310000 },
+                        { name: "Savings", value: 950000 },
+                        { name: "Loans", value: 350000 },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      label
+                    >
+                      {[0,1,2,3].map(idx => (
+                        <Cell key={`topserv-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                      ))}
+                    </Pie>
+                    <Legend layout="vertical" align="right" verticalAlign="middle" />
+                    <RechartsTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </Box>
             </CardContent>
           </Card>
@@ -286,9 +424,31 @@ export const AdminAnalytics: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Box sx={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Demographics chart
-                </Typography>
+                {/* Pie Chart: Demo */}
+                <ResponsiveContainer width="99%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "18-24", value: 300 },
+                        { name: "25-34", value: 600 },
+                        { name: "35-44", value: 900 },
+                        { name: "45+", value: 400 },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      label
+                    >
+                      {[0,1,2,3].map(idx => (
+                        <Cell key={`age-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                      ))}
+                    </Pie>
+                    <Legend layout="vertical" align="right" verticalAlign="middle" />
+                    <RechartsTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </Box>
             </CardContent>
           </Card>
