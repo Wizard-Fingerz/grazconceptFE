@@ -4,7 +4,6 @@ import { useAuth } from '../../../context/AuthContext';
 import {
   Button,
   Card,
-  CardContent,
   Typography,
   Avatar,
   useTheme,
@@ -442,8 +441,7 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Only display the last two transactions in the card
-  const latestTransactions = transactions.slice(0, 2);
+
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
@@ -467,120 +465,134 @@ export const Dashboard: React.FC = () => {
             flex: { xs: 'unset', sm: '0 0 41.6667%', md: '0 0 25%' },
             width: { xs: '100%', sm: '41.6667%', md: '25%' },
             minWidth: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          <Card sx={{ borderRadius: 1, boxShadow: 2, bgcolor: 'white', height: '100%' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Avatar sx={{ bgcolor: "#f43f5e" }}>A</Avatar>
+          <Card
+            sx={{
+              borderRadius: 2,
+              boxShadow: 6,
+              bgcolor: 'linear-gradient(135deg, #132743 60%, #0072ff 100%)',
+              background: 'linear-gradient(135deg,#132743 60%, #0072ff 100%)',
+              color: 'white',
+              width: '100%',
+              minHeight: 220,
+              position: 'relative',
+              overflow: 'hidden',
+              pt: 3,
+              pb: 2.5,
+              px: 2.5,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
+          >
+            {/* Simulated "chip" and logo */}
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 28,
+                  bgcolor: '#ffd700',
+                  borderRadius: '8px',
+                  boxShadow: 2,
+                  ml: 0.5
+                }}
+              />
+              <Avatar sx={{ bgcolor: "#f43f5e", width: 36, height: 36, fontWeight: 700 }}>
+                {(user?.first_name?.[0] || 'A').toUpperCase()}
+              </Avatar>
+            </Box>
+
+            {/* Card "background" pattern */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -30,
+                right: -40,
+                width: 130,
+                height: 180,
+                bgcolor: 'rgba(255,255,255,0.07)',
+                opacity: 0.38,
+                borderRadius: '60%',
+                zIndex: 0,
+              }}
+            />
+
+            {/* Card Content: Wallet */}
+            <Box sx={{ zIndex: 2, position: 'relative' }}>
+              <Typography variant="overline" sx={{ fontSize: '0.92rem', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+                Grazconcept Travel Wallet
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, mb: 0.5 }}>
+                {walletBalanceLoading ? (
+                  <>
+                    <CircularProgress size={20} sx={{ color: '#fff' }} />
+                    <Typography sx={{ ml: 1.5, color: "#fff" }} fontSize="1.09rem">
+                      Fetching balance...
+                    </Typography>
+                  </>
+                ) : walletBalanceError ? (
+                  <Typography color="error" variant="body2" sx={{ color: "#ffd700" }}>{walletBalanceError}</Typography>
+                ) : (
+                  <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: 1, color: '#fff', lineHeight: 1.23 }}>
+                    {walletBalance.currency} {Number(walletBalance.balance ?? 0).toLocaleString()}
+                  </Typography>
+                )}
+              </Box>
+
+              <Box display="flex" alignItems="center" justifyContent="space-between" mt={2} mb={1}>
+                <Typography variant="subtitle2" sx={{ opacity: 0.82, fontSize: '0.95rem'}}>
+                  {user?.first_name} {user?.last_name}
+                </Typography>
                 <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  sx={{ cursor: 'pointer', textDecoration: 'underline' }}
+                  variant="body2"
+                  sx={{
+                    color: '#ffd700',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    ml: 2,
+                    fontWeight: 500,
+                  }}
                   onClick={handleOpenFundWallet}
                   tabIndex={0}
                   role="button"
                   aria-label="Fund wallet"
                 >
-                  Fund wallet
+                  Fund Wallet
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ mt: 3, fontWeight: 700 }}>
-                Travel Wallet
-              </Typography>
-              <Box sx={{ minHeight: 32, display: 'flex', alignItems: 'center' }}>
-                {walletBalanceLoading ? (
-                  <>
-                    <CircularProgress size={19} />
-                    <Typography sx={{ ml: 1.5 }} color="text.secondary" fontSize="0.93rem">
-                      Fetching balance...
-                    </Typography>
-                  </>
-                ) : walletBalanceError ? (
-                  <Typography color="error" variant="body2">{walletBalanceError}</Typography>
-                ) : (
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#1a1a1a" }}>
-                    {walletBalance.currency} {walletBalance.balance}
-                  </Typography>
-                )}
+
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Typography variant="caption" sx={{ color: '#a9c8f4', fontSize: '0.83rem', letterSpacing: 1.5 }}>
+                  Virtual Card · {user?.wallet?.currency ?? walletBalance.currency ?? 'NGN'}
+                </Typography>
+                
+                <Button
+                  size="small"
+                  variant="contained"
+                  sx={{
+                    minWidth: 0,
+                    py: 0.85,
+                    px: 2.5,
+                    fontSize: '0.93rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    borderRadius: 2.5,
+                    background: 'rgba(255,255,255,0.10)',
+                    boxShadow: 'none',
+                    color: '#fff',
+                  }}
+                  onClick={handleOpenTransactionsModal}
+                  disabled={transactionsLoading || !!transactionsError}
+                >
+                  Transactions History
+                </Button>
               </Box>
-              <Box mt={4}>
-                <Box display="flex" alignItems="center" justifyContent="space-between">
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Recent Transactions
-                  </Typography>
-                  {transactions.length > 2 && !transactionsLoading && !transactionsError && (
-                    <Button
-                      size="small"
-                      variant="text"
-                      sx={{ minWidth: 0, py: 0.2, px: 1.3, fontSize: '0.85rem', fontWeight: 600, textTransform: 'none' }}
-                      onClick={handleOpenTransactionsModal}
-                    >
-                      View All
-                    </Button>
-                  )}
-                </Box>
-                {/* Recent Transactions loading & error state handling */}
-                {transactionsLoading ? (
-                  <Box display="flex" alignItems="center" justifyContent="center" height={64} minHeight={64}>
-                    <CircularProgress size={20} />
-                    <Typography sx={{ ml: 1.5 }} color="text.secondary" fontSize="0.93rem">
-                      Loading...
-                    </Typography>
-                  </Box>
-                ) : transactionsError ? (
-                  <Box py={1}>
-                    <Typography color="error" variant="body2">
-                      {transactionsError}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <List dense={true}>
-                    {latestTransactions.map((tx: any) => (
-                      <ListItem
-                        key={tx.id}
-                        disableGutters
-                        sx={{
-                          px: 0, py: 0.4,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <ListItemText
-                          primary={getTransactionDescription(tx)}
-                          secondary={tx.date}
-                          sx={{
-                            span: { fontSize: '0.97rem', fontWeight: 500 },
-                            '.MuiListItemText-secondary': { fontSize: '0.79rem', color: 'text.secondary' }
-                          }}
-                        />
-                        <Box display="flex" flexDirection="column" alignItems="flex-end">
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: tx.amount < 0 ? "error.main" : "success.main",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {tx.amount < 0 ? "-" : "+"}{tx.currency || (walletBalance.currency ?? 'NGN')} {Math.abs(tx.amount)}
-                          </Typography>
-                          {tx.type === "debit" || tx.transaction_type === "withdrawal" ? (
-                            <Chip label="Debit" size="small" color="error" sx={{ mt: 0.2 }} />
-                          ) : (
-                            <Chip label="Credit" size="small" color="success" sx={{ mt: 0.2 }} />
-                          )}
-                        </Box>
-                      </ListItem>
-                    ))}
-                    {transactions.length === 0 && (
-                      <ListItem disableGutters>
-                        <ListItemText primary="No recent transactions." />
-                      </ListItem>
-                    )}
-                  </List>
-                )}
-              </Box>
-            </CardContent>
+            </Box>
           </Card>
         </Box>
 
