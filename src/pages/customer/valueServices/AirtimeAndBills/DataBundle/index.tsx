@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -19,11 +19,9 @@ import {
 } from "@mui/material";
 import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
 import api from "../../../../../services/api";
-import { useNavigate } from "react-router-dom"; // <-- Added import
+import { useNavigate } from "react-router-dom";
 
-/**
- * Extended data bundles with category
- */
+// Types for plans/provides/categories returned from API
 type PlanCategory = "daily" | "weekly" | "monthly" | "quarterly" | "others";
 const categoryLabels: Record<PlanCategory, string> = {
   daily: "Daily",
@@ -33,74 +31,77 @@ const categoryLabels: Record<PlanCategory, string> = {
   others: "Others",
 };
 
-const dataProviders: {
+// These shape the raw API result, since the server schema provides direct plans rather than grouped providers
+type RawPlan = {
+  id: number;
+  provider: {
+    id: number;
+    value: string;
+    label: string;
+    logo: string;
+    accent: string;
+    active: boolean;
+  };
+  label: string;
+  value: string;
+  category: PlanCategory;
+  data: string;
+  amount: number;
+  logo: string;
+  accent: string;
+};
+
+type RemotePlan = {
+  label: string;
+  value: string;
+  amount: number;
+  data: string;
+  category: PlanCategory;
+};
+
+type RemoteProvider = {
   label: string;
   value: string;
   logo: string;
   accent?: string;
-  plans: {
-    label: string;
-    value: string;
-    amount: number;
-    data: string;
-    category: PlanCategory;
-  }[];
-}[] = [
-    {
-      label: "MTN Data",
-      value: "mtn",
-      logo: "/assets/networks/mtn.png",
-      accent: "#fae300",
-      plans: [
-        { label: "1GB (1 Day)", value: "mtn_1gb_1day", amount: 350, data: "1GB", category: "daily" },
-        { label: "1.5GB (7 Days)", value: "mtn_1.5gb_7days", amount: 500, data: "1.5GB", category: "weekly" },
-        { label: "2GB (30 Days)", value: "mtn_2gb_30days", amount: 1000, data: "2GB", category: "monthly" },
-        { label: "5GB (30 Days)", value: "mtn_5gb_30days", amount: 2400, data: "5GB", category: "monthly" },
-        { label: "24GB (3 Months)", value: "mtn_24gb_3months", amount: 6500, data: "24GB", category: "quarterly" },
-      ],
-    },
-    {
-      label: "Airtel Data",
-      value: "airtel",
-      logo: "/assets/networks/airtel.png",
-      accent: "#ee2737",
-      plans: [
-        { label: "500MB (1 Day)", value: "airtel_500mb_1day", amount: 200, data: "500MB", category: "daily" },
-        { label: "1.5GB (30 Days)", value: "airtel_1.5gb_30days", amount: 1000, data: "1.5GB", category: "monthly" },
-        { label: "3.5GB (30 Days)", value: "airtel_3.5gb_30days", amount: 2000, data: "3.5GB", category: "monthly" },
-        { label: "5GB (30 Days)", value: "airtel_5gb_30days", amount: 2700, data: "5GB", category: "monthly" },
-        { label: "12GB (3 Months)", value: "airtel_12gb_3months", amount: 6000, data: "12GB", category: "quarterly" },
-      ],
-    },
-    {
-      label: "Glo Data",
-      value: "glo",
-      logo: "/assets/networks/glo.png",
-      accent: "#008a13",
-      plans: [
-        { label: "1GB (1 Day)", value: "glo_1gb_1day", amount: 300, data: "1GB", category: "daily" },
-        { label: "2GB (7 Days)", value: "glo_2gb_7days", amount: 500, data: "2GB", category: "weekly" },
-        { label: "4.5GB (30 Days)", value: "glo_4.5gb_30days", amount: 1200, data: "4.5GB", category: "monthly" },
-        { label: "7GB (30 Days)", value: "glo_7gb_30days", amount: 1500, data: "7GB", category: "monthly" },
-        { label: "24GB (3 Months)", value: "glo_24gb_3months", amount: 6000, data: "24GB", category: "quarterly" },
-      ],
-    },
-    {
-      label: "9mobile Data",
-      value: "9mobile",
-      logo: "/assets/networks/9mobile.png",
-      accent: "#36b44a",
-      plans: [
-        { label: "650MB (1 Day)", value: "9mobile_650mb_1day", amount: 200, data: "650MB", category: "daily" },
-        { label: "1.5GB (7 Days)", value: "9mobile_1.5gb_7days", amount: 500, data: "1.5GB", category: "weekly" },
-        { label: "2GB (30 Days)", value: "9mobile_2gb_30days", amount: 1200, data: "2GB", category: "monthly" },
-        { label: "5GB (30 Days)", value: "9mobile_5gb_30days", amount: 2500, data: "5GB", category: "monthly" },
-        { label: "10GB (3 Months)", value: "9mobile_10gb_3months", amount: 5500, data: "10GB", category: "quarterly" },
-      ],
-    },
-  ];
+  plans: RemotePlan[];
+};
 
-const ALL_CATEGORIES: PlanCategory[] = ["daily", "weekly", "monthly", "quarterly", "others"];
+const ALL_CATEGORIES: PlanCategory[] = [
+  "daily",
+  "weekly",
+  "monthly",
+  "quarterly",
+  "others",
+];
+
+// Helper to transform flat array of plans into a grouped provider object, as UI expects
+function groupPlansByProvider(plans: RawPlan[]): RemoteProvider[] {
+  const providersMap = new Map<string, RemoteProvider>();
+  for (const plan of plans) {
+    const providerKey = plan.provider.value;
+    if (!providersMap.has(providerKey)) {
+      providersMap.set(providerKey, {
+        label: plan.provider.label,
+        value: plan.provider.value,
+        logo: plan.provider.logo || plan.logo || "",
+        accent: plan.provider.accent || plan.accent || undefined,
+        plans: [],
+      });
+    }
+    providersMap.get(providerKey)!.plans.push({
+      label: plan.label,
+      value: plan.value,
+      amount: plan.amount,
+      data: plan.data,
+      category: plan.category,
+    });
+  }
+  // return as array, sorted by provider label so UI is stable
+  return Array.from(providersMap.values()).sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
+}
 
 export const DataBundleSubscription: React.FC = () => {
   const [provider, setProvider] = useState<string>("");
@@ -111,30 +112,66 @@ export const DataBundleSubscription: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [dataProviders, setDataProviders] = useState<RemoteProvider[]>([]);
 
   // Add navigate using react-router
   const navigate = useNavigate();
+
+  // Fetch data plan providers and plans from API on mount
+  useEffect(() => {
+    let mounted = true;
+    setFetching(true);
+    setFetchError(null);
+
+    (async () => {
+      try {
+        // Call the endpoint (returns a paginated object as shown, with 'results' array)
+        const res = await api.get("/app/airtime-data-plans/");
+        // Expect a paginated shape with `results`
+        const flatPlans: RawPlan[] = Array.isArray(res.data.results)
+          ? res.data.results
+          : [];
+        const providers = groupPlansByProvider(flatPlans);
+        if (mounted) {
+          setDataProviders(providers);
+        }
+      } catch (err: any) {
+        if (mounted) {
+          setFetchError(
+            err?.response?.data?.detail ||
+              "Could not load data plans, please refresh."
+          );
+        }
+      }
+      if (mounted) setFetching(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Find selected provider
   const selectedProvider = dataProviders.find((p) => p.value === provider);
 
   // Get active plans for the chosen category
-  const plansForCategory = selectedProvider?.plans.filter(pl => pl.category === category) || [];
+  const plansForCategory =
+    selectedProvider?.plans.filter((pl) => pl.category === category) || [];
 
   // Find the selected plan details
   const selectedPlan = selectedProvider?.plans.find((pl) => pl.value === plan);
 
   // Compose visible categories for the current provider
-  const providerCategories: PlanCategory[] = (
-    selectedProvider
-      ? [
-        ...new Set(selectedProvider.plans.map(pl => pl.category)),
-      ].filter(cat => ALL_CATEGORIES.includes(cat as PlanCategory)) as PlanCategory[]
-      : ALL_CATEGORIES
-  );
+  const providerCategories: PlanCategory[] = selectedProvider
+    ? ([
+        ...new Set(selectedProvider.plans.map((pl) => pl.category)),
+      ].filter((cat) => ALL_CATEGORIES.includes(cat as PlanCategory)) as PlanCategory[])
+    : ALL_CATEGORIES;
 
   // If current category is unavailable, fall back to the provider's first
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedProvider && !providerCategories.includes(category)) {
       setCategory(providerCategories[0]);
       setPlan("");
@@ -143,8 +180,8 @@ export const DataBundleSubscription: React.FC = () => {
   }, [provider]);
 
   // If plan is not available in selected category, clear plan selection
-  React.useEffect(() => {
-    if (!plansForCategory.find(p => p.value === plan)) {
+  useEffect(() => {
+    if (!plansForCategory.find((p) => p.value === plan)) {
       setPlan("");
     }
     // eslint-disable-next-line
@@ -160,7 +197,12 @@ export const DataBundleSubscription: React.FC = () => {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       await api.post(
         "/value-services/data-bundle/purchase/",
-        { provider, plan, amount: selectedPlan?.amount ?? amount, phone },
+        {
+          provider,
+          plan,
+          amount: selectedPlan?.amount ?? amount,
+          phone,
+        },
         { headers }
       );
       setSuccessMsg("Data bundle purchased successfully!");
@@ -171,7 +213,7 @@ export const DataBundleSubscription: React.FC = () => {
     } catch (err: any) {
       setErrorMsg(
         err?.response?.data?.detail ||
-        "Failed to process your data bundle purchase. Please try again."
+          "Failed to process your data bundle purchase. Please try again."
       );
     }
     setLoading(false);
@@ -221,10 +263,10 @@ export const DataBundleSubscription: React.FC = () => {
                   setProvider(p.value);
                   // select the first category available for this provider
                   const categories = [
-                    ...new Set(
-                      p.plans.map((pl) => pl.category)
-                    ),
-                  ].filter(cat => ALL_CATEGORIES.includes(cat as PlanCategory)) as PlanCategory[];
+                    ...new Set(p.plans.map((pl) => pl.category)),
+                  ].filter((cat) =>
+                    ALL_CATEGORIES.includes(cat as PlanCategory)
+                  ) as PlanCategory[];
                   setCategory(categories[0] || "daily");
                   setPlan("");
                 }}
@@ -254,7 +296,7 @@ export const DataBundleSubscription: React.FC = () => {
                   gap: 0.5,
                   "&:hover": {
                     borderColor: p.accent,
-                    bgcolor: p.accent + "11",
+                    bgcolor: p.accent ? p.accent + "11" : undefined,
                   },
                 }}
               >
@@ -401,6 +443,33 @@ export const DataBundleSubscription: React.FC = () => {
     </Card>
   );
 
+  // Handle loading/fetch error state for plans
+  if (fetching) {
+    return (
+      <Box sx={{ py: 7, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <CircularProgress color="primary" size={40} />
+        <Typography sx={{ mt: 2, fontWeight: 500 }}>Loading data plans...</Typography>
+      </Box>
+    );
+  }
+  if (fetchError) {
+    return (
+      <Box sx={{ py: 7, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <Typography color="error" sx={{ fontWeight: 500 }}>{fetchError}</Typography>
+        <Button
+          sx={{ mt: 2 }}
+          onClick={() => {
+            // force reload page to re-fetch
+            window.location.reload();
+          }}
+          variant="contained"
+        >
+          Retry
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -434,7 +503,6 @@ export const DataBundleSubscription: React.FC = () => {
           variant="contained"
           className="bg-[#e8f8fa] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
           onClick={() => {
-            // Use navigate hook to navigate programmatically
             navigate("/support/chat");
           }}
         >
@@ -466,9 +534,7 @@ export const DataBundleSubscription: React.FC = () => {
           variant="contained"
           fullWidth
           className="bg-blue-700 hover:bg-blue-800 text-white rounded-full py-3 font-semibold normal-case"
-          disabled={
-            !provider || !plan || !phone || loading
-          }
+          disabled={!provider || !plan || !phone || loading}
           type="submit"
           sx={{
             mt: 1,
