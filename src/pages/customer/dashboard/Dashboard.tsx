@@ -535,7 +535,7 @@ export const Dashboard: React.FC = () => {
                 textTransform: 'uppercase',
                 letterSpacing: 1.2
               }}>
-                Grazconcept Travel Wallet
+                Grazconcept Wallet
               </Typography>
 
               <Box sx={{ display: 'flex', alignItems: 'center', mt: { xs: 0.2, sm: 1 }, mb: { xs: 0.2, sm: 0.5 } }}>
