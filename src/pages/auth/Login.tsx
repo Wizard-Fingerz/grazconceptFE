@@ -36,8 +36,18 @@ export const Login: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const isAgent = typeof user?.user_type_name === 'string' && user.user_type_name.toLowerCase() === 'agent';
-      navigate(isAgent ? '/staff/dashboard' : '/dashboard');
+      // Check for user_type_name field for navigation:
+      // - If admin, go to /admin/dashboard
+      // - If agent, go to /staff/dashboard
+      // - Otherwise, go to /dashboard
+      const userTypeName = typeof user?.user_type_name === 'string' ? user.user_type_name.toLowerCase() : '';
+      if (userTypeName === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (userTypeName === 'agent') {
+        navigate('/staff/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     }
   }, [isAuthenticated, user, navigate]);
 
