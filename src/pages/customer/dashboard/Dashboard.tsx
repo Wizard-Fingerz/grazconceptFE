@@ -478,30 +478,30 @@ export const Dashboard: React.FC = () => {
               background: 'linear-gradient(135deg,#132743 60%, #0072ff 100%)',
               color: 'white',
               width: '100%',
-              minHeight: 220,
+              minHeight: { xs: 140, sm: 180, md: 220 }, // Reduce height on mobile
               position: 'relative',
               overflow: 'hidden',
-              pt: 3,
-              pb: 2.5,
-              px: 2.5,
+              pt: { xs: 1.5, sm: 3 },
+              pb: { xs: 1.5, sm: 2.5 },
+              px: { xs: 1.2, sm: 2.5 },
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between'
             }}
           >
             {/* Simulated "chip" and logo */}
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={{ xs: 1, sm: 2 }}>
               <Box
                 sx={{
-                  width: 40,
-                  height: 28,
+                  width: { xs: 26, sm: 40 },
+                  height: { xs: 17, sm: 28 },
                   bgcolor: '#ffd700',
                   borderRadius: '8px',
                   boxShadow: 2,
                   ml: 0.5
                 }}
               />
-              <Avatar sx={{ bgcolor: "#f43f5e", width: 36, height: 36, fontWeight: 700 }}>
+              <Avatar sx={{ bgcolor: "#f43f5e", width: { xs: 22, sm: 36 }, height: { xs: 22, sm: 36 }, fontWeight: 700, fontSize: { xs: 15, sm: 20 } }}>
                 {(user?.first_name?.[0] || 'A').toUpperCase()}
               </Avatar>
             </Box>
@@ -510,10 +510,10 @@ export const Dashboard: React.FC = () => {
             <Box
               sx={{
                 position: 'absolute',
-                top: -30,
-                right: -40,
-                width: 130,
-                height: 180,
+                top: { xs: -16, sm: -30 },
+                right: { xs: -20, sm: -40 },
+                width: { xs: 62, sm: 130 },
+                height: { xs: 78, sm: 180 },
                 bgcolor: 'rgba(255,255,255,0.07)',
                 opacity: 0.38,
                 borderRadius: '60%',
@@ -523,29 +523,42 @@ export const Dashboard: React.FC = () => {
 
             {/* Card Content: Wallet */}
             <Box sx={{ zIndex: 2, position: 'relative' }}>
-              <Typography variant="overline" sx={{ fontSize: '0.92rem', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+              <Typography variant="overline" sx={{
+                fontSize: { xs: '0.68rem', sm: '0.92rem' },
+                textTransform: 'uppercase',
+                letterSpacing: 1.2
+              }}>
                 Grazconcept Travel Wallet
               </Typography>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, mb: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: { xs: 0.2, sm: 1 }, mb: { xs: 0.2, sm: 0.5 } }}>
                 {walletBalanceLoading ? (
                   <>
-                    <CircularProgress size={20} sx={{ color: '#fff' }} />
-                    <Typography sx={{ ml: 1.5, color: "#fff" }} fontSize="1.09rem">
+                    <CircularProgress size={16} sx={{ color: '#fff' }} />
+                    <Typography sx={{ ml: 1, color: "#fff" }} fontSize={{ xs: "0.89rem", sm: "1.09rem" }}>
                       Fetching balance...
                     </Typography>
                   </>
                 ) : walletBalanceError ? (
-                  <Typography color="error" variant="body2" sx={{ color: "#ffd700" }}>{walletBalanceError}</Typography>
+                  <Typography color="error" variant="body2" sx={{ color: "#ffd700", fontSize: { xs: "0.86rem", sm: "0.95rem" } }}>{walletBalanceError}</Typography>
                 ) : (
-                  <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: 1, color: '#fff', lineHeight: 1.23 }}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 700,
+                      letterSpacing: 1,
+                      color: '#fff',
+                      lineHeight: 1.23,
+                      fontSize: { xs: '1.25rem', sm: '2.125rem' }
+                    }}
+                  >
                     {walletBalance.currency} {Number(walletBalance.balance ?? 0).toLocaleString()}
                   </Typography>
                 )}
               </Box>
 
-              <Box display="flex" alignItems="center" justifyContent="space-between" mt={2} mb={1}>
-                <Typography variant="subtitle2" sx={{ opacity: 0.82, fontSize: '0.95rem'}}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mt={{ xs: 1, sm: 2 }} mb={{ xs: 0.5, sm: 1 }}>
+                <Typography variant="subtitle2" sx={{ opacity: 0.82, fontSize: { xs: '0.75rem', sm: '0.95rem' } }}>
                   {user?.first_name} {user?.last_name}
                 </Typography>
                 <Typography
@@ -554,8 +567,9 @@ export const Dashboard: React.FC = () => {
                     color: '#ffd700',
                     cursor: 'pointer',
                     textDecoration: 'underline',
-                    ml: 2,
+                    ml: { xs: 1, sm: 2 },
                     fontWeight: 500,
+                    fontSize: { xs: '0.84rem', sm: '1rem' }
                   }}
                   onClick={handleOpenFundWallet}
                   tabIndex={0}
@@ -567,18 +581,18 @@ export const Dashboard: React.FC = () => {
               </Box>
 
               <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Typography variant="caption" sx={{ color: '#a9c8f4', fontSize: '0.83rem', letterSpacing: 1.5 }}>
+                <Typography variant="caption" sx={{ color: '#a9c8f4', fontSize: { xs: '0.71rem', sm: '0.83rem' }, letterSpacing: 1.5 }}>
                   Virtual Card · {user?.wallet?.currency ?? walletBalance.currency ?? 'NGN'}
                 </Typography>
-                
+
                 <Button
                   size="small"
                   variant="contained"
                   sx={{
                     minWidth: 0,
-                    py: 0.85,
-                    px: 2.5,
-                    fontSize: '0.93rem',
+                    py: { xs: 0.6, sm: 0.85 },
+                    px: { xs: 1.1, sm: 2.5 },
+                    fontSize: { xs: '0.80rem', sm: '0.93rem' },
                     fontWeight: 600,
                     textTransform: 'none',
                     borderRadius: 2.5,
