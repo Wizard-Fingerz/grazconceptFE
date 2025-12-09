@@ -152,6 +152,7 @@ const actionResultRoutes: Record<string, string> = {
   "Car Rentals": "/customer/dashboard/car-rentals-result",
   "Attractions": "/customer/dashboard/attractions-result",
   "Airport Taxis": "/customer/dashboard/airport-taxis-result",
+  "Airtime and Data": "/services/airtime-and-bills",
   // Add more as needed
   "Study Visa Offers": "/travel/study-visa/offers",
 };
@@ -379,6 +380,9 @@ export const Dashboard: React.FC = () => {
         break;
       case "Edufinance":
         route = "/edufinance/study-abroad-loan";
+        break;
+      case "Airtime and Data":
+        route = "/services/airtime-and-bills";
         break;
       default:
         // fallback to modal for unknown actions (for banners, etc)
@@ -639,7 +643,7 @@ export const Dashboard: React.FC = () => {
             <ActionCard icon={<AirplaneTicket sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
             <ActionCard icon={<Hotel sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
             <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Apply Study Program" onClick={() => handleActionClick("Study Visa")} />
-            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Search Study Program" onClick={() => handleActionClick("Study Visa Offers")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Airtime and Data" onClick={() => handleActionClick("Airtime and Data")} />
             <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
             <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
             <ActionCard icon={<Savings sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
