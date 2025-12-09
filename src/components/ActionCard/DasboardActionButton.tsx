@@ -24,7 +24,7 @@ export const ActionCard = ({
     elevation={1}
     variant="outlined"
     sx={{
-      p: { xs: 0.7, sm: 2 }, // smaller padding on mobile
+      p: { xs: 0.7, sm: 1.5 }, // slightly smaller padding on desktop
       textAlign: 'center',
       borderRadius: 1,
       transition: 'box-shadow 0.2s',
@@ -34,7 +34,7 @@ export const ActionCard = ({
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: { xs: 54, sm: 100 }, // reduced minHeight on mobile
+      minHeight: { xs: 54, sm: 85 }, // reduced minHeight on desktop
     }}
     onClick={onClick}
     tabIndex={0}
@@ -43,18 +43,19 @@ export const ActionCard = ({
     <Avatar
       sx={{
         mx: 'auto',
-        mb: { xs: 0.5, sm: 1 },
-        width: { xs: 28, sm: 40 },    // smaller avatar on mobile
-        height: { xs: 28, sm: 40 },
+        mb: { xs: 0.5, sm: 0.8 },
+        width: { xs: 24, sm: 32 },   // reduced icon size on desktop
+        height: { xs: 24, sm: 32 },
       }}
     >
+      {/* Pass a cloned icon with reduced fontSize for desktop */}
       {icon}
     </Avatar>
     <Typography
       variant="caption"
       sx={{
         fontWeight: 500,
-        fontSize: { xs: '0.66rem', sm: '0.85rem' } // reduced text size on mobile
+        fontSize: { xs: '0.62rem', sm: '0.74rem' } // reduced text size on desktop
       }}
     >
       {label}

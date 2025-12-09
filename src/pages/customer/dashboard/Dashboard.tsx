@@ -469,8 +469,8 @@ export const Dashboard: React.FC = () => {
         {/* Wallet Section */}
         <Box
           sx={{
-            flex: { xs: 'unset', sm: '0 0 41.6667%', md: '0 0 25%' },
-            width: { xs: '100%', sm: '41.6667%', md: '25%' },
+            flex: { xs: 'unset', sm: '0 0 41.6667%', md: '0 0 33.3333%' }, // increased from 25% to 33.3333% on desktop
+            width: { xs: '100%', sm: '41.6667%', md: '33.3333%' }, // increased from 25% to 33.3333% on desktop
             minWidth: 0,
             display: 'flex',
             justifyContent: 'center',
@@ -508,7 +508,7 @@ export const Dashboard: React.FC = () => {
                   ml: 0.5
                 }}
               />
-              <Avatar sx={{ bgcolor: "#f43f5e", width: { xs: 22, sm: 36 }, height: { xs: 22, sm: 36 }, fontWeight: 700, fontSize: { xs: 15, sm: 20 } }}>
+              <Avatar sx={{ bgcolor: "#f43f5e", width: { xs: 22, sm: 30 }, height: { xs: 22, sm: 30 }, fontWeight: 700, fontSize: { xs: 15, sm: 18 } }}>
                 {(user?.first_name?.[0] || 'A').toUpperCase()}
               </Avatar>
             </Box>
@@ -531,7 +531,7 @@ export const Dashboard: React.FC = () => {
             {/* Card Content: Wallet */}
             <Box sx={{ zIndex: 2, position: 'relative' }}>
               <Typography variant="overline" sx={{
-                fontSize: { xs: '0.68rem', sm: '0.92rem' },
+                fontSize: { xs: '0.65rem', sm: '0.82rem', md: '0.88rem' }, // smaller on desktop
                 textTransform: 'uppercase',
                 letterSpacing: 1.2
               }}>
@@ -542,12 +542,12 @@ export const Dashboard: React.FC = () => {
                 {walletBalanceLoading ? (
                   <>
                     <CircularProgress size={16} sx={{ color: '#fff' }} />
-                    <Typography sx={{ ml: 1, color: "#fff" }} fontSize={{ xs: "0.89rem", sm: "1.09rem" }}>
+                    <Typography sx={{ ml: 1, color: "#fff" }} fontSize={{ xs: "0.86rem", sm: "0.97rem", md: "1.02rem" }}>
                       Fetching balance...
                     </Typography>
                   </>
                 ) : walletBalanceError ? (
-                  <Typography color="error" variant="body2" sx={{ color: "#ffd700", fontSize: { xs: "0.86rem", sm: "0.95rem" } }}>{walletBalanceError}</Typography>
+                  <Typography color="error" variant="body2" sx={{ color: "#ffd700", fontSize: { xs: "0.83rem", sm: "0.91rem", md: "0.95rem" } }}>{walletBalanceError}</Typography>
                 ) : (
                   <Typography
                     variant="h4"
@@ -556,7 +556,7 @@ export const Dashboard: React.FC = () => {
                       letterSpacing: 1,
                       color: '#fff',
                       lineHeight: 1.23,
-                      fontSize: { xs: '1.25rem', sm: '2.125rem' }
+                      fontSize: { xs: '1.18rem', sm: '1.68rem', md: '1.93rem' } // reduced for desktop
                     }}
                   >
                     {walletBalance.currency} {Number(walletBalance.balance ?? 0).toLocaleString()}
@@ -565,7 +565,7 @@ export const Dashboard: React.FC = () => {
               </Box>
 
               <Box display="flex" alignItems="center" justifyContent="space-between" mt={{ xs: 1, sm: 2 }} mb={{ xs: 0.5, sm: 1 }}>
-                <Typography variant="subtitle2" sx={{ opacity: 0.82, fontSize: { xs: '0.75rem', sm: '0.95rem' } }}>
+                <Typography variant="subtitle2" sx={{ opacity: 0.82, fontSize: { xs: '0.72rem', sm: '0.82rem', md: '0.88rem' } }}>
                   {user?.first_name} {user?.last_name}
                 </Typography>
                 <Typography
@@ -576,7 +576,7 @@ export const Dashboard: React.FC = () => {
                     textDecoration: 'underline',
                     ml: { xs: 1, sm: 2 },
                     fontWeight: 500,
-                    fontSize: { xs: '0.84rem', sm: '1rem' }
+                    fontSize: { xs: '0.80rem', sm: '0.88rem', md: '0.88rem' }
                   }}
                   onClick={handleOpenFundWallet}
                   tabIndex={0}
@@ -588,7 +588,7 @@ export const Dashboard: React.FC = () => {
               </Box>
 
               <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Typography variant="caption" sx={{ color: '#a9c8f4', fontSize: { xs: '0.71rem', sm: '0.83rem' }, letterSpacing: 1.5 }}>
+                <Typography variant="caption" sx={{ color: '#a9c8f4', fontSize: { xs: '0.68rem', sm: '0.77rem', md: '0.82rem' }, letterSpacing: 1.5 }}>
                   Virtual Card · {user?.wallet?.currency ?? walletBalance.currency ?? 'NGN'}
                 </Typography>
 
@@ -597,9 +597,9 @@ export const Dashboard: React.FC = () => {
                   variant="contained"
                   sx={{
                     minWidth: 0,
-                    py: { xs: 0.6, sm: 0.85 },
-                    px: { xs: 1.1, sm: 2.5 },
-                    fontSize: { xs: '0.80rem', sm: '0.93rem' },
+                    py: { xs: 0.6, sm: 0.65 },
+                    px: { xs: 1.1, sm: 2.0 },
+                    fontSize: { xs: '0.75rem', sm: '0.88rem', md: '0.88rem' },
                     fontWeight: 600,
                     textTransform: 'none',
                     borderRadius: 2.5,
@@ -620,8 +620,8 @@ export const Dashboard: React.FC = () => {
         {/* Quick Actions */}
         <Box
           sx={{
-            flex: { xs: 'unset', sm: '0 0 58.3333%', md: '0 0 75%' },
-            width: { xs: '100%', sm: '58.3333%', md: '75%' },
+            flex: { xs: 'unset', sm: '0 0 58.3333%', md: '0 0 65%' },
+            width: { xs: '100%', sm: '58.3333%', md: '65%' },
             minWidth: 0,
           }}
         >
@@ -636,15 +636,15 @@ export const Dashboard: React.FC = () => {
               gap: 1.5,
             }}
           >
-            <ActionCard icon={<AirplaneTicket sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
-            <ActionCard icon={<Hotel sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
-            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Apply Study Program" onClick={() => handleActionClick("Study Visa")} />
-            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Search Study Program" onClick={() => handleActionClick("Study Visa Offers")} />
-            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
-            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
-            <ActionCard icon={<Savings sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
-            <ActionCard icon={<Savings sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Investment Plan" onClick={() => handleActionClick("Investment Plan")} />
-            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Edufinance" onClick={() => handleActionClick("Edufinance")} />
+            <ActionCard icon={<AirplaneTicket sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
+            <ActionCard icon={<Hotel sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Apply Study Program" onClick={() => handleActionClick("Study Visa")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Search Study Program" onClick={() => handleActionClick("Study Visa Offers")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
+            <ActionCard icon={<Savings sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
+            <ActionCard icon={<Savings sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Investment Plan" onClick={() => handleActionClick("Investment Plan")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 20 } }} />} label="Edufinance" onClick={() => handleActionClick("Edufinance")} />
             {/* <ActionCard icon={<Chat sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
             <ActionCard icon={<School />} label="Apply for Study Loan" onClick={() => handleActionClick("Apply for Study Loan")} />
             <ActionCard icon={<DirectionsCar />} label="Car Rentals" onClick={() => handleActionClick("Car Rentals")} />
