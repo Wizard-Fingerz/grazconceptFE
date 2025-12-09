@@ -636,16 +636,16 @@ export const Dashboard: React.FC = () => {
               gap: 1.5,
             }}
           >
-            <ActionCard icon={<AirplaneTicket />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
-            <ActionCard icon={<Hotel />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
-            <ActionCard icon={<School />} label="Apply Study Program" onClick={() => handleActionClick("Study Visa")} />
-            <ActionCard icon={<School />} label="Search Study Program" onClick={() => handleActionClick("Study Visa Offers")} />
-            <ActionCard icon={<School />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
-            <ActionCard icon={<School />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
-            <ActionCard icon={<Savings />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
-            <ActionCard icon={<Savings />} label="Investment Plan" onClick={() => handleActionClick("Investment Plan")} />
-            <ActionCard icon={<School />} label="Edufinance" onClick={() => handleActionClick("Edufinance")} />
-            {/* <ActionCard icon={<Chat />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
+            <ActionCard icon={<AirplaneTicket sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Book Flight" onClick={() => handleActionClick("Book Flight")} />
+            <ActionCard icon={<Hotel sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Reserve Hotel" onClick={() => handleActionClick("Reserve Hotel")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Apply Study Program" onClick={() => handleActionClick("Study Visa")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Search Study Program" onClick={() => handleActionClick("Study Visa Offers")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Work Visa" onClick={() => handleActionClick("Work Visa")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Vacation" onClick={() => handleActionClick("Vacation")} />
+            <ActionCard icon={<Savings sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Create Savings Plan" onClick={() => handleActionClick("Create Savings Plan")} />
+            <ActionCard icon={<Savings sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Investment Plan" onClick={() => handleActionClick("Investment Plan")} />
+            <ActionCard icon={<School sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Edufinance" onClick={() => handleActionClick("Edufinance")} />
+            {/* <ActionCard icon={<Chat sx={{ fontSize: { xs: 18, sm: 28 } }} />} label="Chat with Agent" onClick={() => handleActionClick("Chat with Agent")} />
             <ActionCard icon={<School />} label="Apply for Study Loan" onClick={() => handleActionClick("Apply for Study Loan")} />
             <ActionCard icon={<DirectionsCar />} label="Car Rentals" onClick={() => handleActionClick("Car Rentals")} />
             <ActionCard icon={<Attractions />} label="Attractions" onClick={() => handleActionClick("Attractions")} />

@@ -24,7 +24,7 @@ export const ActionCard = ({
     elevation={1}
     variant="outlined"
     sx={{
-      p: { xs: 1, sm: 2 }, // smaller padding on mobile
+      p: { xs: 0.7, sm: 2 }, // smaller padding on mobile
       textAlign: 'center',
       borderRadius: 1,
       transition: 'box-shadow 0.2s',
@@ -34,7 +34,7 @@ export const ActionCard = ({
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: { xs: 68, sm: 100 }, // shorter on mobile
+      minHeight: { xs: 54, sm: 100 }, // reduced minHeight on mobile
     }}
     onClick={onClick}
     tabIndex={0}
@@ -54,7 +54,7 @@ export const ActionCard = ({
       variant="caption"
       sx={{
         fontWeight: 500,
-        fontSize: { xs: '0.72rem', sm: '0.85rem' } // smaller text on mobile
+        fontSize: { xs: '0.66rem', sm: '0.85rem' } // reduced text size on mobile
       }}
     >
       {label}
