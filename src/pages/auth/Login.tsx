@@ -91,7 +91,7 @@ export const Login: React.FC = () => {
         }}
       >
         {/* Grazconcept Welcome Messaging */}
-        <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: 6 }}>
+        <Typography variant="h4" color="text.secondary" fontWeight="bold" gutterBottom sx={{ mt: 6 }}>
           Welcome to Grazconcept
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" mb={6} sx={{ fontSize: '1.15rem', fontWeight: 500 }}>
