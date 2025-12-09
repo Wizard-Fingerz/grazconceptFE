@@ -444,7 +444,7 @@ export const Dashboard: React.FC = () => {
 
 
   return (
-    <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
+    <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 0, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
       {/* Welcome Header */}
       {/* On md+ screens, show CustomerPageHeader. On mobile, show just the text. */}
       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
