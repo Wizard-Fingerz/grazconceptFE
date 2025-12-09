@@ -446,12 +446,19 @@ export const Dashboard: React.FC = () => {
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 4 }, py: { xs: 1, sm: 2 }, width: '100%', maxWidth: 1400, mx: 'auto' }}>
       {/* Welcome Header */}
-      <CustomerPageHeader>
-        {/* Page Header */}
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+      {/* On md+ screens, show CustomerPageHeader. On mobile, show just the text. */}
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <CustomerPageHeader>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+            Welcome, {user?.first_name}!
+          </Typography>
+        </CustomerPageHeader>
+      </Box>
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.2 }}>
           Welcome, {user?.first_name}!
         </Typography>
-      </CustomerPageHeader>
+      </Box>
 
       {/* Top Section */}
       <Stack
