@@ -732,7 +732,7 @@ export const Dashboard: React.FC = () => {
       {/* Applications (Start a New Application) */}
       {!loadingBanners && banners && banners.length > 0 && (
         <>
-          <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>
+          <Typography variant="h6" sx={{ mt: 3, mb: 2, fontWeight: 700 }}>
             Start a New Application
           </Typography>
           <Stack
@@ -767,7 +767,7 @@ export const Dashboard: React.FC = () => {
         direction={{ xs: 'column', md: 'row' }}
         spacing={3}
         sx={{
-          mt: 2,
+          mt: 1,
         }}
       >
         {/* Left: More Actions and Suggestions */}
@@ -775,7 +775,7 @@ export const Dashboard: React.FC = () => {
 
           <Box>
             {/* Suggestions */}
-            <Typography variant="h6" sx={{ mt: 6, mb: 2, fontWeight: 700 }}>
+            <Typography variant="h6" sx={{ mt: 1, mb: 2, fontWeight: 700 }}>
               You may be interested in?
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
