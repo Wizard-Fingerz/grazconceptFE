@@ -444,16 +444,16 @@ export const MainLayout: React.FC = () => {
               label: "View Referred Clients",
               to: "/staff/clients",
             },
-            // {
-            //   icon: <GroupIcon />,
-            //   label: "Leads",
-            //   to: "/staff/leads",
-            // },
-            // {
-            //   icon: <MenuBookIcon />,
-            //   label: "Documents",
-            //   to: "/staff/clients/documents",
-            // },
+            {
+              icon: <GroupIcon />,
+              label: "Leads",
+              to: "/staff/leads",
+            },
+            {
+              icon: <MenuBookIcon />,
+              label: "Documents",
+              to: "/staff/clients/documents",
+            },
             // {
             //   icon: <SettingsIcon />,
             //   label: "Assign to Teams",
