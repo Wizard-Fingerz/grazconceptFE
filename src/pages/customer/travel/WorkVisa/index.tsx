@@ -168,7 +168,7 @@ const OfferCard: React.FC<{
 /**
  * GuideCard - Reusable card for displaying a guide/resource.
  */
-const GuideCard: React.FC<{ title: string }> = ({ title }) => (
+export const GuideCard: React.FC<{ title: string }> = ({ title }) => (
   <Button className="bg-[#f5ebe1] rounded-xl px-6 py-3 font-semibold normal-case shadow-sm hover:bg-[#f3e1d5]">
     {title}
   </Button>
@@ -435,7 +435,7 @@ export const ApplyWorkVisa: React.FC = () => {
         </Button>
       </Box>
 
-      <Typography
+      {/* <Typography
         variant="h6"
         className="font-bold mb-4"
         sx={{ mt: 4 }}
@@ -445,7 +445,7 @@ export const ApplyWorkVisa: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4">
         <GuideCard title="Work visa Requirements" />
         <GuideCard title="Ultimate guide to Work abroad" />
-      </div>
+      </div> */}
     </Box>
   );
 };

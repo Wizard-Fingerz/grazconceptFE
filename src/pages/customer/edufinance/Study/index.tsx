@@ -873,7 +873,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
             )}
 
             {/* Guides & Resources */}
-            <Typography
+            {/* <Typography
                 variant="h6"
                 className="font-bold mb-4"
                 sx={{ mt: 4 }}
@@ -894,7 +894,7 @@ export const StudyAbroadLoanPage: React.FC = () => {
                 <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 0 } }}>
                     <GuideCard title="Ultimate Guide to Financing Overseas Education" />
                 </Box>
-            </Box>
+            </Box> */}
         </Box>
     );
 };

@@ -1061,7 +1061,7 @@ export const ApplyStudyVisa: React.FC = () => {
       </Box>
 
       {/* Guides & Resources */}
-      <Typography
+      {/* <Typography
         variant="h6"
         className="font-bold mb-4"
         sx={{ mt: 4 }}
@@ -1071,7 +1071,7 @@ export const ApplyStudyVisa: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4">
         <GuideCard title="Study visa Requirements" />
         <GuideCard title="Ultimate guide to study abroad" />
-      </div>
+      </div> */}
     </Box>
   );
 };
