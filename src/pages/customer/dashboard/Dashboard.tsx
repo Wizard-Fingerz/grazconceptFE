@@ -117,7 +117,14 @@ const FundWalletModalContent = ({ user }: { user: any }) => {
       <Typography variant="caption" color="text.secondary">
         After transferring to this account, please email your payment receipt to <b>peter.oluwole@grazconcept.com.ng</b> so your wallet balance can be updated.
       </Typography>
-
+      <Box sx={{ mt: 3, bgcolor: "#fffbe6", borderRadius: 1, border: "1px solid #ffe58f", p: 2 }}>
+        <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 600, mb: 0.5 }}>
+          Refund Policy
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          <b>Please Note:</b> <span style={{ color: "#d48806" }}>15% charges attract any Refunded Capital.</span>
+        </Typography>
+      </Box>
       <Snackbar
         open={copySnackbarOpen}
         autoHideDuration={2000}
