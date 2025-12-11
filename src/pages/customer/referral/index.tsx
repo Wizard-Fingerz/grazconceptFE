@@ -59,11 +59,13 @@ const ReferralPage: React.FC = () => {
 
     authService.getMyreferees()
       .then((data) => {
-        // If backend returns an object with referees key or just an array, handle both
-        if (Array.isArray(data)) {
-          setReferees(data);
-        } else if (typeof data === "object" && data.referees && Array.isArray(data.referees)) {
-          setReferees(data.referees);
+        // Simulate paginated API response ("results" array holds referees)
+        if (
+          data &&
+          typeof data === "object" &&
+          Array.isArray(data.results)
+        ) {
+          setReferees(data.results);
         } else {
           setReferees([]);
         }
