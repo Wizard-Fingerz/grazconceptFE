@@ -21,7 +21,7 @@ import api from "../../../../../services/api";
 import { useNavigate } from "react-router-dom";
 
 /**
- * Types for plans/provides/categories returned from API
+ * TYPES -- Providers and Plans
  */
 type PlanCategory = "daily" | "weekly" | "monthly" | "quarterly" | "others";
 const categoryLabels: Record<PlanCategory, string> = {
@@ -31,39 +31,23 @@ const categoryLabels: Record<PlanCategory, string> = {
   quarterly: "3 Months",
   others: "Others",
 };
-type RawPlan = {
-  id: number;
-  provider: {
-    id: number;
-    value: string;
-    label: string;
-    logo: string;
-    accent: string;
-    active: boolean;
-  };
-  label: string;
-  value: string;
-  category: PlanCategory;
-  data: string;
-  amount: number;
-  logo: string;
-  accent: string;
-};
+
 type RemotePlan = {
+  id: number;
   label: string;
   value: string;
   amount: number;
   data: string;
   category: PlanCategory;
-  id?: number; // Added for internal reference (not needed in Select UI but useful for mapping)
 };
+
 type RemoteProvider = {
+  id: number;
   label: string;
   value: string;
-  logo: string;
   accent?: string;
-  plans: RemotePlan[];
-  id?: number; // Add id for reference to the API payload
+  logo: string;
+  active: boolean;
 };
 
 const ALL_CATEGORIES: PlanCategory[] = [
@@ -74,50 +58,14 @@ const ALL_CATEGORIES: PlanCategory[] = [
   "others",
 ];
 
-// Group plans as expected for UI
-function groupPlansByProvider(plans: RawPlan[]): RemoteProvider[] {
-  const providersMap = new Map<string, RemoteProvider>();
-  for (const plan of plans) {
-    const providerKey = plan.provider.value;
-    if (!providersMap.has(providerKey)) {
-      providersMap.set(providerKey, {
-        label: plan.provider.label,
-        value: plan.provider.value,
-        logo: plan.provider.logo || plan.logo || "",
-        accent: plan.provider.accent || plan.accent || undefined,
-        plans: [],
-        id: plan.provider.id, // store database id for payload
-      });
-    }
-    providersMap.get(providerKey)!.plans.push({
-      label: plan.label,
-      value: plan.value,
-      amount: plan.amount,
-      data: plan.data,
-      category: plan.category,
-      id: plan.id, // store plan id for payload
-    });
-  }
-  return Array.from(providersMap.values()).sort((a, b) =>
-    a.label.localeCompare(b.label)
-  );
-}
-
 /**
- * Phone number input is losing keystroke... seems something is rerendering everything I type.
- * 
- * - Issue: Input re-mounts because of how it's rendered inside <Fade> with a component reference that always changes (closure).
- * - Solution: Memoize PhoneNumberInput STABLY, and crucially, don't render the wrapper <div> IN the <Fade>
- *   each time but move <Fade> itself INSIDE the always-present wrapper <div> so React doesn't
- *   trash and recreate the subtree (which causes input to lose keystrokes/focus).
- *   See: https://github.com/mui/material-ui/issues/21010 & Fade docs.
+ * PHONE NUMBER INPUT
  */
 const PhoneNumberInput: React.FC<{
   phone: string;
   setPhone: (phone: string) => void;
   error?: string | null;
 }> = React.memo(({ phone, setPhone, error }) => {
-  // Unlike before, no local useRef for value tracking, just direct state update
   return (
     <Card className="rounded-2xl shadow-md">
       <CardContent
@@ -153,6 +101,9 @@ const PhoneNumberInput: React.FC<{
 });
 PhoneNumberInput.displayName = "PhoneNumberInput";
 
+/**
+ * MAIN COMPONENT
+ */
 export const DataBundleSubscription: React.FC = () => {
   const [provider, setProvider] = useState<string>("");
   const [category, setCategory] = useState<PlanCategory>("daily");
@@ -162,93 +113,165 @@ export const DataBundleSubscription: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [fetching, setFetching] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // For fetching providers and related state
+  const [fetchingProviders, setFetchingProviders] = useState(true);
+  const [providersError, setProvidersError] = useState<string | null>(null);
   const [dataProviders, setDataProviders] = useState<RemoteProvider[]>([]);
+
+  // For fetching plans of the selected provider and related state
+  const [fetchingPlans, setFetchingPlans] = useState(false);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [providerPlans, setProviderPlans] = useState<RemotePlan[]>([]);
 
   const navigate = useNavigate();
 
-  // Fetch data plan providers and plans (unchanged)
+  // --- FETCH PROVIDERS ONCE ---
   useEffect(() => {
     let mounted = true;
-    setFetching(true);
-    setFetchError(null);
+    setFetchingProviders(true);
+    setProvidersError(null);
 
     (async () => {
       try {
-        const res = await api.get("/app/airtime-data-plans/");
-        const flatPlans: RawPlan[] = Array.isArray(res.data.results)
-          ? res.data.results
-          : [];
-        const providers = groupPlansByProvider(flatPlans);
+        // The API response is assumed to be an array, not wrapped in .results
+        const res = await api.get("/app/airtime-data-plans/providers-with-plans/");
+        let content: any[] = Array.isArray(res.data) ? res.data : [];
+        // Defensive shape-mapping, assumes { id, value, label, accent, logo, active }
+        const mappedProviders: RemoteProvider[] = content.map((p: any) => ({
+          id: p.id,
+          label: p.label,
+          value: p.value,
+          accent: p.accent,
+          logo: p.logo,
+          active: p.active,
+        }));
         if (mounted) {
-          setDataProviders(providers);
+          setDataProviders(mappedProviders);
         }
       } catch (err: any) {
-        if (mounted) {
-          setFetchError(
-            err?.response?.data?.detail ||
-              "Could not load data plans, please refresh."
-          );
-        }
+        if (mounted) setProvidersError(
+          err?.response?.data?.detail ||
+          "Could not load providers. Please refresh."
+        );
       }
-      if (mounted) setFetching(false);
+      if (mounted) setFetchingProviders(false);
     })();
 
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
-  // Memoize computations to avoid rerenders
+  // --- FETCH PLANS FOR PROVIDER WHEN SELECTED ---
+  useEffect(() => {
+    if (!provider) {
+      setProviderPlans([]);
+      setPlansError(null);
+      setFetchingPlans(false);
+      setCategory("daily");
+      setPlan("");
+      return;
+    }
+    const foundProvider = dataProviders.find(p => p.value === provider);
+    if (!foundProvider) {
+      setProviderPlans([]);
+      setCategory("daily");
+      setPlansError(null);
+      setFetchingPlans(false);
+      setPlan("");
+      return;
+    }
+
+    let mounted = true;
+    setFetchingPlans(true);
+    setPlansError(null);
+    setProviderPlans([]);
+    setPlan("");
+    setCategory("daily");
+    (async () => {
+      try {
+        // Note: GET /app/airtime-data-plans/?provider_id=<id>
+        const res = await api.get("/app/airtime-data-plans/", {
+          params: { provider_id: foundProvider.id }
+        });
+        let plans: any[] = Array.isArray(res.data?.results) ? res.data.results : [];
+        // Defensive mapping
+        const mappedPlans: RemotePlan[] = plans.map(pl => ({
+          id: pl.id,
+          label: pl.label,
+          value: pl.value,
+          amount: pl.amount,
+          data: pl.data,
+          category: pl.category,
+        }));
+        if (mounted) {
+          setProviderPlans(mappedPlans);
+          // Select the first available category for this provider
+          const catSet = new Set((mappedPlans.map(pl => pl.category)).filter(Boolean));
+          const firstCat = [...catSet].filter(cat => ALL_CATEGORIES.includes(cat as PlanCategory))[0] as PlanCategory || "daily";
+          setCategory(firstCat);
+        }
+      } catch (err: any) {
+        if (mounted)
+          setPlansError(
+            err?.response?.data?.detail || "Could not load data plans for this provider."
+          );
+      }
+      if (mounted) setFetchingPlans(false);
+    })();
+
+    return () => { mounted = false; };
+    // eslint-disable-next-line
+  }, [provider, dataProviders]);
+
+  // Memoize objects for rendering, filtering, etc
   const selectedProvider = useMemo(
     () => dataProviders.find((p) => p.value === provider),
     [dataProviders, provider]
   );
 
   const plansForCategory = useMemo(
-    () =>
-      selectedProvider?.plans.filter((pl) => pl.category === category) || [],
-    [selectedProvider, category]
+    () => providerPlans.filter((pl) => pl.category === category) || [],
+    [providerPlans, category]
   );
 
   const selectedPlan = useMemo(
-    () => selectedProvider?.plans.find((pl) => pl.value === plan),
-    [selectedProvider, plan]
+    () => providerPlans.find((pl) => pl.value === plan),
+    [providerPlans, plan]
   );
 
   const providerCategories: PlanCategory[] = useMemo(
     () =>
-      selectedProvider
+      providerPlans.length
         ? ([
-            ...new Set(selectedProvider.plans.map((pl) => pl.category)),
+            ...new Set(providerPlans.map((pl) => pl.category)),
           ].filter((cat) =>
             ALL_CATEGORIES.includes(cat as PlanCategory)
           ) as PlanCategory[])
         : ALL_CATEGORIES,
-    [selectedProvider]
+    [providerPlans]
   );
 
   // Maintain category/plan state
   useEffect(() => {
-    if (selectedProvider && !providerCategories.includes(category)) {
+    if (!!providerPlans.length && !providerCategories.includes(category)) {
       setCategory(providerCategories[0]);
       setPlan("");
     }
     // eslint-disable-next-line
-  }, [provider]);
+  }, [providerPlans, providerCategories, category]);
 
   useEffect(() => {
     if (!plansForCategory.find((p) => p.value === plan)) {
       setPlan("");
     }
     // eslint-disable-next-line
-  }, [category, provider]);
+  }, [category, plansForCategory, providerPlans, provider]);
 
   // Find provider_id and plan_id for current selection
   const provider_id: number | undefined = selectedProvider?.id;
   const plan_id: number | undefined = selectedPlan?.id;
 
+  // --- FORM SUBMIT ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg(null);
@@ -258,8 +281,6 @@ export const DataBundleSubscription: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      // The API expects provider_id and plan_id numeric fields,
-      // not string value fields.
       const payload: Record<string, any> = {
         provider_id,
         plan_id,
@@ -276,12 +297,8 @@ export const DataBundleSubscription: React.FC = () => {
       setPlan("");
       setAmount("");
       setPhone("");
+      setProviderPlans([]);
     } catch (err: any) {
-      // API may return validation errors in this format:
-      // {
-      //     "provider_id": ["This field is required."],
-      //     "plan_id": ["This field is required."]
-      // }
       if (
         err?.response?.data &&
         (err.response.data.provider_id || err.response.data.plan_id)
@@ -304,7 +321,7 @@ export const DataBundleSubscription: React.FC = () => {
     setLoading(false);
   };
 
-  // -- UI Sub-components (memoized for perf) --
+  // --- UI SUBCOMPONENTS ---
 
   const ProviderSelector = useCallback(() => (
     <Card className="rounded-2xl shadow-md">
@@ -327,9 +344,10 @@ export const DataBundleSubscription: React.FC = () => {
             gap: 16,
             justifyContent: "center",
             marginBottom: 4,
+            position: "relative",
           }}
         >
-          {dataProviders.map((p) => (
+          {dataProviders.filter(p => p.active).map((p) => (
             <div
               key={p.value}
               style={{
@@ -340,18 +358,17 @@ export const DataBundleSubscription: React.FC = () => {
                 boxSizing: "border-box",
                 display: "flex",
                 justifyContent: "center",
+                position: "relative",
               }}
             >
               <Button
                 onClick={() => {
                   setProvider(p.value);
-                  const categories = [
-                    ...new Set(p.plans.map((pl) => pl.category)),
-                  ].filter((cat) =>
-                    ALL_CATEGORIES.includes(cat as PlanCategory)
-                  ) as PlanCategory[];
-                  setCategory(categories[0] || "daily");
                   setPlan("");
+                  setCategory("daily");
+                  setSuccessMsg(null);
+                  setErrorMsg(null);
+                  setPlansError(null);
                 }}
                 variant={provider === p.value ? "contained" : "outlined"}
                 sx={{
@@ -381,8 +398,23 @@ export const DataBundleSubscription: React.FC = () => {
                     borderColor: p.accent,
                     bgcolor: p.accent ? p.accent + "11" : undefined,
                   },
+                  position: "relative",
                 }}
+                disabled={fetchingPlans && provider === p.value}
               >
+                {/* If this button is the selected provider and fetchingPlans is true, show loading spinner */}
+                {fetchingPlans && provider === p.value && (
+                  <CircularProgress
+                    size={28}
+                    color="primary"
+                    sx={{
+                      position: "absolute",
+                      top: "10px",
+                      right: "10px",
+                      zIndex: 2,
+                    }}
+                  />
+                )}
                 <Avatar
                   src={p.logo}
                   alt={p.label}
@@ -414,7 +446,7 @@ export const DataBundleSubscription: React.FC = () => {
         )}
       </CardContent>
     </Card>
-  ), [dataProviders, provider, setProvider, setCategory, setPlan]);
+  ), [dataProviders, provider, setProvider, setCategory, setPlan, setSuccessMsg, setErrorMsg, setPlansError, fetchingPlans]);
 
   const CategoryTabs = useCallback(() => (
     <Card className="rounded-2xl shadow-md">
@@ -470,7 +502,7 @@ export const DataBundleSubscription: React.FC = () => {
               setAmount("");
             }}
             required
-            disabled={!plansForCategory.length}
+            disabled={!!plansError || !plansForCategory.length || fetchingPlans}
             MenuProps={{
               disableRestoreFocus: true,
             }}
@@ -489,21 +521,21 @@ export const DataBundleSubscription: React.FC = () => {
         </FormControl>
       </CardContent>
     </Card>
-  ), [plansForCategory, plan, setPlan, setAmount]);
+  ), [plansForCategory, plan, setPlan, setAmount, plansError, fetchingPlans]);
 
-  // Handle loading/fetch error state for plans
-  if (fetching) {
+  // --- LOADING/FAIL STATES ---
+  if (fetchingProviders) {
     return (
       <Box sx={{ py: 7, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <CircularProgress color="primary" size={40} />
-        <Typography sx={{ mt: 2, fontWeight: 500 }}>Loading data plans...</Typography>
+        <Typography sx={{ mt: 2, fontWeight: 500 }}>Loading data providers...</Typography>
       </Box>
     );
   }
-  if (fetchError) {
+  if (providersError) {
     return (
       <Box sx={{ py: 7, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <Typography color="error" sx={{ fontWeight: 500 }}>{fetchError}</Typography>
+        <Typography color="error" sx={{ fontWeight: 500 }}>{providersError}</Typography>
         <Button
           sx={{ mt: 2 }}
           onClick={() => {
@@ -513,6 +545,25 @@ export const DataBundleSubscription: React.FC = () => {
         >
           Retry
         </Button>
+      </Box>
+    );
+  }
+
+  // Show plan loading/error for per-provider plan fetch
+  let plansFeedback = null;
+  if (fetchingPlans) {
+    plansFeedback = (
+      <Box sx={{ py: 3, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <CircularProgress color="primary" size={36} />
+        <Typography sx={{ mt: 1, fontWeight: 400, fontSize: 16 }}>
+          Loading plans...
+        </Typography>
+      </Box>
+    );
+  } else if (plansError) {
+    plansFeedback = (
+      <Box sx={{ py: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <Typography color="error" sx={{ fontWeight: 500 }}>{plansError}</Typography>
       </Box>
     );
   }
@@ -561,16 +612,32 @@ export const DataBundleSubscription: React.FC = () => {
         <div className="grid grid-cols-1 gap-6 mb-6">
           <ProviderSelector />
           <div>
-            <Fade in={!!provider} unmountOnExit mountOnEnter>
+            {/* Show a centered loader when fetchingPlans, after a provider is selected but before plans are loaded */}
+            <Fade in={!!provider && fetchingPlans} unmountOnExit mountOnEnter>
+              <Box sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                py: 3
+              }}>
+                <CircularProgress color="primary" size={36} />
+                <Typography sx={{ ml: 2, fontWeight: 400, fontSize: 16 }}>
+                  Loading plans...
+                </Typography>
+              </Box>
+            </Fade>
+
+            <Fade in={!!provider && !!providerPlans.length && !fetchingPlans && !plansError} unmountOnExit mountOnEnter>
               <div>
-                {!!provider && <CategoryTabs />}
+                {!!provider && !!providerPlans.length && <CategoryTabs />}
               </div>
             </Fade>
           </div>
           <div>
-            <Fade in={!!provider} unmountOnExit mountOnEnter>
+            <Fade in={!!provider && !!providerPlans.length && !fetchingPlans} unmountOnExit mountOnEnter>
               <div>
-                <PlanSelector />
+                {plansFeedback || <PlanSelector />}
               </div>
             </Fade>
           </div>
@@ -580,7 +647,7 @@ export const DataBundleSubscription: React.FC = () => {
             Only fade the actual contents inside, so input state/focus is preserved.
           */}
           <div>
-            <Fade in={!!provider && !!plan} unmountOnExit mountOnEnter>
+            <Fade in={!!provider && !!plan && !!providerPlans.length && !fetchingPlans && !plansError} unmountOnExit mountOnEnter>
               <div>
                 <PhoneNumberInput
                   phone={phone}
@@ -604,7 +671,7 @@ export const DataBundleSubscription: React.FC = () => {
           variant="contained"
           fullWidth
           className="bg-blue-700 hover:bg-blue-800 text-white rounded-full py-3 font-semibold normal-case"
-          disabled={!provider || !plan || !phone || loading}
+          disabled={!provider || !plan || !phone || loading || !!plansError}
           type="submit"
           sx={{
             mt: 1,
