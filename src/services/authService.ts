@@ -159,6 +159,19 @@ const authService = {
     }
   },
 
+  // New: get admin analytics and report with timeRange
+  async getAdminAnalyticsAndReport({ timeRange }: { timeRange: string }): Promise<AdminDashboardAnalytics> {
+    try {
+      const response = await api.get('/admin/analytics-report/', {
+        params: { timeRange },
+      });
+      return response.data;
+    } catch (error) {
+      ErrorService.handleApiError(error, { operation: 'Get Admin Dashboard Analytics' });
+      throw error;
+    }
+  },
+
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');

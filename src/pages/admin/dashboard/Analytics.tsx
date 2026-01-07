@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -17,6 +17,7 @@ import {
   useTheme,
   Fade,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -27,7 +28,6 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 
-// Import Recharts
 import {
   LineChart,
   Line,
@@ -42,37 +42,10 @@ import {
   Legend,
 } from "recharts";
 
-// Demo colors (from SavingPlan.tsx)
+import authService from '../../../services/authService';
+
 const pieColors = [
   "#009688", "#1976d2", "#ffc107", "#4caf50", "#ff7043", "#8e24aa", "#00bcd4"
-];
-
-const demoLineData = [
-  { date: "2024-05-01", value: 120000 },
-  { date: "2024-05-05", value: 230000 },
-  { date: "2024-05-10", value: 365000 },
-  { date: "2024-05-15", value: 420000 },
-  { date: "2024-05-20", value: 700000 },
-  { date: "2024-05-25", value: 1100000 },
-  { date: "2024-05-30", value: 1400000 },
-  { date: "2024-06-03", value: 2000000 },
-  { date: "2024-06-07", value: 2450000 },
-];
-
-const demoPieData = [
-  { name: "Web App", value: 1220000 },
-  { name: "Mobile App", value: 700000 },
-  { name: "API Access", value: 310000 },
-  { name: "Agent Portal", value: 220000 },
-];
-
-const demoUserGrowthData = [
-  { date: "2024-05-01", users: 200 },
-  { date: "2024-05-07", users: 420 },
-  { date: "2024-05-14", users: 900 },
-  { date: "2024-05-21", users: 1330 },
-  { date: "2024-05-28", users: 1500 },
-  { date: "2024-06-04", users: 1600 },
 ];
 
 export const AdminAnalytics: React.FC = () => {
@@ -80,47 +53,88 @@ export const AdminAnalytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30days');
   const [tabValue, setTabValue] = useState(0);
 
+  // --- Analytics state
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    authService.getAdminAnalyticsAndReport({ timeRange })
+      .then((data) => {
+        setAnalytics(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to fetch analytics"
+        );
+        setLoading(false);
+      });
+  }, [timeRange]);
+
+  // --- Use API fields as per the prompt/response
+  // Calculate change/trend as N/A since not present in API
   const stats = [
     {
       label: 'Total Revenue',
-      value: '₦2,450,000',
+      value: analytics?.metrics?.revenue_total != null
+        ? '₦' + analytics.metrics.revenue_total.toLocaleString()
+        : '₦0',
       icon: <WalletIcon />,
       color: theme.palette.success.main,
-      change: '+12%',
-      trend: 'up',
+      change: '', // no delta in API
+      trend: "flat", // no delta provided in API
       tooltip: 'Revenue generated in selected period',
     },
     {
       label: 'New Users',
-      value: '1,234',
+      value: analytics?.metrics?.new_users != null
+        ? analytics.metrics.new_users.toLocaleString()
+        : '0',
       icon: <PeopleIcon />,
       color: theme.palette.primary.main,
-      change: '+8%',
-      trend: 'up',
+      change: '', // no delta
+      trend: "flat",
       tooltip: 'Total new users registered',
     },
     {
       label: 'Applications',
-      value: '456',
+      value: analytics?.metrics?.applications != null
+        ? analytics.metrics.applications.toLocaleString()
+        : '0',
       icon: <AssignmentIcon />,
       color: theme.palette.warning.main,
-      change: '+15%',
-      trend: 'up',
+      change: '', // no delta
+      trend: "flat",
       tooltip: 'Applications received',
     },
     {
       label: 'Growth Rate',
-      value: '23%',
+      value: analytics?.metrics?.growth_rate != null
+        ? analytics.metrics.growth_rate
+        : '0%',
       icon: <TrendingUpIcon />,
       color: theme.palette.secondary.main,
-      change: '+5%',
-      trend: 'up',
+      change: '', // no delta
+      trend: "flat",
       tooltip: 'User base growth rate',
     },
   ];
 
   const FLAT_RADIUS = 1;
   const FLAT_ELEVATION = 0;
+
+  // --- Chart data from API
+  const revenueLineData = analytics?.revenue_trend ?? [];
+  const userGrowthLineData = analytics?.user_growth ?? [];
+  const applicationsPieData = analytics?.application_distribution ?? [];
+  const servicePerformancePieData = analytics?.service_analytics ?? [];
+  const topServicesPieData = analytics?.top_services ?? [];
+  const userDemographicsPieData = analytics?.user_demographics ?? [];
 
   return (
     <Box
@@ -167,7 +181,7 @@ export const AdminAnalytics: React.FC = () => {
         </FormControl>
       </Box>
 
-      {/* Stats Cards: styled like AdminDashboard */}
+      {/* Stats Cards */}
       <Box
         sx={{
           display: 'flex',
@@ -218,7 +232,7 @@ export const AdminAnalytics: React.FC = () => {
                     >
                       {metric.icon}
                     </Avatar>
-                    {metric.change && (
+                    {metric.change && metric.change !== "" && (
                       <Chip
                         size="small"
                         label={metric.change}
@@ -260,7 +274,7 @@ export const AdminAnalytics: React.FC = () => {
         <Tab label="Service Analytics" />
       </Tabs>
 
-      {/* Analytics Chart using Recharts - as in SavingPlan.tsx */}
+      {/* Analytics Chart */}
       <Card sx={{
         borderRadius: FLAT_RADIUS,
         boxShadow: 0,
@@ -286,84 +300,84 @@ export const AdminAnalytics: React.FC = () => {
               px: { xs: 0, md: 2 },
             }}
           >
-            {/* Show charts */}
-            {/* See SavingPlan.tsx 32-44 */}
-            {tabValue === 0 && (
-              <ResponsiveContainer width="99%" height={300}>
-                <LineChart data={demoLineData}>
-                  <CartesianGrid stroke="#eee" strokeDasharray="4 4" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Line type="monotone" dataKey="value" stroke={theme.palette.success.main} strokeWidth={3} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-            {tabValue === 1 && (
-              <ResponsiveContainer width="99%" height={300}>
-                <LineChart data={demoUserGrowthData}>
-                  <CartesianGrid stroke="#eee" strokeDasharray="4 4" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Line type="monotone" dataKey="users" stroke={theme.palette.primary.main} strokeWidth={3} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-            {tabValue === 2 && (
-              <ResponsiveContainer width="99%" height={300}>
-                {/* Pie chart for applications */}
-                <PieChart>
-                  <Pie
-                    data={demoPieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
-                  >
-                    {demoPieData.map((_entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
-                    ))}
-                  </Pie>
-                  <Legend layout="vertical" align="right" verticalAlign="middle" />
-                  <RechartsTooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-            {tabValue === 3 && (
-              <ResponsiveContainer width="99%" height={300}>
-                {/* For service analytics, another Pie/Line placeholder */}
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: "Payment", value: 800000 },
-                      { name: "KYC", value: 300000 },
-                      { name: "Loan", value: 950000 },
-                      { name: "Reporting", value: 400000 },
-                    ]}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
-                  >
-                    {[0, 1, 2, 3].map(idx => (
-                      <Cell key={`serv-${idx}`} fill={pieColors[idx % pieColors.length]} />
-                    ))}
-                  </Pie>
-                  <Legend layout="vertical" align="right" verticalAlign="middle" />
-                  <RechartsTooltip />
-                </PieChart>
-              </ResponsiveContainer>
+            {/* Chart Loading/Error State */}
+            {loading ? (
+              <CircularProgress />
+            ) : error ? (
+              <Typography color="error" sx={{ fontWeight: 600 }}>{error}</Typography>
+            ) : (
+              <>
+                {tabValue === 0 && (
+                  <ResponsiveContainer width="99%" height={300}>
+                    <LineChart data={revenueLineData}>
+                      <CartesianGrid stroke="#eee" strokeDasharray="4 4" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Line type="monotone" dataKey="value" stroke={theme.palette.success.main} strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+                {tabValue === 1 && (
+                  <ResponsiveContainer width="99%" height={300}>
+                    <LineChart data={userGrowthLineData}>
+                      <CartesianGrid stroke="#eee" strokeDasharray="4 4" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Line type="monotone" dataKey="users" stroke={theme.palette.primary.main} strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+                {tabValue === 2 && (
+                  <ResponsiveContainer width="99%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={applicationsPieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        {applicationsPieData.map((_entry: any, idx: number) => (
+                          <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                        ))}
+                      </Pie>
+                      <Legend layout="vertical" align="right" verticalAlign="middle" />
+                      <RechartsTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+                {tabValue === 3 && (
+                  <ResponsiveContainer width="99%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={servicePerformancePieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        {servicePerformancePieData.map((_entry: any, idx: number) => (
+                          <Cell key={`serv-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                        ))}
+                      </Pie>
+                      <Legend layout="vertical" align="right" verticalAlign="middle" />
+                      <RechartsTooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </>
             )}
           </Box>
         </CardContent>
       </Card>
 
-      {/* Additional Analytics Section: boxes styled per AdminDashboard */}
+      {/* Additional Analytics Section */}
       <Box
         sx={{
           display: "flex",
@@ -383,16 +397,10 @@ export const AdminAnalytics: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Box sx={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {/* Pie Chart: Demo */}
                 <ResponsiveContainer width="99%" height={220}>
                   <PieChart>
                     <Pie
-                      data={[
-                        { name: "Payments", value: 420000 },
-                        { name: "Transfers", value: 310000 },
-                        { name: "Savings", value: 950000 },
-                        { name: "Loans", value: 350000 },
-                      ]}
+                      data={topServicesPieData}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -400,7 +408,7 @@ export const AdminAnalytics: React.FC = () => {
                       outerRadius={80}
                       label
                     >
-                      {[0, 1, 2, 3].map(idx => (
+                      {topServicesPieData.map((_entry: any, idx: number) => (
                         <Cell key={`topserv-${idx}`} fill={pieColors[idx % pieColors.length]} />
                       ))}
                     </Pie>
@@ -424,16 +432,10 @@ export const AdminAnalytics: React.FC = () => {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Box sx={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {/* Pie Chart: Demo */}
                 <ResponsiveContainer width="99%" height={220}>
                   <PieChart>
                     <Pie
-                      data={[
-                        { name: "18-24", value: 300 },
-                        { name: "25-34", value: 600 },
-                        { name: "35-44", value: 900 },
-                        { name: "45+", value: 400 },
-                      ]}
+                      data={userDemographicsPieData}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -441,7 +443,7 @@ export const AdminAnalytics: React.FC = () => {
                       outerRadius={80}
                       label
                     >
-                      {[0, 1, 2, 3].map(idx => (
+                      {userDemographicsPieData.map((_entry: any, idx: number) => (
                         <Cell key={`age-${idx}`} fill={pieColors[idx % pieColors.length]} />
                       ))}
                     </Pie>
