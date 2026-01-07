@@ -183,6 +183,18 @@ const authService = {
     }
   },
   
+
+  async getAdminWalletAnalytics(): Promise<any> {
+    try {
+       const response = await api.get('/wallet/admin-analytics/');
+       return response.data;
+     } catch (error) {
+       ErrorService.handleApiError(error, { operation: 'Get Admin Dashboard Analytics' });
+       throw error;
+     }
+   },
+   
+
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
