@@ -115,6 +115,7 @@ import HotelBookingsManagement from "../pages/admin/travel/HotelBookingsManageme
 import FlightBookingsManagement from "../pages/admin/travel/FlightBookingsManagement";
 import SupportTicketsManagement from "../pages/admin/support/SupportTicketsManagement";
 import FAQManagement from "../pages/admin/support/FAQManagement";
+import { WalletsManagement } from "../pages/admin/finance/Wallets";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -543,7 +544,7 @@ export const protectedRoutes: RouteObject[] = [
       { path: "users/admins", element: <UserManagement /> },
       { path: "users/permissions", element: <RolesPermissions /> },
       { path: "financial", element: <FinancialManagement /> },
-      { path: "financial/wallets", element: <CustomerPlaceholderPage title="Wallet Management" /> },
+      { path: "financial/wallets", element: <WalletsManagement /> },
       { path: "financial/payments", element: <CustomerPlaceholderPage title="Payment Management" /> },
       { path: "financial/reports", element: <CustomerPlaceholderPage title="Revenue Reports" /> },
       { path: "landing", element: <LandingPageCustomizer /> },
