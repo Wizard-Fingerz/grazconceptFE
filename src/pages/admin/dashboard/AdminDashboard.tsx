@@ -49,9 +49,10 @@ import {
   CartesianGrid,
   Tooltip as RechartTooltip,
   Legend,
+  BarChart,
 } from 'recharts';
 
-// Remove Grid, use Box (with flex, gap, wrap, etc) for layout
+import authService from '../../../services/authService';
 
 interface DashboardMetric {
   label: string;
@@ -71,24 +72,6 @@ interface RecentActivity {
   user?: string;
 }
 
-const statusInfo = [
-  { label: "API", status: "Operational", color: "success", value: 100 },
-  { label: "Database", status: "Healthy", color: "success", value: 99 },
-  { label: "Payment Gateway", status: "Operational", color: "success", value: 100 },
-  { label: "Email Service", status: "Operational", color: "success", value: 98 },
-  { label: "Storage", status: "Warning: 85% full", color: "warning", value: 85 },
-];
-
-// Demo analytics/mock data for Recharts
-const analyticsData = [
-  { month: 'Jan', Users: 400, Revenue: 2400, Applications: 35 },
-  { month: 'Feb', Users: 700, Revenue: 3200, Applications: 50 },
-  { month: 'Mar', Users: 820, Revenue: 4100, Applications: 54 },
-  { month: 'Apr', Users: 950, Revenue: 5600, Applications: 58 },
-  { month: 'May', Users: 1100, Revenue: 6200, Applications: 60 },
-  { month: 'Jun', Users: 1240, Revenue: 7200, Applications: 65 },
-];
-
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -96,28 +79,194 @@ export const AdminDashboard: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<DashboardMetric[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<any[]>([]);
+  const [serviceStats, setServiceStats] = useState<{ label: string; count: number; icon: React.ReactNode }[]>([]);
+  const [statusInfo, setStatusInfo] = useState<any[]>([]);
 
-  // Demo/mock data
-  const [metrics] = useState<DashboardMetric[]>([
-    { label: 'Users', value: 1240, icon: <PeopleIcon />, color: theme.palette.primary.main, change: '+12.5%', trend: 'up', tooltip: 'Total registered users' },
-    { label: 'Revenue', value: '₦10,257,500', icon: <MoneyIcon />, color: theme.palette.success.main, change: '+8.1%', trend: 'up', tooltip: 'Total revenue generated this month' },
-    { label: 'Applications', value: 265, icon: <AssignmentIcon />, color: theme.palette.warning.main, change: '+3.2%', trend: 'up', tooltip: 'Active/ongoing applications' },
-    { label: 'Approvals', value: 14, icon: <ScheduleIcon />, color: theme.palette.error.main, change: '-2%', trend: 'down', tooltip: 'Pending approvals for admin review' },
-    { label: 'Staff', value: 33, icon: <AdminIcon />, color: theme.palette.secondary.main, change: '+2', trend: 'up', tooltip: 'Staff accounts' },
-    { label: 'Health', value: '99%', icon: <CheckCircleIcon />, color: theme.palette.success.light, change: 'Normal', trend: 'neutral', tooltip: 'System uptime this month' },
-  ]);
-
-  const [recentActivities] = useState<RecentActivity[]>([
-    { id: '1', type: 'user', description: 'New user registered', timestamp: '2h ago', user: 'John Doe' },
-    { id: '2', type: 'application', description: 'Study visa application submitted', timestamp: '3h ago', user: 'Jane Smith' },
-    { id: '3', type: 'payment', description: 'Payment processed', timestamp: '5h ago', user: 'Mike Johnson' },
-    { id: '4', type: 'user', description: 'User upgraded to premium', timestamp: '7h ago', user: 'Emily Wilson' },
-    { id: '5', type: 'application', description: 'Work visa approved', timestamp: '10h ago', user: 'Peter China' },
-  ]);
-
+  // Fetch analytics data from API
   useEffect(() => {
-    setTimeout(() => setLoading(false), 800);
-  }, []);
+    let isMounted = true;
+    async function loadAnalytics() {
+      try {
+        const response = await authService.getAdminDashboardAnalytics();
+        if (isMounted && response) {
+          // Key Metrics
+          setMetrics([
+            {
+              label: 'Total Users',
+              value: response.metrics?.users_total ?? 0,
+              icon: <PeopleIcon />,
+              color: theme.palette.primary.main,
+              tooltip: 'Total registered users'
+            },
+            {
+              label: 'Total Revenue',
+              value: typeof response.metrics?.revenue_total === 'number'
+                ? `₦${(+response.metrics.revenue_total).toLocaleString()}`
+                : '₦0',
+              icon: <MoneyIcon />,
+              color: theme.palette.success.main,
+              tooltip: 'Total revenue generated'
+            },
+            {
+              label: 'Active Applications',
+              value: response.metrics?.applications_active ?? 0,
+              icon: <AssignmentIcon />,
+              color: theme.palette.warning.main,
+              tooltip: 'Active/ongoing applications'
+            },
+            {
+              label: 'Pending Approvals',
+              value: response.metrics?.approvals_pending ?? 0,
+              icon: <ScheduleIcon />,
+              color: theme.palette.error.main,
+              tooltip: 'Pending approvals for admin review'
+            },
+            {
+              label: 'Staff Count',
+              value: response.metrics?.staff_count ?? 0,
+              icon: <AdminIcon />,
+              color: theme.palette.secondary.main,
+              tooltip: 'Staff accounts'
+            },
+            {
+              label: 'System Health',
+              value: response.metrics?.health_percent
+                ? `${response.metrics.health_percent}%`
+                : '99%',
+              icon: <CheckCircleIcon />,
+              color: theme.palette.success.light,
+              tooltip: 'System uptime'
+            },
+            {
+              label: 'Total Investments',
+              value: response.metrics?.investment_total ?? 0,
+              icon: <BarChartIcon />,
+              color: theme.palette.info.main,
+              tooltip: 'Total number of investments'
+            },
+            {
+              label: 'Amount Invested',
+              value: typeof response.metrics?.amount_invested === 'number'
+                ? `₦${(+response.metrics.amount_invested).toLocaleString()}`
+                : '₦0',
+              icon: <AccountBalanceWalletIcon />,
+              color: theme.palette.primary.light,
+              tooltip: 'Total amount invested'
+            },
+            {
+              label: 'Investment ROI',
+              value: typeof response.metrics?.roi_total === 'number'
+                ? `₦${(+response.metrics.roi_total).toLocaleString()}`
+                : '₦0',
+              icon: <CheckCircleIcon />,
+              color: theme.palette.success.dark,
+              tooltip: 'Total investment return'
+            },
+            {
+              label: 'Total Investors',
+              value: response.metrics?.investor_total ?? 0,
+              icon: <PeopleIcon />,
+              color: theme.palette.info.dark,
+              tooltip: 'Total number of investors'
+            },
+            {
+              label: 'Total Loans',
+              value: response.metrics?.loans_total ?? 0,
+              icon: <MoneyIcon />,
+              color: theme.palette.secondary.light,
+              tooltip: 'Loans created'
+            },
+            {
+              label: 'Active Loans',
+              value: response.metrics?.loans_active ?? 0,
+              icon: <MoneyIcon />,
+              color: theme.palette.warning.dark,
+              tooltip: 'Active loans'
+            },
+            {
+              label: 'Loan Amount',
+              value: typeof response.metrics?.loan_amount_total === 'number'
+                ? `₦${(+response.metrics.loan_amount_total).toLocaleString()}`
+                : '₦0',
+              icon: <MoneyIcon />,
+              color: theme.palette.error.light,
+              tooltip: 'Total loan amount'
+            },
+          ]);
+
+          // Analytics chart data
+          setAnalyticsData(Array.isArray(response.analytics_data) ? response.analytics_data : []);
+
+          // Recent Activities
+          setRecentActivities(
+            Array.isArray(response.recent_activities)
+              ? response.recent_activities.map((item: any, idx: number) => ({
+                  id: item.id ?? String(idx),
+                  type: item.type,
+                  description: item.description,
+                  timestamp: item.timestamp,
+                  user: item.user,
+                }))
+              : []
+          );
+
+          // Service Stats
+          // Icons mapping for each type
+          setServiceStats([
+            {
+              label: 'Study Visa',
+              count: response.service_stats?.study_visa ?? 0,
+              icon: <SchoolIcon />
+            },
+            {
+              label: 'Work Visa',
+              count: response.service_stats?.work_visa ?? 0,
+              icon: <FlightIcon />
+            },
+            {
+              label: 'Travel',
+              count: response.service_stats?.travel ?? 0,
+              icon: <FlightIcon />
+            },
+            {
+              label: 'Loans',
+              count: response.service_stats?.loans ?? 0,
+              icon: <MoneyIcon />
+            },
+            {
+              label: 'Investments',
+              count: response.service_stats?.investments ?? 0,
+              icon: <AccountBalanceWalletIcon />
+            }
+          ]);
+
+          // Status Info
+          setStatusInfo(Array.isArray(response.status_info) ? response.status_info : []);
+        }
+      } catch (e) {
+        // fallback to empty
+      } finally {
+        setTimeout(() => {
+          if (isMounted) setLoading(false);
+        }, 800);
+      }
+    }
+    loadAnalytics();
+    return () => {
+      isMounted = false;
+    };
+    // Only remount theme.palette on color mode change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme.palette]);
+
+  // For icon references not imported above:
+  // Add the missing icons - BarChartIcon and AccountBalanceWalletIcon
+  // Typescript: import as alias since MUI provides as BarChart, AccountBalanceWallet
+  function BarChartIcon(props: any) { return <BarChart {...props} />; }
+  function AccountBalanceWalletIcon(props: any) { return <WalletIcon {...props} />; }
 
   const quickActions = [
     { label: 'Manage Users', icon: <PeopleIcon />, path: '/admin/users', color: theme.palette.primary.main },
@@ -128,15 +277,8 @@ export const AdminDashboard: React.FC = () => {
     { label: 'Security Logs', icon: <SecurityIcon />, path: '/admin/security', color: theme.palette.error.main },
   ];
 
-  const serviceStats = [
-    { label: 'Study Visa', count: 78, icon: <SchoolIcon /> },
-    { label: 'Work Visa', count: 33, icon: <FlightIcon /> },
-    { label: 'Travel', count: 44, icon: <FlightIcon /> },
-    { label: 'Loans', count: 12, icon: <MoneyIcon /> },
-  ];
-
   // Default border radius and elevation for all Card/Paper
-  const FLAT_RADIUS = 1; // reduce from 3, 2.5, 2 etc to 1
+  const FLAT_RADIUS = 1;
   const FLAT_ELEVATION = 0;
 
   if (loading) {
@@ -149,14 +291,14 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <Box
-    sx={{
-      px: { xs: 1, sm: 2, md: 4 },
-      py: { xs: 1, sm: 2 },
-      width: '100%',
-      maxWidth: 1600,
-      mx: 'auto',
-    }}
-  >
+      sx={{
+        px: { xs: 1, sm: 2, md: 4 },
+        py: { xs: 1, sm: 2 },
+        width: '100%',
+        maxWidth: 1600,
+        mx: 'auto',
+      }}
+    >
       {/* Dashboard Header */}
       <Box sx={{
         display: 'flex',
@@ -200,8 +342,8 @@ export const AdminDashboard: React.FC = () => {
             sx={{
               minWidth: {
                 xs: '100%',
-                sm: '260px',   // Or use a minimum width you prefer for each box
-                md: '220px',   // Adjust as needed for your design
+                sm: '260px',
+                md: '220px',
                 lg: '180px'
               },
               display: "flex"
@@ -235,23 +377,7 @@ export const AdminDashboard: React.FC = () => {
                     >
                       {metric.icon}
                     </Avatar>
-                    {metric.change && (
-                      <Chip
-                        size="small"
-                        label={metric.change}
-                        color={metric.trend === "up" ? "success" : metric.trend === "down" ? "error" : "default"}
-                        icon={metric.trend === "up" ? <CheckCircleIcon fontSize="small" /> : metric.trend === "down" ? <WarningIcon fontSize="small" /> : undefined}
-                        sx={{
-                          height: 24,
-                          fontWeight: 700,
-                          bgcolor: metric.trend === "up"
-                            ? theme.palette.success.light
-                            : metric.trend === "down"
-                              ? theme.palette.error.light
-                              : theme.palette.grey[50]
-                        }}
-                      />
-                    )}
+                    {/* Removed trend/change since not present in new API */}
                   </Stack>
                   <Typography variant="h4" sx={{ fontWeight: 800, mb: 0, color: theme.palette.text.primary, letterSpacing: -1 }}>
                     {metric.value}
@@ -324,11 +450,11 @@ export const AdminDashboard: React.FC = () => {
                         background: 'linear-gradient(104deg, #fafafc 0%, #f5f6fa 100%)',
                         borderRadius: FLAT_RADIUS,
                         border: `1px solid ${theme.palette.grey[200]}`,
-                        boxShadow: "0 0.5px 2px -2px #e3e6ee", // was 0 1.5px 5px -2px, reduce for less depth
+                        boxShadow: "0 0.5px 2px -2px #e3e6ee",
                         transition: "all 0.18s",
                         '&:hover': {
                           background: theme.palette.grey[50],
-                          boxShadow: "0 2px 10px -4px #d3d8e3", // smaller hover shadow
+                          boxShadow: "0 2px 10px -4px #d3d8e3",
                           transform: "translateY(-2px)",
                         }
                       }}
@@ -494,15 +620,25 @@ export const AdminDashboard: React.FC = () => {
                               ? theme.palette.primary.main
                               : activity.type === 'application'
                                 ? theme.palette.warning.main
-                                : theme.palette.success.main,
+                                : activity.type === 'payment'
+                                  ? theme.palette.success.main
+                                  : activity.type === 'flight'
+                                    ? theme.palette.info.light
+                                    : activity.type === 'support_ticket'
+                                      ? theme.palette.secondary.main
+                                      : activity.type === 'support_ticket_message'
+                                        ? theme.palette.info.dark
+                                        : theme.palette.grey[400],
                           color: "#fff"
                         }}
                       >
-                        {activity.type === 'user'
-                          ? <PeopleIcon fontSize="small" />
-                          : activity.type === 'application'
-                            ? <AssignmentIcon fontSize="small" />
-                            : <MoneyIcon fontSize="small" />}
+                        {activity.type === 'user' ? <PeopleIcon fontSize="small" />
+                          : activity.type === 'application' ? <AssignmentIcon fontSize="small" />
+                          : activity.type === 'payment' ? <MoneyIcon fontSize="small" />
+                          : activity.type === 'flight' ? <FlightIcon fontSize="small" />
+                          : activity.type === 'support_ticket' ? <WarningIcon fontSize="small" />
+                          : activity.type === 'support_ticket_message' ? <CheckCircleIcon fontSize="small" />
+                          : <PeopleIcon fontSize="small" />}
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText

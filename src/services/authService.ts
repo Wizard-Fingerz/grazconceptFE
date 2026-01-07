@@ -65,6 +65,17 @@ export interface RegisterResponse {
   user_type_name: 'customer' | 'agent';
 }
 
+// NEW: Dashboard Analytics Response Interface
+export interface AdminDashboardAnalytics {
+  // Define properties as expected from your backend, for example:
+  total_users: number;
+  total_agents: number;
+  total_customers: number;
+  total_transactions: number;
+  recent_activities: any[];
+  [key: string]: any; // Add index signature in case backend returns more keys
+}
+
 const authService = {
   async login(credentials: LoginCredentials) {
     try {
@@ -133,6 +144,17 @@ const authService = {
       return response.data;
     } catch (error) {
       ErrorService.handleApiError(error, { operation: 'Get My Referee' });
+      throw error;
+    }
+  },
+
+  // New: get admin dashboard analytics
+  async getAdminDashboardAnalytics(): Promise<AdminDashboardAnalytics> {
+    try {
+      const response = await api.get('/admin/dashboard-analytics/');
+      return response.data;
+    } catch (error) {
+      ErrorService.handleApiError(error, { operation: 'Get Admin Dashboard Analytics' });
       throw error;
     }
   },
