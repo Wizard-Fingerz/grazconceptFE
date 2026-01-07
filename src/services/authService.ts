@@ -172,6 +172,17 @@ const authService = {
     }
   },
 
+
+  async getAdminUserAnalytics(): Promise<any> {
+   try {
+      const response = await api.get('/admin/user-analytics/');
+      return response.data;
+    } catch (error) {
+      ErrorService.handleApiError(error, { operation: 'Get Admin Dashboard Analytics' });
+      throw error;
+    }
+  },
+  
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
