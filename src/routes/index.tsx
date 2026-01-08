@@ -116,6 +116,8 @@ import FlightBookingsManagement from "../pages/admin/travel/FlightBookingsManage
 import SupportTicketsManagement from "../pages/admin/support/SupportTicketsManagement";
 import FAQManagement from "../pages/admin/support/FAQManagement";
 import { WalletsManagement } from "../pages/admin/finance/Wallets";
+import PaymentsManagement from "../pages/admin/finance/Payments";
+import RevenueReport from "../pages/admin/finance/RevenueReport";
 
 // Public routes (unauthenticated)
 export const publicRoutes: RouteObject[] = [
@@ -545,8 +547,8 @@ export const protectedRoutes: RouteObject[] = [
       { path: "users/permissions", element: <RolesPermissions /> },
       { path: "financial", element: <FinancialManagement /> },
       { path: "financial/wallets", element: <WalletsManagement /> },
-      { path: "financial/payments", element: <CustomerPlaceholderPage title="Payment Management" /> },
-      { path: "financial/reports", element: <CustomerPlaceholderPage title="Revenue Reports" /> },
+      { path: "financial/payments", element: <PaymentsManagement /> },
+      { path: "financial/reports", element: <RevenueReport /> },
       { path: "landing", element: <LandingPageCustomizer /> },
       { path: "content", element: <ContentManagement /> },
       { path: "content/articles", element: <CustomerPlaceholderPage title="Articles & Blog" /> },
