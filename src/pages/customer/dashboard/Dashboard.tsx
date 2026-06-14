@@ -20,7 +20,6 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
-  Avatar,
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -473,6 +472,7 @@ export const Dashboard: React.FC = () => {
     .filter(tx => new Date(tx.date).toDateString() === todayStr && Number(tx.amount) > 0)
     .reduce((s, tx) => s + Number(tx.amount), 0);
   const bal = rawBalance.toLocaleString();
+  console.log(bal)
   const txEmoji = (tx: any) => {
     const type = (tx.transaction_type || tx.type || '').toLowerCase();
     if (type.includes('deposit') || type.includes('credit')) return { e: '💰', bg: C.greenBg };
