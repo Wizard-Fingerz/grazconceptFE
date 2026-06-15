@@ -70,7 +70,7 @@ function getTransactionDescription(tx: any) {
 const actionResultRoutes: Record<string, string> = {
   'Book Flight':                    '/dashboard/flight-result',
   'Reserve Hotel':                  '/travel/hotel-reservation',
-  'Apply for Visa':                 '/travel/study-visa',
+  'Apply for Visa':                 '/apply',
   'Chat with Agent':                '/support/chat',
   'Create Savings Plan':            '/dashboard/savings-plan',
   'Apply for Study Loan':           '/customer/dashboard/study-loan-result',
@@ -420,10 +420,10 @@ export const Dashboard: React.FC = () => {
     const routes: Record<string, string> = {
       'Book Flight':      '/travel/book-flight',
       'Reserve Hotel':    '/travel/hotel-reservation',
-      'Study Visa':       '/travel/study-visa',
-      'Work Visa':        '/travel/work-visa',
-      'Vacation':         '/travel/vacation',
-      'Pilgrimage':       '/travel/pilgrimage',
+      'Study Visa':       '/apply?service=study',
+      'Work Visa':        '/apply?service=work',
+      'Vacation':         '/apply?service=vacation',
+      'Pilgrimage':       '/apply?service=pilgrimage',
       'Savings Plan':     '/dashboard/savings-plan',
       'Study Abroad Loan':'/edufinance/study-abroad-loan',
       'Civil Servant Loan':'/edufinance/civil-servant-loan',
@@ -784,7 +784,7 @@ export const Dashboard: React.FC = () => {
                 title="No active visa applications"
                 subtitle="Start a visa application to track its status and next steps."
                 ctaLabel="Apply for a Visa"
-                onCta={() => navigate('/travel/study-visa')}
+                onCta={() => navigate('/apply')}
               />
             )}
             {bookingTab === 3 && (
@@ -929,7 +929,7 @@ export const Dashboard: React.FC = () => {
               title="No active applications"
               subtitle="Apply for a visa, study programme or travel package to track progress here."
               ctaLabel="Start an Application"
-              onCta={() => navigate('/travel/study-visa')}
+              onCta={() => navigate('/apply')}
             />
           </DCard>
 

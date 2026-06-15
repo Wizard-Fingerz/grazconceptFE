@@ -92,6 +92,8 @@ import LiveChatWithAgent from "../pages/customer/helpcenter/LiveChatWithAgent";
 import InvestmentPlanPage from "../pages/customer/citizenship/InvestmentPlan";
 import StudyLoanDetails from "../pages/customer/edufinance/Study/StudyLoanDetails";
 import SavingPlan from "../pages/customer/dashboard/SavingPlan";
+import EditProfilePage from "../pages/customer/accountsettings/EditProfile";
+import GenericApplicationForm from "../pages/customer/travel/GenericApplication";
 import AdminDashboard from "../pages/admin/dashboard/AdminDashboard";
 import UserManagement from "../pages/admin/users/UserManagement";
 import RolesPermissions from "../pages/admin/users/RolesPermissions";
@@ -324,7 +326,7 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "profile/edit",
-        element: <CustomerProfileSetup />,
+        element: <EditProfilePage />,
       },
       {
         path: "travel/book-flight",
@@ -521,6 +523,14 @@ export const protectedRoutes: RouteObject[] = [
       {
         path: "settings/profile",
         element: <ProfilePage />,
+      },
+      {
+        path: "settings/profile/edit",
+        element: <EditProfilePage />,
+      },
+      {
+        path: "apply",
+        element: <GenericApplicationForm />,
       },
       {
         path: "profile-setup",
