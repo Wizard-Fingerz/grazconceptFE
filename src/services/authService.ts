@@ -51,8 +51,37 @@ export interface UserProfile {
   bio?: string;
   address?: string;
   country?: string;
-  referred_by?: string,
+  referred_by?: string;
   wallet?: any;
+
+  // Passport & Identity
+  passport_number?: string | null;
+  passport_expiry_date?: string | null;
+  nin?: string | null;
+  bvn?: string | null;
+
+  // Education
+  highest_qualification?: string | null;
+  graduation_year?: string | number | null;
+  previous_university?: string | null;
+  previous_course_of_study?: string | null;
+  cgpa?: string | null;
+
+  // Employment
+  previous_job_title?: string | null;
+  previous_employer?: string | null;
+  years_of_experience?: number | null;
+  year_left_previous_job?: string | number | null;
+
+  // Emergency Contact
+  emergency_contact_name?: string | null;
+  emergency_contact_relationship?: string | null;
+  emergency_contact_phone?: string | null;
+
+  // Travel & Visa
+  travel_history?: string | null;
+  previous_visa_applications?: boolean | null;
+  previous_visa_details?: string | null;
 }
 
 export interface RegisterResponse {

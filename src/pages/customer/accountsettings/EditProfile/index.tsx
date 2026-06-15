@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import {
   Box, Typography, Avatar, Button, TextField, MenuItem,
   Paper, Grid, CircularProgress, Alert, IconButton, Chip,
-  Divider,
 } from "@mui/material";
 import ArrowBackIcon    from "@mui/icons-material/ArrowBack";
 import SaveIcon         from "@mui/icons-material/Save";
@@ -323,13 +322,13 @@ const EditProfilePage: React.FC = () => {
         ...(form.cgpa                 && { cgpa:                          form.cgpa }),
         ...(form.previous_job_title   && { previous_job_title:            form.previous_job_title }),
         ...(form.previous_employer    && { previous_employer:             form.previous_employer }),
-        ...(form.years_of_experience  && { years_of_experience:          form.years_of_experience }),
-        ...(form.year_left_previous_job && { year_left_previous_job:     form.year_left_previous_job }),
+        ...(form.years_of_experience  && { years_of_experience:          Number(form.years_of_experience) }),
+        ...(form.year_left_previous_job && { year_left_previous_job:     form.year_left_previous_job as string }),
         ...(form.emergency_contact_name && { emergency_contact_name:     form.emergency_contact_name }),
         ...(form.emergency_contact_relationship && { emergency_contact_relationship: form.emergency_contact_relationship }),
         ...(form.emergency_contact_phone && { emergency_contact_phone:   form.emergency_contact_phone }),
         ...(form.travel_history       && { travel_history:               form.travel_history }),
-        previous_visa_applications: form.previous_visa_applications === "true" as any,
+        previous_visa_applications: form.previous_visa_applications === "true",
         ...(form.previous_visa_details && { previous_visa_details:       form.previous_visa_details }),
       });
       await updateUser();
@@ -455,34 +454,34 @@ const EditProfilePage: React.FC = () => {
         </Box>
 
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}><TextField label="First Name" required fullWidth value={form.first_name} onChange={set("first_name")} size="small" sx={SX_INPUT} /></Grid>
-          <Grid item xs={12} sm={4}><TextField label="Middle Name" fullWidth value={form.middle_name} onChange={set("middle_name")} size="small" sx={SX_INPUT} /></Grid>
-          <Grid item xs={12} sm={4}><TextField label="Last Name" required fullWidth value={form.last_name} onChange={set("last_name")} size="small" sx={SX_INPUT} /></Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 4 }}><TextField label="First Name" required fullWidth value={form.first_name} onChange={set("first_name")} size="small" sx={SX_INPUT} /></Grid>
+          <Grid size={{ xs: 12, sm: 4 }}><TextField label="Middle Name" fullWidth value={form.middle_name} onChange={set("middle_name")} size="small" sx={SX_INPUT} /></Grid>
+          <Grid size={{ xs: 12, sm: 4 }}><TextField label="Last Name" required fullWidth value={form.last_name} onChange={set("last_name")} size="small" sx={SX_INPUT} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Email Address"
               fullWidth value="" disabled size="small" sx={SX_INPUT}
               helperText="Email cannot be changed — contact support."
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Phone Number" fullWidth value={form.phone_number} onChange={set("phone_number")} size="small" sx={SX_INPUT} placeholder="+234 800 000 0000" />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField label="Date of Birth" type="date" fullWidth value={form.date_of_birth} onChange={set("date_of_birth")} size="small" InputLabelProps={{ shrink: true }} sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField label="Gender" select fullWidth value={form.gender} onChange={set("gender")} size="small" sx={SX_INPUT}>
               {GENDER_OPTIONS.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField label="Nationality" fullWidth value={form.nationality} onChange={set("nationality")} size="small" sx={SX_INPUT} placeholder="e.g. Nigerian" />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Country of Residence" fullWidth value={form.country_of_residence} onChange={set("country_of_residence")} size="small" sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Current Address" fullWidth value={form.current_address} onChange={set("current_address")} size="small" sx={SX_INPUT} />
           </Grid>
         </Grid>
@@ -493,16 +492,16 @@ const EditProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       <SectionCard title="Passport & Identity" subtitle="Stored securely — pre-fills all visa applications." icon="🛂">
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Passport Number" fullWidth value={form.passport_number} onChange={set("passport_number")} size="small" sx={SX_INPUT} placeholder="e.g. A12345678" />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Passport Expiry Date" type="date" fullWidth value={form.passport_expiry_date} onChange={set("passport_expiry_date")} size="small" InputLabelProps={{ shrink: true }} sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="NIN (National ID Number)" fullWidth value={form.nin} onChange={set("nin")} size="small" sx={SX_INPUT} placeholder="11-digit NIN" />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="BVN (Bank Verification Number)" fullWidth value={form.bvn} onChange={set("bvn")} size="small" sx={SX_INPUT} placeholder="11-digit BVN"
               helperText="Optional — used for financial services only." />
           </Grid>
@@ -514,21 +513,21 @@ const EditProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       <SectionCard title="Educational Background" subtitle="Used for Study Abroad and Work Abroad applications." icon="🎓">
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={6} key={"highest_qualification"}>
             <TextField label="Highest Qualification" select fullWidth value={form.highest_qualification} onChange={set("highest_qualification")} size="small" sx={SX_INPUT}>
               {QUALIFICATION_OPTIONS.map(q => <MenuItem key={q} value={q}>{q}</MenuItem>)}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={6} key={"graduation_year"}>
             <TextField label="Graduation Year" type="number" fullWidth value={form.graduation_year} onChange={set("graduation_year")} size="small" sx={SX_INPUT} inputProps={{ min: 1980, max: 2030 }} />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={6} key={"previous_university"}>
             <TextField label="Previous University / Institution" fullWidth value={form.previous_university} onChange={set("previous_university")} size="small" sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={6} key={"previous_course_of_study"}>
             <TextField label="Course / Field of Study" fullWidth value={form.previous_course_of_study} onChange={set("previous_course_of_study")} size="small" sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={4} key={"cpag"}>
             <TextField label="CGPA / Final Grade" fullWidth value={form.cgpa} onChange={set("cgpa")} size="small" sx={SX_INPUT} placeholder="e.g. 4.5/5.0 or First Class" />
           </Grid>
         </Grid>
@@ -539,16 +538,16 @@ const EditProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       <SectionCard title="Employment History" subtitle="Used for Work Abroad applications." icon="💼">
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Current / Most Recent Job Title" fullWidth value={form.previous_job_title} onChange={set("previous_job_title")} size="small" sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Most Recent Employer" fullWidth value={form.previous_employer} onChange={set("previous_employer")} size="small" sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Total Years of Experience" type="number" fullWidth value={form.years_of_experience} onChange={set("years_of_experience")} size="small" sx={SX_INPUT} inputProps={{ min: 0, max: 60 }} />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Year Left Previous Job" type="number" fullWidth value={form.year_left_previous_job} onChange={set("year_left_previous_job")} size="small" sx={SX_INPUT} inputProps={{ min: 1990, max: 2030 }} />
           </Grid>
         </Grid>
@@ -559,15 +558,15 @@ const EditProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       <SectionCard title="Emergency Contact" subtitle="Required for all visa and travel applications." icon="🆘">
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField label="Full Name" required fullWidth value={form.emergency_contact_name} onChange={set("emergency_contact_name")} size="small" sx={SX_INPUT} />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField label="Relationship" select fullWidth value={form.emergency_contact_relationship} onChange={set("emergency_contact_relationship")} size="small" sx={SX_INPUT}>
               {RELATIONSHIP_OPTIONS.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField label="Phone Number" required fullWidth value={form.emergency_contact_phone} onChange={set("emergency_contact_phone")} size="small" sx={SX_INPUT} placeholder="+234..." />
           </Grid>
         </Grid>
@@ -578,7 +577,7 @@ const EditProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       <SectionCard title="Travel History" subtitle="Optional — strengthens your visa applications." icon="🌍">
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               label="Countries visited (with dates and purpose)"
               multiline rows={3} fullWidth
@@ -588,14 +587,14 @@ const EditProfilePage: React.FC = () => {
               placeholder="e.g. UAE (Nov 2023 – Tourism), Ghana (Mar 2022 – Business)"
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Previous visa denials?" select fullWidth value={form.previous_visa_applications} onChange={set("previous_visa_applications")} size="small" sx={SX_INPUT}>
               <MenuItem value="false">No</MenuItem>
               <MenuItem value="true">Yes — provide details below</MenuItem>
             </TextField>
           </Grid>
           {form.previous_visa_applications === "true" && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField label="Details of visa denial(s)" multiline rows={2} fullWidth value={form.previous_visa_details} onChange={set("previous_visa_details")} size="small" sx={SX_INPUT} />
             </Grid>
           )}
@@ -611,7 +610,7 @@ const EditProfilePage: React.FC = () => {
         </Alert>
         <Grid container spacing={2}>
           {DOC_UPLOAD_SLOTS.map(slot => (
-            <Grid item xs={12} sm={6} key={slot.term}>
+            <Grid size={{ xs: 12, sm: 6 }} key={slot.term}>
               <DocSlot
                 term={slot.term}
                 accept={slot.accept}

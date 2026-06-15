@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import {
   Box, Typography, Avatar, CircularProgress, Chip,
   LinearProgress, IconButton, Tooltip, Alert,
@@ -507,16 +507,16 @@ const ProfilePage: React.FC = () => {
           const v = user[k]; return v && String(v).trim() && String(v) !== "[object Object]";
         }) ? "complete" : "partial"}>
         <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="First Name"          value={fmt(user.first_name)} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Middle Name"          value={fmt(user.middle_name)} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Last Name"            value={fmt(user.last_name)} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Email"                value={fmt(user.email)} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Phone Number"         value={fmt(user.phone_number)} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Date of Birth"        value={user.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"}) : null} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Gender"               value={fmt(user.gender_name || user.gender)} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Nationality"          value={fmt(user.nationality)} /></Grid>
-          <Grid item xs={12} sm={6} md={4}><InfoRow label="Country of Residence" value={fmt(user.country_of_residence)} /></Grid>
-          <Grid item xs={12}>              <InfoRow label="Current Address"       value={fmt(user.current_address)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="First Name"          value={fmt(user.first_name)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Middle Name"          value={fmt(user.middle_name)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Last Name"            value={fmt(user.last_name)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Email"                value={fmt(user.email)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Phone Number"         value={fmt(user.phone_number)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Date of Birth"        value={user.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"}) : null} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Gender"               value={fmt(user.gender_name || user.gender)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Nationality"          value={fmt(user.nationality)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoRow label="Country of Residence" value={fmt(user.country_of_residence)} /></Grid>
+          <Grid size={{ xs: 12 }}>              <InfoRow label="Current Address"       value={fmt(user.current_address)} /></Grid>
         </Grid>
       </SectionBlock>
 
@@ -531,10 +531,10 @@ const ProfilePage: React.FC = () => {
           </Alert>
         )}
         <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6}><InfoRow label="Passport Number"      value={fmt(user.passport_number)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="Passport Expiry Date" value={user.passport_expiry_date ? new Date(user.passport_expiry_date).toLocaleDateString() : null} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="NIN"                  value={fmt(user.nin)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="BVN"                  value={user.bvn ? "••••••••" + String(user.bvn).slice(-3) : null} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Passport Number"      value={fmt(user.passport_number)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Passport Expiry Date" value={user.passport_expiry_date ? new Date(user.passport_expiry_date).toLocaleDateString() : null} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="NIN"                  value={fmt(user.nin)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="BVN"                  value={user.bvn ? "••••••••" + String(user.bvn).slice(-3) : null} /></Grid>
         </Grid>
         <Divider sx={{ my:2 }} />
         <Button variant="outlined" size="small" startIcon={<EditIcon />}
@@ -550,11 +550,11 @@ const ProfilePage: React.FC = () => {
       <SectionBlock id="education" icon="🎓" title="Educational Background"
         status={user.highest_qualification ? (user.previous_university ? "complete" : "partial") : "missing"}>
         <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6}><InfoRow label="Highest Qualification"  value={fmt(user.highest_qualification)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="Graduation Year"        value={fmt(user.graduation_year)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="Previous University"    value={fmt(user.previous_university)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="Field of Study"         value={fmt(user.previous_course_of_study)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="CGPA / Final Grade"     value={fmt(user.cgpa)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Highest Qualification"  value={fmt(user.highest_qualification)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Graduation Year"        value={fmt(user.graduation_year)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Previous University"    value={fmt(user.previous_university)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Field of Study"         value={fmt(user.previous_course_of_study)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="CGPA / Final Grade"     value={fmt(user.cgpa)} /></Grid>
         </Grid>
       </SectionBlock>
 
@@ -564,10 +564,10 @@ const ProfilePage: React.FC = () => {
       <SectionBlock id="employment" icon="💼" title="Employment History"
         status={user.previous_employer ? "partial" : "missing"}>
         <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6}><InfoRow label="Job Title"          value={fmt(user.previous_job_title)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="Most Recent Employer"value={fmt(user.previous_employer)} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="Years of Experience" value={user.years_of_experience != null ? `${user.years_of_experience} years` : null} /></Grid>
-          <Grid item xs={12} sm={6}><InfoRow label="Year Left"           value={fmt(user.year_left_previous_job)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Job Title"          value={fmt(user.previous_job_title)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Most Recent Employer"value={fmt(user.previous_employer)} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Years of Experience" value={user.years_of_experience != null ? `${user.years_of_experience} years` : null} /></Grid>
+          <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Year Left"           value={fmt(user.year_left_previous_job)} /></Grid>
         </Grid>
       </SectionBlock>
 
@@ -582,9 +582,9 @@ const ProfilePage: React.FC = () => {
           </Alert>
         )}
         <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={4}><InfoRow label="Full Name"     value={fmt(user.emergency_contact_name)} /></Grid>
-          <Grid item xs={12} sm={4}><InfoRow label="Relationship"  value={fmt(user.emergency_contact_relationship)} /></Grid>
-          <Grid item xs={12} sm={4}><InfoRow label="Phone Number"  value={fmt(user.emergency_contact_phone)} /></Grid>
+          <Grid size={{ xs: 12, sm: 4 }}><InfoRow label="Full Name"     value={fmt(user.emergency_contact_name)} /></Grid>
+          <Grid size={{ xs: 12, sm: 4 }}><InfoRow label="Relationship"  value={fmt(user.emergency_contact_relationship)} /></Grid>
+          <Grid size={{ xs: 12, sm: 4 }}><InfoRow label="Phone Number"  value={fmt(user.emergency_contact_phone)} /></Grid>
         </Grid>
         <Divider sx={{ my:2 }} />
         <Button variant="outlined" size="small" startIcon={<EditIcon />}
@@ -626,7 +626,7 @@ const ProfilePage: React.FC = () => {
               {docTypes.map((dt: any) => {
                 const uploaded = uploadedForType(dt.id);
                 return (
-                  <Grid item xs={12} sm={6} md={4} key={dt.id}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={dt.id}>
                     <DocCard typeId={dt.id} typeTerm={dt.term}
                       uploaded={uploaded ? { id:uploaded.id, file:uploaded.file, uploaded_at:uploaded.uploaded_at } : undefined}
                       onUpload={(id, term) => setUploadPanel({ typeId:id, typeTerm:term })}

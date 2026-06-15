@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GenericApplication — Single-page application entry-point.
  *
  * All sections visible at once: service selector → profile prefill summary
@@ -426,7 +426,7 @@ const GenericApplicationForm: React.FC = () => {
       <Section number={1} title="Choose a Service">
         <Grid container spacing={1.5}>
           {SERVICES.map(svc => (
-            <Grid item xs={12} sm={6} key={svc.key}>
+            <Grid size={{ xs: 12, sm: 6 }} key={svc.key}>
               <ServiceCard
                 svc={svc}
                 selected={selectedKey === svc.key}
@@ -499,7 +499,7 @@ const GenericApplicationForm: React.FC = () => {
 
           <Grid container spacing={0}>
             {service.requiredProfile.map(field => (
-              <Grid item xs={12} sm={6} key={field}>
+              <Grid size={{ xs: 12, sm: 6 }} key={field}>
                 <ProfileRow
                   label={FIELD_LABELS[field] ?? field}
                   value={profileCheck(field) ? String((profile as any)[field]) : null}
