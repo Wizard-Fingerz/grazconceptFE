@@ -169,6 +169,7 @@ export const MainLayout: React.FC = () => {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
 
+  
   /* Refresh profile from API on mount so profile_picture_url is always current */
   useEffect(() => { updateUser(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
