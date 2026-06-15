@@ -31,12 +31,12 @@ import { toast } from 'react-toastify';
 
 // ─── Brand tokens ────────────────────────────────────────────────
 const C = {
-  brand:       '#6D28D9',
-  brandDark:   '#1E0A3C',
-  brandMid:    '#4C1D95',
-  accent:      '#8B5CF6',
-  accentLight: '#EDE9FE',
-  accentXL:    '#F5F3FF',
+  brand:       '#b66aed',
+  brandDark:   '#8b3fc7',
+  brandMid:    '#8b3fc7',
+  accent:      '#cfa5f2',
+  accentLight: '#f0d9fb',
+  accentXL:    '#f9f0fe',
   gold:        '#F59E0B',
   green:       '#059669', greenBg: '#ECFDF5', greenLight: '#D1FAE5',
   red:         '#DC2626', redBg:   '#FEF2F2',
@@ -144,7 +144,7 @@ const QATile = ({ emoji, label, badge, iconBg = C.accentXL, onClick }: {
       gap: 0.8, py: 1.5, px: 0.5,
       bgcolor: '#fff', border: `1.5px solid ${C.g200}`, borderRadius: '14px',
       cursor: 'pointer', position: 'relative', transition: 'all .18s',
-      '&:hover': { borderColor: C.accent, bgcolor: C.accentXL, transform: 'translateY(-1px)', boxShadow: '0 4px 12px rgba(109,40,217,.12)' },
+      '&:hover': { borderColor: C.accent, bgcolor: C.accentXL, transform: 'translateY(-1px)', boxShadow: '0 4px 12px rgba(182,106,237,.12)' },
       '&:hover .qa-em': { bgcolor: C.accent, color: '#fff' },
     }}
   >
@@ -483,7 +483,7 @@ export const Dashboard: React.FC = () => {
 
   // ── Render ───────────────────────────────────────────────────
   return (
-    <Box sx={{ bgcolor: C.g50, minHeight: '100vh', p: { xs: 1.5, sm: 2, md: 3 }, overflowX: 'hidden', maxWidth: '100%' }}>
+    <Box sx={{ bgcolor: C.g50, minHeight: '100vh', overflowX: 'hidden', maxWidth: '100%' }}>
 
       {/* ── GREETING ── */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5, mb: 2.5 }}>
@@ -508,7 +508,7 @@ export const Dashboard: React.FC = () => {
             size="small"
             variant="contained"
             onClick={() => navigate('/travel/book-flight')}
-            sx={{ borderRadius: '9px', textTransform: 'none', fontSize: 13, fontWeight: 600, background: C.brand, boxShadow: '0 3px 10px rgba(109,40,217,.3)', '&:hover': { background: C.accent } }}
+            sx={{ borderRadius: '9px', textTransform: 'none', fontSize: 13, fontWeight: 600, background: C.brand, boxShadow: '0 3px 10px rgba(182,106,237,.3)', '&:hover': { background: C.accent } }}
           >
             ✈️ Book Now
           </Button>
@@ -539,9 +539,9 @@ export const Dashboard: React.FC = () => {
 
       {/* ── AI INSIGHTS STRIP ── */}
       {transactions.length > 0 ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3,1fr)' }, gap: 2, mb: 2.5 }}>
+        <Box sx={{ display: { xs: 'none', md: 'grid' }, gridTemplateColumns: 'repeat(3,1fr)', gap: 2, mb: 2.5 }}>
           <AICard
-            gradient="linear-gradient(135deg,#2D1582 0%,#7C3AED 100%)"
+            gradient="linear-gradient(135deg,#8b3fc7 0%,#b66aed 100%)"
             emoji="✈️" tag="Travel"
             msg="Ready to plan your next trip? Browse flights, hotels and visa packages."
             cta="Book a Flight →"
@@ -589,10 +589,10 @@ export const Dashboard: React.FC = () => {
 
         {/* Main wallet card */}
         <Box sx={{
-          background: 'linear-gradient(135deg,#1E0A3C 0%,#4C1D95 60%,#7C3AED 100%)',
+          background: 'linear-gradient(135deg,#ac60e3 0%,#b66aed 60%,#cfa5f2 100%)',
           borderRadius: '16px', p: { xs: 2, sm: 2.5 }, color: '#fff', position: 'relative', overflow: 'hidden',
           minHeight: 195, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-          boxShadow: '0 8px 28px rgba(109,40,217,.35)',
+          boxShadow: '0 8px 28px rgba(182,106,237,.35)',
           gridColumn: { sm: '1 / -1', md: 'auto' },
         }}>
           {/* Decorative circles */}
@@ -722,20 +722,24 @@ export const Dashboard: React.FC = () => {
         </Box>
         <Box sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(4,1fr)', sm: 'repeat(6,1fr)', md: 'repeat(11,1fr)' },
+          gridTemplateColumns: { xs: 'repeat(4,1fr)', sm: 'repeat(6,1fr)', md: 'repeat(12,1fr)' },
           gap: { xs: 1, sm: 1.2 },
         }}>
-          <QATile emoji="✈️" label="Book Flight"       iconBg={C.accentXL}  onClick={() => handleActionClick('Book Flight')} />
-          <QATile emoji="🏨" label="Reserve Hotel"     iconBg={C.accentXL}  onClick={() => handleActionClick('Reserve Hotel')} />
-          <QATile emoji="📄" label="Study Visa"        iconBg={C.greenBg}   onClick={() => handleActionClick('Study Visa')} />
-          <QATile emoji="💼" label="Work Visa"         iconBg="#FFF7ED"     onClick={() => handleActionClick('Work Visa')} />
-          <QATile emoji="🕌" label="Pilgrimage"        iconBg={C.redBg}     onClick={() => handleActionClick('Pilgrimage')} />
-          <QATile emoji="🏖️" label="Vacation"          iconBg="#FFF7ED"     onClick={() => handleActionClick('Vacation')} />
-          <QATile emoji="💰" label="Savings Plan"      iconBg={C.greenBg}   onClick={() => handleActionClick('Savings Plan')} />
-          <QATile emoji="🌍" label="Investment / CBI"  iconBg={C.accentXL}  onClick={() => handleActionClick('Investment Plan')} />
-          <QATile emoji="📊" label="Study Loan"        iconBg={C.accentXL}  onClick={() => handleActionClick('Study Abroad Loan')} />
-          <QATile emoji="📱" label="Airtime & Bills"   iconBg={C.amberBg}   onClick={() => handleActionClick('Airtime & Bills')} />
-          <QATile emoji="🎁" label="Refer & Earn"      iconBg="#F0FDF4"     onClick={() => handleActionClick('Referrals')} />
+          {/* Mobility Hub */}
+          <QATile emoji="✈️" label="Flight & Hotel"      iconBg={C.accentXL}  onClick={() => handleActionClick('Book Flight')} />
+          <QATile emoji="📄" label="Study Abroad"         iconBg={C.greenBg}   onClick={() => handleActionClick('Study Visa')} />
+          <QATile emoji="💼" label="Work Abroad"          iconBg="#FFF7ED"     onClick={() => handleActionClick('Work Visa')} />
+          <QATile emoji="🕌" label="Pilgrimage"           iconBg={C.redBg}     onClick={() => handleActionClick('Pilgrimage')} />
+          <QATile emoji="🏖️" label="Vacation"             iconBg="#FFF7ED"     onClick={() => handleActionClick('Vacation')} />
+          <QATile emoji="🌍" label="Citizenship"          iconBg={C.accentXL}  onClick={() => handleActionClick('Investment Plan')} />
+          {/* Financial Hub */}
+          <QATile emoji="🎓" label="Study Loan"           iconBg={C.accentXL}  onClick={() => handleActionClick('Study Abroad Loan')} />
+          <QATile emoji="🛫" label="Pay Later"            iconBg={C.accentXL}  onClick={() => navigate('/finance/travel-now-pay-later')} />
+          <QATile emoji="💰" label="Savings Plan"         iconBg={C.greenBg}   onClick={() => handleActionClick('Savings Plan')} />
+          <QATile emoji="💸" label="Cross-Border"         iconBg={C.amberBg}   onClick={() => navigate('/finance/cross-border-payments')} />
+          {/* Other */}
+          <QATile emoji="💳" label="Payments & Bills"     iconBg={C.amberBg}   onClick={() => handleActionClick('Airtime & Bills')} />
+          <QATile emoji="🎁" label="Refer & Earn"         iconBg="#F0FDF4"     onClick={() => handleActionClick('Referrals')} />
         </Box>
       </Box>
 
@@ -941,7 +945,7 @@ export const Dashboard: React.FC = () => {
 
           {/* Card visual */}
           <Box sx={{
-            background: 'linear-gradient(135deg, #1E0A3C 0%, #4C1D95 60%, #7C3AED 100%)',
+            background: 'linear-gradient(135deg, #ac60e3 0%, #b66aed 60%, #cfa5f2 100%)',
             borderRadius: '14px', p: 2.5, mb: 2, position: 'relative', overflow: 'hidden', minHeight: 130,
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           }}>
@@ -1196,11 +1200,11 @@ export const Dashboard: React.FC = () => {
             background: fabOpen
               ? `linear-gradient(135deg, ${C.brandDark}, ${C.accent})`
               : `linear-gradient(135deg, ${C.brand}, ${C.accent})`,
-            boxShadow: '0 6px 20px rgba(109,40,217,.4)',
+            boxShadow: '0 6px 20px rgba(182,106,237,.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 22, cursor: 'pointer', transition: 'all .2s',
             transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
-            '&:hover': { boxShadow: '0 8px 28px rgba(109,40,217,.5)', transform: fabOpen ? 'rotate(45deg) scale(1.05)' : 'scale(1.05)' },
+            '&:hover': { boxShadow: '0 8px 28px rgba(182,106,237,.5)', transform: fabOpen ? 'rotate(45deg) scale(1.05)' : 'scale(1.05)' },
           }}
         >
           {fabOpen ? '✕' : '💬'}

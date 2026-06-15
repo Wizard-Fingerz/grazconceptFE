@@ -7,10 +7,10 @@ import logo from '../../assets/logo.png';
 
 // ─── Brand tokens (mirrors Dashboard.tsx) ────────────────────────
 const C = {
-  brand: '#6D28D9',
-  accent: '#8B5CF6',
-  accentLight: '#EDE9FE',
-  accentXL: '#F5F3FF',
+  brand: '#b66aed',
+  accent: '#cfa5f2',
+  accentLight: '#f0d9fb',
+  accentXL: '#f9f0fe',
   red: '#DC2626',
   g50:  '#FAFAFA',
   g100: '#F4F4F5',
@@ -33,34 +33,53 @@ interface NavSection {
   items: NavItem[];
 }
 
-// ─── Customer nav — matches the HTML mockup ───────────────────────
+// ─── Customer nav ────────────────────────────────────────────────
 const customerNav: NavSection[] = [
   {
-    label: 'Overview',
+    label: 'Home',
     items: [
-      { emoji: '🏠', label: 'Dashboard',         to: '/dashboard' },
-      { emoji: '💳', label: 'Wallet & Cards',     to: '/wallet' },
-      { emoji: '📋', label: 'My Applications',    to: '/track-progress', badge: 0 },
+      { emoji: '🏠', label: 'Dashboard',            to: '/dashboard' },
+      { emoji: '📋', label: 'Track Applications',   to: '/track-progress' },
+      { emoji: '💳', label: 'Payments & Bills',     to: '/services/airtime-and-bills' },
     ],
   },
   {
-    label: 'Travel',
+    label: 'Mobility Hub',
     items: [
-      { emoji: '✈️', label: 'Book Flight',        to: '/travel/book-flight' },
-      { emoji: '🏨', label: 'Reserve Hotel',      to: '/travel/hotel-reservation' },
-      { emoji: '📄', label: 'Study Visa',          to: '/travel/study-visa' },
-      { emoji: '💼', label: 'Work Visa',           to: '/travel/work-visa' },
-      { emoji: '🕌', label: 'Pilgrimage',          to: '/travel/pilgrimage' },
-      { emoji: '🏖️', label: 'Vacation',            to: '/travel/vacation' },
+      { emoji: '✈️', label: 'Flight & Hotel',       to: '/travel/book-flight' },
+      { emoji: '📄', label: 'Study Abroad',          to: '/travel/study-visa' },
+      { emoji: '💼', label: 'Work Abroad',           to: '/travel/work-visa' },
+      { emoji: '🕌', label: 'Pilgrimage',            to: '/travel/pilgrimage' },
+      { emoji: '🏖️', label: 'Travel & Vacation',    to: '/travel/vacation' },
+      { emoji: '🌍', label: 'Citizenship Pathways', to: '/citizenship/investment-plan' },
     ],
   },
   {
-    label: 'Finance',
+    label: 'Financial Hub',
     items: [
-      { emoji: '💰', label: 'Savings Plan',       to: '/dashboard/savings-plan' },
-      { emoji: '📊', label: 'Loans',              to: '/edufinance/study-abroad-loan' },
-      { emoji: '🌍', label: 'Investment / CBI',   to: '/citizenship/investment-plan' },
-      { emoji: '📱', label: 'Airtime & Bills',    to: '/services/airtime-and-bills' },
+      { emoji: '🎓', label: 'Study Loan',            to: '/edufinance/study-abroad-loan' },
+      { emoji: '🛫', label: 'Travel Now Pay Later',  to: '/finance/travel-now-pay-later' },
+      { emoji: '💰', label: 'Travel Savings Plan',   to: '/dashboard/savings-plan' },
+      { emoji: '🤝', label: 'Investment Circle',     to: '/finance/investment-circle' },
+      { emoji: '💸', label: 'Cross-Border Payments', to: '/finance/cross-border-payments' },
+    ],
+  },
+  {
+    label: 'Learning Hub',
+    items: [
+      { emoji: '💻', label: 'Learn Tech, Work Globally',      to: '/learn/tech' },
+      { emoji: '🗣️', label: 'Language for Abroad Jobs',       to: '/learn/language' },
+      { emoji: '🔧', label: 'Vocational Skills',              to: '/learn/vocational' },
+      { emoji: '🏅', label: 'Certifications & Qualifications',to: '/learn/certifications' },
+      { emoji: '📅', label: 'Career Webinars',                to: '/learn/webinars' },
+    ],
+  },
+  {
+    label: 'Other Hubs',
+    items: [
+      { emoji: '🎉', label: 'Global Event Services',    to: '/hubs/events' },
+      { emoji: '📢', label: 'Business Branding',        to: '/hubs/branding' },
+      { emoji: '📺', label: 'Franchise & Media',        to: '/hubs/franchise-media' },
     ],
   },
   {
@@ -189,14 +208,8 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
       }}>
         {isOpen ? (
           <>
-            <Box sx={{
-              width: 38, height: 38, bgcolor: C.brand, borderRadius: '10px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 900, fontSize: 17, color: '#fff',
-              boxShadow: '0 4px 12px rgba(109,40,217,.3)', flexShrink: 0,
-            }}>
-              <img src={logo} alt="G" style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4 }} />
-            </Box>
+            <img src={logo} alt="GrazConcept"
+              style={{ width: 38, height: 38, objectFit: 'contain', flexShrink: 0 }} />
             <Box sx={{ ml: 0.5 }}>
               <Typography sx={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.3px', color: C.g900, lineHeight: 1.2 }}>
                 GrazConcept
@@ -207,13 +220,8 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
             </Box>
           </>
         ) : (
-          <Box sx={{
-            width: 38, height: 38, bgcolor: C.brand, borderRadius: '10px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(109,40,217,.3)',
-          }}>
-            <img src={logo} alt="G" style={{ width: 26, height: 26, objectFit: 'contain', borderRadius: 4 }} />
-          </Box>
+          <img src={logo} alt="GrazConcept"
+            style={{ width: 38, height: 38, objectFit: 'contain' }} />
         )}
         {toggleSidebar && (
           <IconButton
@@ -254,6 +262,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
                 display: 'inline-block', mt: 0.4, fontSize: 10, fontWeight: 600,
                 color: C.brand, bgcolor: C.accentLight,
                 borderRadius: '4px', px: '5px', py: '1px',
+                textTransform: 'capitalize',
               }}>
                 {user.user_type_name || 'Customer'}
               </Box>
