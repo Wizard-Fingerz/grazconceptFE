@@ -9,29 +9,29 @@ import {
   Box, Typography, Paper, Grid, Button, CircularProgress,
   Chip, Alert, Divider, LinearProgress, Tooltip, Avatar,
 } from "@mui/material";
-import CheckCircleIcon       from "@mui/icons-material/CheckCircle";
-import ErrorOutlineIcon      from "@mui/icons-material/ErrorOutline";
-import WarningAmberIcon      from "@mui/icons-material/WarningAmber";
-import ArrowForwardIcon      from "@mui/icons-material/ArrowForward";
-import EditOutlinedIcon      from "@mui/icons-material/EditOutlined";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
-import SchoolOutlinedIcon    from "@mui/icons-material/SchoolOutlined";
-import WorkOutlinedIcon      from "@mui/icons-material/WorkOutlined";
-import MosqueOutlinedIcon    from "@mui/icons-material/MosqueOutlined";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import WorkOutlinedIcon from "@mui/icons-material/WorkOutlined";
+import MosqueOutlinedIcon from "@mui/icons-material/MosqueOutlined";
 import BeachAccessOutlinedIcon from "@mui/icons-material/BeachAccessOutlined";
-import LockPersonOutlinedIcon  from "@mui/icons-material/LockPersonOutlined";
+import LockPersonOutlinedIcon from "@mui/icons-material/LockPersonOutlined";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import authService from "../../../../services/authService";
 import userServices from "../../../../services/user";
 
 /* ─── Brand tokens ─────────────────────────────────────────────────────── */
 const C = {
-  brand:       "#b66aed",
-  accent:      "#cfa5f2",
+  brand: "#8b2b8c",
+  accent: "#cfa5f2",
   accentLight: "#f0d9fb",
-  accentXL:    "#f9f0fe",
-  brandDark:   "#8b3fc7",
-  g50:  "#FAFAFA",
+  accentXL: "#f9f0fe",
+  brandDark: "#8b3fc7",
+  g50: "#FAFAFA",
   g100: "#F4F4F5",
   g200: "#E4E4E7",
   g300: "#D4D4D8",
@@ -39,101 +39,101 @@ const C = {
   g500: "#71717A",
   g700: "#3F3F46",
   g900: "#18181B",
-  green:       "#16A34A",
-  greenLight:  "#DCFCE7",
+  green: "#16A34A",
+  greenLight: "#DCFCE7",
   greenBorder: "#86EFAC",
-  amber:       "#D97706",
-  amberLight:  "#FEF3C7",
+  amber: "#D97706",
+  amberLight: "#FEF3C7",
   amberBorder: "#FCD34D",
-  red:         "#DC2626",
-  redLight:    "#FEE2E2",
-  redBorder:   "#FCA5A5",
+  red: "#DC2626",
+  redLight: "#FEE2E2",
+  redBorder: "#FCA5A5",
 } as const;
 
 /* ─── Service config ───────────────────────────────────────────────────── */
 type ServiceKey = "study" | "work" | "pilgrimage" | "vacation";
 
 interface ServiceConfig {
-  key:             ServiceKey;
-  Icon:            React.ElementType;
-  label:           string;
-  description:     string;
-  gradient:        string;
-  browseRoute:     string;
-  requiredDocs:    string[];
+  key: ServiceKey;
+  Icon: React.ElementType;
+  label: string;
+  description: string;
+  gradient: string;
+  browseRoute: string;
+  requiredDocs: string[];
   requiredProfile: string[];
 }
 
 const SERVICES: ServiceConfig[] = [
   {
-    key:         "study",
-    Icon:        SchoolOutlinedIcon,
-    label:       "Study Abroad",
+    key: "study",
+    Icon: SchoolOutlinedIcon,
+    label: "Study Abroad",
     description: "University & college programmes worldwide",
-    gradient:    "linear-gradient(135deg,#7c3aed,#b66aed)",
+    gradient: "linear-gradient(135deg,#7c3aed,#8b2b8c)",
     browseRoute: "/travel/study-visa",
-    requiredDocs:    ["Passport", "Passport Photo", "Transcript", "Bank Statement"],
-    requiredProfile: ["first_name","last_name","passport_number","passport_expiry_date","date_of_birth","highest_qualification","previous_university","emergency_contact_name"],
+    requiredDocs: ["Passport", "Passport Photo", "Transcript", "Bank Statement"],
+    requiredProfile: ["first_name", "last_name", "passport_number", "passport_expiry_date", "date_of_birth", "highest_qualification", "previous_university", "emergency_contact_name"],
   },
   {
-    key:         "work",
-    Icon:        WorkOutlinedIcon,
-    label:       "Work Abroad",
+    key: "work",
+    Icon: WorkOutlinedIcon,
+    label: "Work Abroad",
     description: "International job placements & work visas",
-    gradient:    "linear-gradient(135deg,#0369a1,#0ea5e9)",
+    gradient: "linear-gradient(135deg,#0369a1,#0ea5e9)",
     browseRoute: "/travel/work-visa/countries-jobs",
-    requiredDocs:    ["Passport", "Passport Photo", "CV / Resume", "Bank Statement"],
-    requiredProfile: ["first_name","last_name","passport_number","passport_expiry_date","date_of_birth","previous_employer","years_of_experience","emergency_contact_name"],
+    requiredDocs: ["Passport", "Passport Photo", "CV / Resume", "Bank Statement"],
+    requiredProfile: ["first_name", "last_name", "passport_number", "passport_expiry_date", "date_of_birth", "previous_employer", "years_of_experience", "emergency_contact_name"],
   },
   {
-    key:         "pilgrimage",
-    Icon:        MosqueOutlinedIcon,
-    label:       "Pilgrimage",
+    key: "pilgrimage",
+    Icon: MosqueOutlinedIcon,
+    label: "Pilgrimage",
     description: "Hajj, Umrah & other spiritual journeys",
-    gradient:    "linear-gradient(135deg,#065f46,#10b981)",
+    gradient: "linear-gradient(135deg,#065f46,#10b981)",
     browseRoute: "/travel/pilgrimage/offers",
-    requiredDocs:    ["Passport", "Passport Photo", "Medical Certificate"],
-    requiredProfile: ["first_name","last_name","passport_number","date_of_birth","emergency_contact_name"],
+    requiredDocs: ["Passport", "Passport Photo", "Medical Certificate"],
+    requiredProfile: ["first_name", "last_name", "passport_number", "date_of_birth", "emergency_contact_name"],
   },
   {
-    key:         "vacation",
-    Icon:        BeachAccessOutlinedIcon,
-    label:       "Travel & Vacation",
+    key: "vacation",
+    Icon: BeachAccessOutlinedIcon,
+    label: "Travel & Vacation",
     description: "Holiday packages and leisure travel",
-    gradient:    "linear-gradient(135deg,#b45309,#f59e0b)",
+    gradient: "linear-gradient(135deg,#b45309,#f59e0b)",
     browseRoute: "/travel/vacation",
-    requiredDocs:    ["Passport"],
-    requiredProfile: ["first_name","last_name","passport_number","date_of_birth"],
+    requiredDocs: ["Passport"],
+    requiredProfile: ["first_name", "last_name", "passport_number", "date_of_birth"],
   },
 ];
 
 const FIELD_LABELS: Record<string, string> = {
-  first_name:              "First Name",
-  last_name:               "Last Name",
-  passport_number:         "Passport Number",
-  passport_expiry_date:    "Passport Expiry",
-  date_of_birth:           "Date of Birth",
-  highest_qualification:   "Highest Qualification",
-  previous_university:     "Previous University",
-  emergency_contact_name:  "Emergency Contact",
-  previous_employer:       "Previous Employer",
-  years_of_experience:     "Years of Experience",
+  first_name: "First Name",
+  last_name: "Last Name",
+  passport_number: "Passport Number",
+  passport_expiry_date: "Passport Expiry",
+  date_of_birth: "Date of Birth",
+  highest_qualification: "Highest Qualification",
+  previous_university: "Previous University",
+  emergency_contact_name: "Emergency Contact",
+  previous_employer: "Previous Employer",
+  years_of_experience: "Years of Experience",
 };
 
 const DOC_TYPE_MATCH: Record<string, string[]> = {
-  "Passport":             ["Passport", "passport"],
-  "Passport Photo":       ["Passport Photo", "photo"],
-  "Transcript":           ["Transcript"],
-  "Bank Statement":       ["Bank Statement", "bank"],
-  "CV / Resume":          ["CV", "Resume"],
-  "Medical Certificate":  ["Medical"],
+  "Passport": ["Passport", "passport"],
+  "Passport Photo": ["Passport Photo", "photo"],
+  "Transcript": ["Transcript"],
+  "Bank Statement": ["Bank Statement", "bank"],
+  "CV / Resume": ["CV", "Resume"],
+  "Medical Certificate": ["Medical"],
 };
 
 /* ─── Sub-components ───────────────────────────────────────────────────── */
 
 /** Horizontal service selector card */
 const ServiceCard: React.FC<{
-  svc:      ServiceConfig;
+  svc: ServiceConfig;
   selected: boolean;
   onSelect: () => void;
 }> = ({ svc, selected, onSelect }) => {
@@ -147,32 +147,32 @@ const ServiceCard: React.FC<{
         p: 2.5,
         cursor: "pointer",
         transition: "all .18s ease",
-        borderColor:  selected ? C.brand : C.g200,
-        borderWidth:  selected ? 2 : 1,
-        bgcolor:      selected ? C.accentXL : "#fff",
-        display:      "flex",
-        alignItems:   "center",
-        gap:          2,
-        userSelect:   "none",
+        borderColor: selected ? C.brand : C.g200,
+        borderWidth: selected ? 2 : 1,
+        bgcolor: selected ? C.accentXL : "#fff",
+        display: "flex",
+        alignItems: "center",
+        gap: 2,
+        userSelect: "none",
         "&:hover": {
           borderColor: C.brand,
-          bgcolor:     C.accentXL,
-          transform:   "translateY(-1px)",
-          boxShadow:   "0 4px 14px rgba(182,106,237,.15)",
+          bgcolor: C.accentXL,
+          transform: "translateY(-1px)",
+          boxShadow: "0 4px 14px rgba(182,106,237,.15)",
         },
       }}
     >
       <Box
         sx={{
-          width:          48,
-          height:         48,
-          borderRadius:   "14px",
-          display:        "flex",
-          alignItems:     "center",
+          width: 48,
+          height: 48,
+          borderRadius: "14px",
+          display: "flex",
+          alignItems: "center",
           justifyContent: "center",
-          background:     selected ? svc.gradient : C.g100,
-          flexShrink:     0,
-          transition:     "background .18s",
+          background: selected ? svc.gradient : C.g100,
+          flexShrink: 0,
+          transition: "background .18s",
         }}
       >
         <Icon sx={{ fontSize: 22, color: selected ? "#fff" : C.g400 }} />
@@ -198,17 +198,17 @@ const ServiceCard: React.FC<{
 const ProfileRow: React.FC<{ label: string; value?: string | null; ok: boolean }> = ({ label, value, ok }) => (
   <Box
     sx={{
-      display:      "flex",
-      alignItems:   "flex-start",
-      gap:          1.5,
-      py:           1.25,
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 1.5,
+      py: 1.25,
       borderBottom: `1px solid ${C.g100}`,
       "&:last-child": { borderBottom: 0 },
     }}
   >
     {ok
-      ? <CheckCircleIcon    sx={{ fontSize: 16, color: C.green, mt: 0.2, flexShrink: 0 }} />
-      : <ErrorOutlineIcon   sx={{ fontSize: 16, color: C.red,   mt: 0.2, flexShrink: 0 }} />
+      ? <CheckCircleIcon sx={{ fontSize: 16, color: C.green, mt: 0.2, flexShrink: 0 }} />
+      : <ErrorOutlineIcon sx={{ fontSize: 16, color: C.red, mt: 0.2, flexShrink: 0 }} />
     }
     <Box sx={{ flex: 1, minWidth: 0 }}>
       <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: C.g400, textTransform: "uppercase", letterSpacing: "0.6px" }}>
@@ -225,20 +225,20 @@ const ProfileRow: React.FC<{ label: string; value?: string | null; ok: boolean }
 const DocRow: React.FC<{ term: string; uploaded: boolean; onUpload: () => void }> = ({ term, uploaded, onUpload }) => (
   <Box
     sx={{
-      display:     "flex",
-      alignItems:  "center",
-      gap:         1.5,
-      py:          1.2,
-      px:          2,
-      borderRadius:"12px",
-      mb:          1,
-      bgcolor:     uploaded ? C.greenLight : C.redLight,
-      border:      `1px solid ${uploaded ? C.greenBorder : C.redBorder}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 1.5,
+      py: 1.2,
+      px: 2,
+      borderRadius: "12px",
+      mb: 1,
+      bgcolor: uploaded ? C.greenLight : C.redLight,
+      border: `1px solid ${uploaded ? C.greenBorder : C.redBorder}`,
     }}
   >
     {uploaded
-      ? <CheckCircleIcon  sx={{ fontSize: 18, color: C.green, flexShrink: 0 }} />
-      : <ErrorOutlineIcon sx={{ fontSize: 18, color: C.red,   flexShrink: 0 }} />
+      ? <CheckCircleIcon sx={{ fontSize: 18, color: C.green, flexShrink: 0 }} />
+      : <ErrorOutlineIcon sx={{ fontSize: 18, color: C.red, flexShrink: 0 }} />
     }
     <Typography sx={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.g900 }}>
       {term}
@@ -257,14 +257,14 @@ const DocRow: React.FC<{ term: string; uploaded: boolean; onUpload: () => void }
           startIcon={<UploadFileOutlinedIcon sx={{ fontSize: "14px !important" }} />}
           onClick={onUpload}
           sx={{
-            fontSize:        11,
-            fontWeight:      700,
-            bgcolor:         C.brand,
-            color:           "#fff",
-            borderRadius:    "8px",
-            px:              1.5,
-            textTransform:   "none",
-            "&:hover":       { bgcolor: C.brandDark },
+            fontSize: 11,
+            fontWeight: 700,
+            bgcolor: C.brand,
+            color: "#fff",
+            borderRadius: "8px",
+            px: 1.5,
+            textTransform: "none",
+            "&:hover": { bgcolor: C.brandDark },
           }}
         >
           Upload
@@ -277,7 +277,7 @@ const DocRow: React.FC<{ term: string; uploaded: boolean; onUpload: () => void }
 /* ─── Section wrapper ──────────────────────────────────────────────────── */
 const Section: React.FC<{
   number: number;
-  title:  string;
+  title: string;
   badge?: React.ReactNode;
   children: React.ReactNode;
 }> = ({ number, title, badge, children }) => (
@@ -285,27 +285,27 @@ const Section: React.FC<{
     variant="outlined"
     sx={{
       borderRadius: "18px",
-      border:       `1px solid ${C.g200}`,
-      overflow:     "hidden",
-      mb:           2.5,
+      border: `1px solid ${C.g200}`,
+      overflow: "hidden",
+      mb: 2.5,
     }}
   >
     {/* Section header */}
     <Box
       sx={{
-        display:    "flex",
+        display: "flex",
         alignItems: "center",
-        gap:        1.5,
-        px:         3,
-        py:         2,
+        gap: 1.5,
+        px: 3,
+        py: 2,
         borderBottom: `1px solid ${C.g100}`,
-        bgcolor:    C.g50,
+        bgcolor: C.g50,
       }}
     >
       <Avatar
         sx={{
-          width:   30,
-          height:  30,
+          width: 30,
+          height: 30,
           bgcolor: C.brand,
           fontSize: 13,
           fontWeight: 800,
@@ -331,11 +331,11 @@ const ReadinessBadge: React.FC<{ ok: boolean; missing: number; label: string }> 
     label={ok ? label : `${missing} missing`}
     size="small"
     sx={{
-      bgcolor:    ok ? C.greenLight  : C.amberLight,
-      color:      ok ? C.green       : C.amber,
-      border:     `1px solid ${ok ? C.greenBorder : C.amberBorder}`,
+      bgcolor: ok ? C.greenLight : C.amberLight,
+      color: ok ? C.green : C.amber,
+      border: `1px solid ${ok ? C.greenBorder : C.amberBorder}`,
       fontWeight: 700,
-      fontSize:   11,
+      fontSize: 11,
       "& .MuiChip-icon": { fontSize: 14 },
     }}
   />
@@ -348,9 +348,9 @@ const GenericApplicationForm: React.FC = () => {
   const initialService = searchParams.get("service") as ServiceKey | null;
 
   const [selectedKey, setSelectedKey] = useState<ServiceKey | null>(initialService);
-  const [profile,     setProfile]     = useState<any>(null);
-  const [clientDocs,  setClientDocs]  = useState<any[]>([]);
-  const [loading,     setLoading]     = useState(true);
+  const [profile, setProfile] = useState<any>(null);
+  const [clientDocs, setClientDocs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([authService.getProfile(), userServices.getAllClientsDocument()])
@@ -379,17 +379,17 @@ const GenericApplicationForm: React.FC = () => {
   };
 
   const missingProfile = service?.requiredProfile.filter(f => !profileCheck(f)) ?? [];
-  const missingDocs    = service?.requiredDocs.filter(d => !docUploaded(d)) ?? [];
-  const profileOk      = missingProfile.length === 0;
-  const docsOk         = missingDocs.length === 0;
-  const allReady       = profileOk && docsOk;
+  const missingDocs = service?.requiredDocs.filter(d => !docUploaded(d)) ?? [];
+  const profileOk = missingProfile.length === 0;
+  const docsOk = missingDocs.length === 0;
+  const allReady = profileOk && docsOk;
 
   const readiness = service
     ? Math.round(
-        ((service.requiredProfile.length - missingProfile.length +
-          service.requiredDocs.length    - missingDocs.length) /
-          (service.requiredProfile.length + service.requiredDocs.length)) * 100
-      )
+      ((service.requiredProfile.length - missingProfile.length +
+        service.requiredDocs.length - missingDocs.length) /
+        (service.requiredProfile.length + service.requiredDocs.length)) * 100
+    )
     : 0;
 
   /* ─── Loading ─────────────────────────────────────────────────── */
@@ -408,8 +408,8 @@ const GenericApplicationForm: React.FC = () => {
         <Typography
           sx={{
             fontWeight: 800,
-            fontSize:   { xs: 22, sm: 26 },
-            color:      C.g900,
+            fontSize: { xs: 22, sm: 26 },
+            color: C.g900,
             lineHeight: 1.2,
           }}
         >
@@ -454,9 +454,9 @@ const GenericApplicationForm: React.FC = () => {
               </Typography>
               <Typography
                 sx={{
-                  fontSize:   12,
+                  fontSize: 12,
                   fontWeight: 700,
-                  color:      readiness >= 80 ? C.green : C.amber,
+                  color: readiness >= 80 ? C.green : C.amber,
                 }}
               >
                 {readiness}%
@@ -466,13 +466,13 @@ const GenericApplicationForm: React.FC = () => {
               variant="determinate"
               value={readiness}
               sx={{
-                height:       8,
+                height: 8,
                 borderRadius: 6,
-                bgcolor:      C.g100,
+                bgcolor: C.g100,
                 "& .MuiLinearProgress-bar": {
-                  bgcolor:      readiness >= 80 ? C.green : C.brand,
+                  bgcolor: readiness >= 80 ? C.green : C.brand,
                   borderRadius: 6,
-                  transition:   "transform .5s ease",
+                  transition: "transform .5s ease",
                 },
               }}
             />
@@ -516,14 +516,14 @@ const GenericApplicationForm: React.FC = () => {
               startIcon={<EditOutlinedIcon sx={{ fontSize: "14px !important" }} />}
               onClick={() => navigate("/settings/profile/edit")}
               sx={{
-                fontSize:      12,
-                fontWeight:    700,
-                color:         C.brand,
+                fontSize: 12,
+                fontWeight: 700,
+                color: C.brand,
                 textTransform: "none",
-                border:        `1px solid ${C.accentLight}`,
-                borderRadius:  "8px",
-                px:            1.5,
-                "&:hover":     { bgcolor: C.accentXL },
+                border: `1px solid ${C.accentLight}`,
+                borderRadius: "8px",
+                px: 1.5,
+                "&:hover": { bgcolor: C.accentXL },
               }}
             >
               Edit profile
@@ -583,8 +583,8 @@ const GenericApplicationForm: React.FC = () => {
           variant="outlined"
           sx={{
             borderRadius: "18px",
-            overflow:     "hidden",
-            border:       `1px solid ${C.g200}`,
+            overflow: "hidden",
+            border: `1px solid ${C.g200}`,
             mb: 4,
           }}
         >
@@ -592,9 +592,9 @@ const GenericApplicationForm: React.FC = () => {
           <Box
             sx={{
               background: service.gradient,
-              px:         3,
-              py:         2.5,
-              color:      "#fff",
+              px: 3,
+              py: 2.5,
+              color: "#fff",
             }}
           >
             <Typography sx={{ fontWeight: 800, fontSize: 18, mb: 0.5 }}>
@@ -615,10 +615,10 @@ const GenericApplicationForm: React.FC = () => {
                 label={profileOk ? "Profile complete" : `${missingProfile.length} field(s) missing`}
                 size="small"
                 sx={{
-                  bgcolor:    profileOk ? C.greenLight  : C.amberLight,
-                  color:      profileOk ? C.green       : C.amber,
+                  bgcolor: profileOk ? C.greenLight : C.amberLight,
+                  color: profileOk ? C.green : C.amber,
                   fontWeight: 700,
-                  fontSize:   11,
+                  fontSize: 11,
                   "& .MuiChip-icon": { fontSize: 14 },
                 }}
               />
@@ -627,10 +627,10 @@ const GenericApplicationForm: React.FC = () => {
                 label={docsOk ? "All documents uploaded" : `${missingDocs.length} document(s) missing`}
                 size="small"
                 sx={{
-                  bgcolor:    docsOk ? C.greenLight  : C.amberLight,
-                  color:      docsOk ? C.green       : C.amber,
+                  bgcolor: docsOk ? C.greenLight : C.amberLight,
+                  color: docsOk ? C.green : C.amber,
                   fontWeight: 700,
-                  fontSize:   11,
+                  fontSize: 11,
                   "& .MuiChip-icon": { fontSize: 14 },
                 }}
               />
@@ -650,14 +650,14 @@ const GenericApplicationForm: React.FC = () => {
                   endIcon={<ArrowForwardIcon />}
                   onClick={() => service && navigate(service.browseRoute)}
                   sx={{
-                    bgcolor:       C.brand,
-                    fontWeight:    700,
-                    fontSize:      15,
-                    borderRadius:  "12px",
-                    py:            1.6,
+                    bgcolor: C.brand,
+                    fontWeight: 700,
+                    fontSize: 15,
+                    borderRadius: "12px",
+                    py: 1.6,
                     textTransform: "none",
-                    boxShadow:     "0 4px 14px rgba(182,106,237,.35)",
-                    "&:hover":     { bgcolor: C.brandDark, boxShadow: "0 6px 20px rgba(139,63,199,.4)" },
+                    boxShadow: "0 4px 14px rgba(182,106,237,.35)",
+                    "&:hover": { bgcolor: C.brandDark, boxShadow: "0 6px 20px rgba(139,63,199,.4)" },
                     "&.Mui-disabled": { bgcolor: C.g200, boxShadow: "none", color: C.g400 },
                   }}
                 >
@@ -677,9 +677,9 @@ const GenericApplicationForm: React.FC = () => {
       {!service && !loading && (
         <Box
           sx={{
-            textAlign:  "center",
-            py:          6,
-            color:      C.g400,
+            textAlign: "center",
+            py: 6,
+            color: C.g400,
           }}
         >
           <Box sx={{ fontSize: 48, mb: 1.5 }}>✈️</Box>

@@ -31,17 +31,17 @@ import { toast } from 'react-toastify';
 
 // ─── Brand tokens ────────────────────────────────────────────────
 const C = {
-  brand:       '#b66aed',
-  brandDark:   '#8b3fc7',
-  brandMid:    '#8b3fc7',
-  accent:      '#cfa5f2',
+  brand: '#8b2b8c',
+  brandDark: '#8b3fc7',
+  brandMid: '#8b3fc7',
+  accent: '#cfa5f2',
   accentLight: '#f0d9fb',
-  accentXL:    '#f9f0fe',
-  gold:        '#F59E0B',
-  green:       '#059669', greenBg: '#ECFDF5', greenLight: '#D1FAE5',
-  red:         '#DC2626', redBg:   '#FEF2F2',
-  amber:       '#D97706', amberBg: '#FFFBEB',
-  g50:  '#FAFAFA', g100: '#F4F4F5', g200: '#E4E4E7',
+  accentXL: '#f9f0fe',
+  gold: '#F59E0B',
+  green: '#059669', greenBg: '#ECFDF5', greenLight: '#D1FAE5',
+  red: '#DC2626', redBg: '#FEF2F2',
+  amber: '#D97706', amberBg: '#FFFBEB',
+  g50: '#FAFAFA', g100: '#F4F4F5', g200: '#E4E4E7',
   g300: '#D1D5DB', g400: '#A1A1AA', g500: '#71717A',
   g700: '#3F3F46', g900: '#18181B',
 } as const;
@@ -68,17 +68,17 @@ function getTransactionDescription(tx: any) {
 
 // ─── Route map ───────────────────────────────────────────────────
 const actionResultRoutes: Record<string, string> = {
-  'Book Flight':                    '/dashboard/flight-result',
-  'Reserve Hotel':                  '/travel/hotel-reservation',
-  'Apply for Visa':                 '/apply',
-  'Chat with Agent':                '/support/chat',
-  'Create Savings Plan':            '/dashboard/savings-plan',
-  'Apply for Study Loan':           '/customer/dashboard/study-loan-result',
-  'Study Abroad Loan':              '/customer/dashboard/study-abroad-loan-result',
-  'Pilgrimage Package':             '/customer/dashboard/pilgrimage-result',
+  'Book Flight': '/dashboard/flight-result',
+  'Reserve Hotel': '/travel/hotel-reservation',
+  'Apply for Visa': '/apply',
+  'Chat with Agent': '/support/chat',
+  'Create Savings Plan': '/dashboard/savings-plan',
+  'Apply for Study Loan': '/customer/dashboard/study-loan-result',
+  'Study Abroad Loan': '/customer/dashboard/study-abroad-loan-result',
+  'Pilgrimage Package': '/customer/dashboard/pilgrimage-result',
   'Business Loan for Travel Project': '/customer/dashboard/business-loan-result',
-  'Airtime and Data':               '/services/airtime-and-bills',
-  'Study Visa Offers':              '/travel/study-visa/offers',
+  'Airtime and Data': '/services/airtime-and-bills',
+  'Study Visa Offers': '/travel/study-visa/offers',
 };
 
 // ─── Fund Wallet modal body ───────────────────────────────────────
@@ -418,20 +418,20 @@ export const Dashboard: React.FC = () => {
   // ── Navigation ───────────────────────────────────────────────
   const handleActionClick = (label: string) => {
     const routes: Record<string, string> = {
-      'Book Flight':      '/travel/book-flight',
-      'Reserve Hotel':    '/travel/hotel-reservation',
-      'Study Visa':       '/apply?service=study',
-      'Work Visa':        '/apply?service=work',
-      'Vacation':         '/apply?service=vacation',
-      'Pilgrimage':       '/apply?service=pilgrimage',
-      'Savings Plan':     '/dashboard/savings-plan',
-      'Study Abroad Loan':'/edufinance/study-abroad-loan',
-      'Civil Servant Loan':'/edufinance/civil-servant-loan',
-      'Investment Plan':  '/citizenship/investment-plan',
-      'Airtime & Bills':  '/services/airtime-and-bills',
-      'Referrals':        '/referrals',
-      'Support':          '/support/tickets',
-      'Track Application':'/track-progress',
+      'Book Flight': '/travel/book-flight',
+      'Reserve Hotel': '/travel/hotel-reservation',
+      'Study Visa': '/apply?service=study',
+      'Work Visa': '/apply?service=work',
+      'Vacation': '/apply?service=vacation',
+      'Pilgrimage': '/apply?service=pilgrimage',
+      'Savings Plan': '/dashboard/savings-plan',
+      'Study Abroad Loan': '/edufinance/study-abroad-loan',
+      'Civil Servant Loan': '/edufinance/civil-servant-loan',
+      'Investment Plan': '/citizenship/investment-plan',
+      'Airtime & Bills': '/services/airtime-and-bills',
+      'Referrals': '/referrals',
+      'Support': '/support/tickets',
+      'Track Application': '/track-progress',
     };
     const route = routes[label];
     if (route) { navigate(route); return; }
@@ -541,7 +541,7 @@ export const Dashboard: React.FC = () => {
       {transactions.length > 0 ? (
         <Box sx={{ display: { xs: 'none', md: 'grid' }, gridTemplateColumns: 'repeat(3,1fr)', gap: 2, mb: 2.5 }}>
           <AICard
-            gradient="linear-gradient(135deg,#8b3fc7 0%,#b66aed 100%)"
+            gradient="linear-gradient(135deg,#8b3fc7 0%,#8b2b8c 100%)"
             emoji="✈️" tag="Travel"
             msg="Ready to plan your next trip? Browse flights, hotels and visa packages."
             cta="Book a Flight →"
@@ -589,7 +589,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Main wallet card */}
         <Box sx={{
-          background: 'linear-gradient(135deg,#ac60e3 0%,#b66aed 60%,#cfa5f2 100%)',
+          background: 'linear-gradient(135deg,#ac60e3 0%,#8b2b8c 60%,#cfa5f2 100%)',
           borderRadius: '16px', p: { xs: 2, sm: 2.5 }, color: '#fff', position: 'relative', overflow: 'hidden',
           minHeight: 195, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           boxShadow: '0 8px 28px rgba(182,106,237,.35)',
@@ -726,20 +726,20 @@ export const Dashboard: React.FC = () => {
           gap: { xs: 1, sm: 1.2 },
         }}>
           {/* Mobility Hub */}
-          <QATile emoji="✈️" label="Flight & Hotel"      iconBg={C.accentXL}  onClick={() => handleActionClick('Book Flight')} />
-          <QATile emoji="📄" label="Study Abroad"         iconBg={C.greenBg}   onClick={() => handleActionClick('Study Visa')} />
-          <QATile emoji="💼" label="Work Abroad"          iconBg="#FFF7ED"     onClick={() => handleActionClick('Work Visa')} />
-          <QATile emoji="🕌" label="Pilgrimage"           iconBg={C.redBg}     onClick={() => handleActionClick('Pilgrimage')} />
-          <QATile emoji="🏖️" label="Vacation"             iconBg="#FFF7ED"     onClick={() => handleActionClick('Vacation')} />
-          <QATile emoji="🌍" label="Citizenship"          iconBg={C.accentXL}  onClick={() => handleActionClick('Investment Plan')} />
+          <QATile emoji="✈️" label="Flight & Hotel" iconBg={C.accentXL} onClick={() => handleActionClick('Book Flight')} />
+          <QATile emoji="📄" label="Study Abroad" iconBg={C.greenBg} onClick={() => handleActionClick('Study Visa')} />
+          <QATile emoji="💼" label="Work Abroad" iconBg="#FFF7ED" onClick={() => handleActionClick('Work Visa')} />
+          <QATile emoji="🕌" label="Pilgrimage" iconBg={C.redBg} onClick={() => handleActionClick('Pilgrimage')} />
+          <QATile emoji="🏖️" label="Vacation" iconBg="#FFF7ED" onClick={() => handleActionClick('Vacation')} />
+          <QATile emoji="🌍" label="Citizenship" iconBg={C.accentXL} onClick={() => handleActionClick('Investment Plan')} />
           {/* Financial Hub */}
-          <QATile emoji="🎓" label="Study Loan"           iconBg={C.accentXL}  onClick={() => handleActionClick('Study Abroad Loan')} />
-          <QATile emoji="🛫" label="Pay Later"            iconBg={C.accentXL}  onClick={() => navigate('/finance/travel-now-pay-later')} />
-          <QATile emoji="💰" label="Savings Plan"         iconBg={C.greenBg}   onClick={() => handleActionClick('Savings Plan')} />
-          <QATile emoji="💸" label="Cross-Border"         iconBg={C.amberBg}   onClick={() => navigate('/finance/cross-border-payments')} />
+          <QATile emoji="🎓" label="Study Loan" iconBg={C.accentXL} onClick={() => handleActionClick('Study Abroad Loan')} />
+          <QATile emoji="🛫" label="Pay Later" iconBg={C.accentXL} onClick={() => navigate('/finance/travel-now-pay-later')} />
+          <QATile emoji="💰" label="Savings Plan" iconBg={C.greenBg} onClick={() => handleActionClick('Savings Plan')} />
+          <QATile emoji="💸" label="Cross-Border" iconBg={C.amberBg} onClick={() => navigate('/finance/cross-border-payments')} />
           {/* Other */}
-          <QATile emoji="💳" label="Payments & Bills"     iconBg={C.amberBg}   onClick={() => handleActionClick('Airtime & Bills')} />
-          <QATile emoji="🎁" label="Refer & Earn"         iconBg="#F0FDF4"     onClick={() => handleActionClick('Referrals')} />
+          <QATile emoji="💳" label="Payments & Bills" iconBg={C.amberBg} onClick={() => handleActionClick('Airtime & Bills')} />
+          <QATile emoji="🎁" label="Refer & Earn" iconBg="#F0FDF4" onClick={() => handleActionClick('Referrals')} />
         </Box>
       </Box>
 
@@ -865,7 +865,7 @@ export const Dashboard: React.FC = () => {
                       <circle cx="50" cy="50" r="38" fill="none" stroke={C.brand} strokeWidth="13" strokeDasharray="239 0" />
                     </svg>
                     <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center' }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: 900 }}>{`${(totalSpend/1000).toFixed(1)}k`}</Typography>
+                      <Typography sx={{ fontSize: 13, fontWeight: 900 }}>{`${(totalSpend / 1000).toFixed(1)}k`}</Typography>
                       <Typography sx={{ fontSize: 9, color: C.g400 }}>Total</Typography>
                     </Box>
                   </Box>
@@ -945,7 +945,7 @@ export const Dashboard: React.FC = () => {
 
           {/* Card visual */}
           <Box sx={{
-            background: 'linear-gradient(135deg, #ac60e3 0%, #b66aed 60%, #cfa5f2 100%)',
+            background: 'linear-gradient(135deg, #ac60e3 0%, #8b2b8c 60%, #cfa5f2 100%)',
             borderRadius: '14px', p: 2.5, mb: 2, position: 'relative', overflow: 'hidden', minHeight: 130,
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           }}>
@@ -1166,10 +1166,10 @@ export const Dashboard: React.FC = () => {
         {fabOpen && (
           <Box sx={{ position: 'absolute', bottom: 60, right: 0, display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end', mb: 1 }}>
             {[
-              { emoji: '💬', label: 'Live Chat',       onClick: () => navigate('/support/chat') },
-              { emoji: '🎫', label: 'Raise a Ticket',  onClick: () => navigate('/support/tickets') },
-              { emoji: '📚', label: 'Knowledge Base',  onClick: () => navigate('/support/tickets') },
-              { emoji: '🤖', label: 'Ask AI',          onClick: () => navigate('/support/chat') },
+              { emoji: '💬', label: 'Live Chat', onClick: () => navigate('/support/chat') },
+              { emoji: '🎫', label: 'Raise a Ticket', onClick: () => navigate('/support/tickets') },
+              { emoji: '📚', label: 'Knowledge Base', onClick: () => navigate('/support/tickets') },
+              { emoji: '🤖', label: 'Ask AI', onClick: () => navigate('/support/chat') },
             ].map(item => (
               <Box
                 key={item.label}

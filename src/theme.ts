@@ -1,7 +1,7 @@
 import { createTheme } from '@mui/material/styles';
 
 // App theme colors from the login gradient and style:
-// Primary: #b66aed (rgba(182,106,237,1))
+// Primary: #8b2b8c (rgba(182,106,237,1))
 // Secondary/Accent: #ffae49 (rgba(255,174,73,1))
 // Gradient hover: #ac60e3 (rgba(172,96,227,1)), #f5a43f (rgba(245,164,63,1))
 
@@ -9,7 +9,7 @@ export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#b66aed', // Main purple
+      main: '#8b2b8c', // Main purple
       light: '#cfa5f2', // Lighter purple
       dark: '#ac60e3',  // Darker purple (from hover)
       contrastText: '#fff',
@@ -47,7 +47,7 @@ export const theme = createTheme({
       contrastText: '#fff',
     },
     info: {
-      main: '#b66aed',
+      main: '#8b2b8c',
       light: '#cfa5f2',
       dark: '#ac60e3',
       contrastText: '#fff',
@@ -116,7 +116,7 @@ export const theme = createTheme({
         },
         contained: {
           boxShadow: 'none',
-          background: 'linear-gradient(90deg, #b66aed 0%, #ffae49 100%)',
+          background: 'linear-gradient(90deg, #8b2b8c 0%, #ffae49 100%)',
           color: '#fff',
           '&:hover': {
             background: 'linear-gradient(90deg, #ac60e3 0%, #f5a43f 100%)',

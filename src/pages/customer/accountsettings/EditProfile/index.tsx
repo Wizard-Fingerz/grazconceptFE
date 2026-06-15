@@ -3,10 +3,10 @@ import {
   Box, Typography, Avatar, Button, TextField, MenuItem,
   Paper, Grid, CircularProgress, Alert, IconButton, Chip,
 } from "@mui/material";
-import ArrowBackIcon    from "@mui/icons-material/ArrowBack";
-import SaveIcon         from "@mui/icons-material/Save";
-import PhotoCameraIcon  from "@mui/icons-material/PhotoCamera";
-import CheckCircleIcon  from "@mui/icons-material/CheckCircle";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import SaveIcon from "@mui/icons-material/Save";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { useNavigate } from "react-router-dom";
 import authService from "../../../../services/authService";
@@ -15,11 +15,11 @@ import { useAuth } from "../../../../context/AuthContext";
 
 /* ─── Brand tokens ─────────────────────────────────────────────── */
 const C = {
-  brand:       "#b66aed",
+  brand: "#8b2b8c",
   accentLight: "#f0d9fb",
-  accentXL:    "#f9f0fe",
-  brandDark:   "#8b3fc7",
-  g50:  "#FAFAFA",
+  accentXL: "#f9f0fe",
+  brandDark: "#8b3fc7",
+  g50: "#FAFAFA",
   g100: "#F4F4F5",
   g200: "#E4E4E7",
   g300: "#D4D4D8",
@@ -27,11 +27,11 @@ const C = {
   g500: "#71717A",
   g700: "#3F3F46",
   g900: "#18181B",
-  green:       "#16A34A",
-  greenLight:  "#DCFCE7",
+  green: "#16A34A",
+  greenLight: "#DCFCE7",
   greenBorder: "#86EFAC",
-  red:         "#DC2626",
-  redLight:    "#FEE2E2",
+  red: "#DC2626",
+  redLight: "#FEE2E2",
 } as const;
 
 /* ─── Shared input style ────────────────────────────────────────── */
@@ -47,44 +47,44 @@ const SX_INPUT = {
 
 /* ─── Section card ──────────────────────────────────────────────── */
 const SectionCard: React.FC<{
-  title:    string;
+  title: string;
   subtitle?: string;
-  icon:     React.ReactNode;
+  icon: React.ReactNode;
   children: React.ReactNode;
 }> = ({ title, subtitle, icon, children }) => (
   <Paper
     variant="outlined"
     sx={{
       borderRadius: "18px",
-      mb:           2.5,
-      overflow:     "hidden",
-      borderColor:  C.g200,
+      mb: 2.5,
+      overflow: "hidden",
+      borderColor: C.g200,
     }}
   >
     {/* Header */}
     <Box
       sx={{
-        display:      "flex",
-        alignItems:   "center",
-        gap:          1.5,
-        px:           3,
-        py:           2,
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        px: 3,
+        py: 2,
         borderBottom: `1px solid ${C.g100}`,
-        bgcolor:      C.g50,
+        bgcolor: C.g50,
       }}
     >
       <Box
         sx={{
-          width:          38,
-          height:         38,
-          borderRadius:   "12px",
-          bgcolor:        C.accentXL,
-          display:        "flex",
-          alignItems:     "center",
+          width: 38,
+          height: 38,
+          borderRadius: "12px",
+          bgcolor: C.accentXL,
+          display: "flex",
+          alignItems: "center",
           justifyContent: "center",
-          fontSize:       18,
-          flexShrink:     0,
-          border:         `1px solid ${C.accentLight}`,
+          fontSize: 18,
+          flexShrink: 0,
+          border: `1px solid ${C.accentLight}`,
         }}
       >
         {icon}
@@ -107,13 +107,13 @@ const SectionCard: React.FC<{
 
 /* ─── Doc upload slot ───────────────────────────────────────────── */
 const DocSlot: React.FC<{
-  term:       string;
-  accept:     string;
-  hint:       string;
-  services:   string[];
-  uploading:  boolean;
-  done:       boolean;
-  onFile:     (f: File) => void;
+  term: string;
+  accept: string;
+  hint: string;
+  services: string[];
+  uploading: boolean;
+  done: boolean;
+  onFile: (f: File) => void;
 }> = ({ term, accept, hint, services, uploading, done, onFile }) => {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -121,13 +121,13 @@ const DocSlot: React.FC<{
       variant="outlined"
       sx={{
         borderRadius: "14px",
-        p:            2,
-        borderColor:  done ? C.greenBorder : C.g200,
-        bgcolor:      done ? C.greenLight  : "#fff",
-        height:       "100%",
-        display:      "flex",
-        flexDirection:"column",
-        gap:          0.75,
+        p: 2,
+        borderColor: done ? C.greenBorder : C.g200,
+        bgcolor: done ? C.greenLight : "#fff",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.75,
       }}
     >
       {/* Title row */}
@@ -146,12 +146,12 @@ const DocSlot: React.FC<{
             label={s}
             size="small"
             sx={{
-              height:     18,
-              fontSize:   10,
+              height: 18,
+              fontSize: 10,
               fontWeight: 700,
-              bgcolor:    done ? "#fff" : C.accentXL,
-              color:      done ? C.green : C.brandDark,
-              border:     `1px solid ${done ? C.greenBorder : C.accentLight}`,
+              bgcolor: done ? "#fff" : C.accentXL,
+              color: done ? C.green : C.brandDark,
+              border: `1px solid ${done ? C.greenBorder : C.accentLight}`,
             }}
           />
         ))}
@@ -184,15 +184,15 @@ const DocSlot: React.FC<{
               startIcon={<UploadFileOutlinedIcon sx={{ fontSize: "14px !important" }} />}
               onClick={() => ref.current?.click()}
               sx={{
-                fontSize:      11.5,
-                fontWeight:    700,
-                color:         C.brand,
-                border:        `1px solid ${C.accentLight}`,
-                borderRadius:  "8px",
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: C.brand,
+                border: `1px solid ${C.accentLight}`,
+                borderRadius: "8px",
                 textTransform: "none",
-                px:            1.5,
-                bgcolor:       C.accentXL,
-                "&:hover":     { bgcolor: C.accentLight },
+                px: 1.5,
+                bgcolor: C.accentXL,
+                "&:hover": { bgcolor: C.accentLight },
               }}
             >
               Choose file
@@ -206,31 +206,31 @@ const DocSlot: React.FC<{
 
 /* ─── Constants ─────────────────────────────────────────────────── */
 const DOC_UPLOAD_SLOTS = [
-  { term: "Passport Photo",      accept: "image/*",          hint: "JPG/PNG, white background, max 2MB", services: ["Study", "Work", "Pilgrimage"] },
-  { term: "Passport",            accept: ".pdf,image/*",     hint: "All data pages scanned — PDF or JPG", services: ["Study", "Work", "Vacation"] },
-  { term: "Transcript",          accept: ".pdf,image/*",     hint: "Official academic transcript",        services: ["Study"] },
-  { term: "Bank Statement",      accept: ".pdf",             hint: "Last 3–6 months, PDF",                services: ["Study", "Work"] },
-  { term: "CV / Resume",         accept: ".pdf,.doc,.docx",  hint: "Updated CV — PDF preferred",          services: ["Work"] },
-  { term: "English Test",        accept: ".pdf,image/*",     hint: "IELTS / TOEFL / PTE certificate",     services: ["Study", "Work"] },
-  { term: "Medical Certificate", accept: ".pdf,image/*",     hint: "Issued by a licensed physician",      services: ["Pilgrimage"] },
-  { term: "Offer Letter",        accept: ".pdf,image/*",     hint: "Employment or admission offer letter", services: ["Work", "Study"] },
+  { term: "Passport Photo", accept: "image/*", hint: "JPG/PNG, white background, max 2MB", services: ["Study", "Work", "Pilgrimage"] },
+  { term: "Passport", accept: ".pdf,image/*", hint: "All data pages scanned — PDF or JPG", services: ["Study", "Work", "Vacation"] },
+  { term: "Transcript", accept: ".pdf,image/*", hint: "Official academic transcript", services: ["Study"] },
+  { term: "Bank Statement", accept: ".pdf", hint: "Last 3–6 months, PDF", services: ["Study", "Work"] },
+  { term: "CV / Resume", accept: ".pdf,.doc,.docx", hint: "Updated CV — PDF preferred", services: ["Work"] },
+  { term: "English Test", accept: ".pdf,image/*", hint: "IELTS / TOEFL / PTE certificate", services: ["Study", "Work"] },
+  { term: "Medical Certificate", accept: ".pdf,image/*", hint: "Issued by a licensed physician", services: ["Pilgrimage"] },
+  { term: "Offer Letter", accept: ".pdf,image/*", hint: "Employment or admission offer letter", services: ["Work", "Study"] },
 ];
 
 const QUALIFICATION_OPTIONS = ["Secondary School", "OND", "HND", "Bachelor's Degree", "Master's Degree", "MBA", "PhD", "Professional Certificate", "Other"];
-const GENDER_OPTIONS        = ["Male", "Female", "Non-binary", "Prefer not to say"];
-const RELATIONSHIP_OPTIONS  = ["Parent", "Spouse", "Sibling", "Child", "Friend", "Colleague", "Other"];
+const GENDER_OPTIONS = ["Male", "Female", "Non-binary", "Prefer not to say"];
+const RELATIONSHIP_OPTIONS = ["Parent", "Spouse", "Sibling", "Child", "Friend", "Colleague", "Other"];
 
 /* ─── Main component ────────────────────────────────────────────── */
 const EditProfilePage: React.FC = () => {
-  const navigate     = useNavigate();
+  const navigate = useNavigate();
   const { updateUser } = useAuth();
-  const [loading,  setLoading]  = useState(true);
-  const [saving,   setSaving]   = useState(false);
-  const [success,  setSuccess]  = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [docTypes, setDocTypes] = useState<any[]>([]);
   const [docUploading, setDocUploading] = useState<Record<string, boolean>>({});
-  const [docSuccess,   setDocSuccess]   = useState<Record<string, boolean>>({});
+  const [docSuccess, setDocSuccess] = useState<Record<string, boolean>>({});
   const [userId, setUserId] = useState<number | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
 
@@ -256,34 +256,34 @@ const EditProfilePage: React.FC = () => {
         const p = profile as any;
         setForm(prev => ({
           ...prev,
-          first_name:                    p.first_name ?? "",
-          middle_name:                   p.middle_name ?? "",
-          last_name:                     p.last_name ?? "",
-          phone_number:                  p.phone_number ?? "",
-          date_of_birth:                 p.date_of_birth ?? "",
-          gender:                        p.gender ?? "",
-          nationality:                   p.nationality ?? "",
-          country_of_residence:          p.country_of_residence ?? "",
-          current_address:               p.current_address ?? "",
-          passport_number:               p.passport_number ?? "",
-          passport_expiry_date:          p.passport_expiry_date ?? "",
-          nin:                           p.nin ?? "",
-          bvn:                           p.bvn ?? "",
-          highest_qualification:         p.highest_qualification ?? "",
-          graduation_year:               p.graduation_year ?? "",
-          previous_university:           p.previous_university ?? "",
-          previous_course_of_study:      p.previous_course_of_study ?? "",
-          cgpa:                          p.cgpa ?? "",
-          previous_job_title:            p.previous_job_title ?? "",
-          previous_employer:             p.previous_employer ?? "",
-          years_of_experience:           p.years_of_experience != null ? String(p.years_of_experience) : "",
-          year_left_previous_job:        p.year_left_previous_job ?? "",
-          emergency_contact_name:        p.emergency_contact_name ?? "",
-          emergency_contact_relationship:p.emergency_contact_relationship ?? "",
-          emergency_contact_phone:       p.emergency_contact_phone ?? "",
-          travel_history:                p.travel_history ?? "",
-          previous_visa_applications:    p.previous_visa_applications ? "true" : "false",
-          previous_visa_details:         p.previous_visa_details ?? "",
+          first_name: p.first_name ?? "",
+          middle_name: p.middle_name ?? "",
+          last_name: p.last_name ?? "",
+          phone_number: p.phone_number ?? "",
+          date_of_birth: p.date_of_birth ?? "",
+          gender: p.gender ?? "",
+          nationality: p.nationality ?? "",
+          country_of_residence: p.country_of_residence ?? "",
+          current_address: p.current_address ?? "",
+          passport_number: p.passport_number ?? "",
+          passport_expiry_date: p.passport_expiry_date ?? "",
+          nin: p.nin ?? "",
+          bvn: p.bvn ?? "",
+          highest_qualification: p.highest_qualification ?? "",
+          graduation_year: p.graduation_year ?? "",
+          previous_university: p.previous_university ?? "",
+          previous_course_of_study: p.previous_course_of_study ?? "",
+          cgpa: p.cgpa ?? "",
+          previous_job_title: p.previous_job_title ?? "",
+          previous_employer: p.previous_employer ?? "",
+          years_of_experience: p.years_of_experience != null ? String(p.years_of_experience) : "",
+          year_left_previous_job: p.year_left_previous_job ?? "",
+          emergency_contact_name: p.emergency_contact_name ?? "",
+          emergency_contact_relationship: p.emergency_contact_relationship ?? "",
+          emergency_contact_phone: p.emergency_contact_phone ?? "",
+          travel_history: p.travel_history ?? "",
+          previous_visa_applications: p.previous_visa_applications ? "true" : "false",
+          previous_visa_details: p.previous_visa_details ?? "",
         }));
         setDocTypes(Array.isArray(types) ? types : types?.results ?? []);
       })
@@ -302,34 +302,34 @@ const EditProfilePage: React.FC = () => {
     setSuccess(false);
     try {
       await authService.updateProfile({
-        first_name:           form.first_name,
-        middle_name:          form.middle_name as any,
-        last_name:            form.last_name,
-        phone_number:         form.phone_number as any,
-        date_of_birth:        form.date_of_birth as any,
-        gender:               form.gender as any,
-        nationality:          form.nationality as any,
+        first_name: form.first_name,
+        middle_name: form.middle_name as any,
+        last_name: form.last_name,
+        phone_number: form.phone_number as any,
+        date_of_birth: form.date_of_birth as any,
+        gender: form.gender as any,
+        nationality: form.nationality as any,
         country_of_residence: form.country_of_residence as any,
-        current_address:      form.current_address as any,
-        ...(form.passport_number      && { passport_number:               form.passport_number }),
-        ...(form.passport_expiry_date && { passport_expiry_date:          form.passport_expiry_date }),
-        ...(form.nin                  && { nin:                           form.nin }),
-        ...(form.bvn                  && { bvn:                           form.bvn }),
-        ...(form.highest_qualification && { highest_qualification:        form.highest_qualification }),
-        ...(form.graduation_year      && { graduation_year:               form.graduation_year }),
-        ...(form.previous_university  && { previous_university:           form.previous_university }),
+        current_address: form.current_address as any,
+        ...(form.passport_number && { passport_number: form.passport_number }),
+        ...(form.passport_expiry_date && { passport_expiry_date: form.passport_expiry_date }),
+        ...(form.nin && { nin: form.nin }),
+        ...(form.bvn && { bvn: form.bvn }),
+        ...(form.highest_qualification && { highest_qualification: form.highest_qualification }),
+        ...(form.graduation_year && { graduation_year: form.graduation_year }),
+        ...(form.previous_university && { previous_university: form.previous_university }),
         ...(form.previous_course_of_study && { previous_course_of_study: form.previous_course_of_study }),
-        ...(form.cgpa                 && { cgpa:                          form.cgpa }),
-        ...(form.previous_job_title   && { previous_job_title:            form.previous_job_title }),
-        ...(form.previous_employer    && { previous_employer:             form.previous_employer }),
-        ...(form.years_of_experience  && { years_of_experience:          Number(form.years_of_experience) }),
-        ...(form.year_left_previous_job && { year_left_previous_job:     form.year_left_previous_job as string }),
-        ...(form.emergency_contact_name && { emergency_contact_name:     form.emergency_contact_name }),
+        ...(form.cgpa && { cgpa: form.cgpa }),
+        ...(form.previous_job_title && { previous_job_title: form.previous_job_title }),
+        ...(form.previous_employer && { previous_employer: form.previous_employer }),
+        ...(form.years_of_experience && { years_of_experience: Number(form.years_of_experience) }),
+        ...(form.year_left_previous_job && { year_left_previous_job: form.year_left_previous_job as string }),
+        ...(form.emergency_contact_name && { emergency_contact_name: form.emergency_contact_name }),
         ...(form.emergency_contact_relationship && { emergency_contact_relationship: form.emergency_contact_relationship }),
-        ...(form.emergency_contact_phone && { emergency_contact_phone:   form.emergency_contact_phone }),
-        ...(form.travel_history       && { travel_history:               form.travel_history }),
+        ...(form.emergency_contact_phone && { emergency_contact_phone: form.emergency_contact_phone }),
+        ...(form.travel_history && { travel_history: form.travel_history }),
         previous_visa_applications: form.previous_visa_applications === "true",
-        ...(form.previous_visa_details && { previous_visa_details:       form.previous_visa_details }),
+        ...(form.previous_visa_details && { previous_visa_details: form.previous_visa_details }),
       });
       await updateUser();
       setSuccess(true);
@@ -406,21 +406,21 @@ const EditProfilePage: React.FC = () => {
         {/* Avatar */}
         <Box
           sx={{
-            display:        "flex",
-            alignItems:     "center",
-            gap:            2,
-            mb:             3,
-            p:              2,
-            borderRadius:   "12px",
-            border:         `1px dashed ${C.g200}`,
-            bgcolor:        C.g50,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            mb: 3,
+            p: 2,
+            borderRadius: "12px",
+            border: `1px dashed ${C.g200}`,
+            bgcolor: C.g50,
           }}
         >
           <Avatar
             sx={{
-              width:    56,
-              height:   56,
-              bgcolor:  C.brand,
+              width: 56,
+              height: 56,
+              bgcolor: C.brand,
               fontSize: 20,
               fontWeight: 800,
             }}
@@ -434,14 +434,14 @@ const EditProfilePage: React.FC = () => {
               startIcon={<PhotoCameraIcon sx={{ fontSize: "14px !important" }} />}
               onClick={() => photoRef.current?.click()}
               sx={{
-                color:         C.brand,
-                borderColor:   C.accentLight,
-                fontWeight:    700,
-                fontSize:      12,
-                borderRadius:  "8px",
+                color: C.brand,
+                borderColor: C.accentLight,
+                fontWeight: 700,
+                fontSize: 12,
+                borderRadius: "8px",
                 textTransform: "none",
-                bgcolor:       C.accentXL,
-                "&:hover":     { bgcolor: C.accentLight },
+                bgcolor: C.accentXL,
+                "&:hover": { bgcolor: C.accentLight },
               }}
             >
               Change photo
@@ -630,30 +630,30 @@ const EditProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       <Box
         sx={{
-          position:   "fixed",
-          bottom:     0,
-          left:       0,
-          right:      0,
-          zIndex:     1200,
-          bgcolor:    "#fff",
-          borderTop:  `1px solid ${C.g200}`,
-          boxShadow:  "0 -4px 24px rgba(0,0,0,.06)",
-          px:         { xs: 1, sm: 2, md: 4 },
-          py:         1.5,
-          display:    "flex",
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1200,
+          bgcolor: "#fff",
+          borderTop: `1px solid ${C.g200}`,
+          boxShadow: "0 -4px 24px rgba(0,0,0,.06)",
+          px: { xs: 1, sm: 2, md: 4 },
+          py: 1.5,
+          display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
-          gap:        1.5,
+          gap: 1.5,
         }}
       >
         <Button
           variant="outlined"
           onClick={() => navigate("/settings/profile")}
           sx={{
-            color:         C.g500,
-            borderColor:   C.g200,
-            fontWeight:    600,
-            borderRadius:  "10px",
+            color: C.g500,
+            borderColor: C.g200,
+            fontWeight: 600,
+            borderRadius: "10px",
             textTransform: "none",
           }}
         >
@@ -665,13 +665,13 @@ const EditProfilePage: React.FC = () => {
           onClick={handleSave}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
           sx={{
-            bgcolor:       C.brand,
-            fontWeight:    700,
-            borderRadius:  "10px",
+            bgcolor: C.brand,
+            fontWeight: 700,
+            borderRadius: "10px",
             textTransform: "none",
-            px:            3,
-            boxShadow:     "0 2px 10px rgba(182,106,237,.35)",
-            "&:hover":     { bgcolor: C.brandDark },
+            px: 3,
+            boxShadow: "0 2px 10px rgba(182,106,237,.35)",
+            "&:hover": { bgcolor: C.brandDark },
             "&.Mui-disabled": { bgcolor: C.g200 },
           }}
         >
