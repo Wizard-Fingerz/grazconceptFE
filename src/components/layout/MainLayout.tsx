@@ -166,8 +166,11 @@ export const MainLayout: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
+
+  /* Refresh profile from API on mount so profile_picture_url is always current */
+  useEffect(() => { updateUser(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const prevPathname = useRef(location.pathname);
   useEffect(() => {

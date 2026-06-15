@@ -248,7 +248,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
           onClick={() => navigate('/settings/profile')}
         >
           <Avatar
-            src={user.profile_picture}
+            src={user.profile_picture_url || user.profile_picture}
             sx={{ width: 34, height: 34, bgcolor: C.brand, fontSize: 13, fontWeight: 700, flexShrink: 0 }}
           >
             {(user.first_name?.[0] || 'U').toUpperCase()}
