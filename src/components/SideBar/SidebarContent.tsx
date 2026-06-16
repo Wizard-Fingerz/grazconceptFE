@@ -26,6 +26,7 @@ interface NavItem {
   label: string;
   to: string;
   badge?: number;
+  exact?: boolean; // when true, only mark active on exact path match
 }
 
 interface NavSection {
@@ -47,7 +48,8 @@ const customerNav: NavSection[] = [
     label: 'Mobility Hub',
     items: [
       { emoji: '✈️', label: 'Flight & Hotel', to: '/travel/book-flight' },
-      { emoji: '📄', label: 'Study Abroad', to: '/travel/study-visa' },
+      { emoji: '📄', label: 'Study Abroad', to: '/travel/study-visa', exact: true },
+      { emoji: '🔍', label: 'Search Programs', to: '/travel/study-visa/offers' },
       { emoji: '💼', label: 'Work Abroad', to: '/travel/work-visa' },
       { emoji: '🕌', label: 'Pilgrimage', to: '/travel/pilgrimage' },
       { emoji: '🏖️', label: 'Travel & Vacation', to: '/travel/vacation' },
@@ -191,8 +193,9 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
     ? customerNav
     : toNavSections(sidebarSections);
 
-  const isActive = (to: string) =>
-    location.pathname === to || location.pathname.startsWith(to + '/');
+  const isActive = (item: NavItem) =>
+    location.pathname === item.to ||
+    (!item.exact && location.pathname.startsWith(item.to + '/'));
 
   return (
     <Box sx={{
@@ -292,7 +295,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, sidebarSections
                 key={item.to}
                 item={item}
                 isOpen={isOpen}
-                isActive={isActive(item.to)}
+                isActive={isActive(item)}
                 onClick={() => navigate(item.to)}
               />
             ))}
