@@ -151,8 +151,9 @@ export const MainLayout: React.FC = () => {
   /* search */
   const [searchVal, setSearchVal] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const searchWrap = useRef<HTMLDivElement>(null);
+  const searchRef       = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
+  const searchWrap      = useRef<HTMLDivElement>(null);
 
   /* notifications */
   const [notifOpen, setNotifOpen] = useState(false);
@@ -577,7 +578,7 @@ export const MainLayout: React.FC = () => {
           {/* Mobile: search icon only */}
           <Box sx={{ display: { xs: "flex", sm: "none" }, ml: "auto" }}>
             <Box
-              onClick={() => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50); }}
+              onClick={() => { setSearchOpen(true); setTimeout(() => mobileSearchRef.current?.focus(), 80); }}
               sx={{
                 width: 36, height: 36, borderRadius: "8px", bgcolor: C.g100,
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -587,6 +588,94 @@ export const MainLayout: React.FC = () => {
               <SearchIcon sx={{ fontSize: 18, color: C.g500 }} />
             </Box>
           </Box>
+
+          {/* ── MOBILE SEARCH OVERLAY ─────────────────────────────── */}
+          {searchOpen && isMobile && (
+            <Box sx={{
+              position: "fixed", inset: 0, zIndex: 1300,
+              bgcolor: "rgba(0,0,0,.45)", display: "flex", flexDirection: "column",
+            }}
+              onClick={() => { setSearchOpen(false); setSearchVal(""); }}
+            >
+              <Box
+                onClick={e => e.stopPropagation()}
+                sx={{
+                  bgcolor: "#fff",
+                  borderRadius: "0 0 20px 20px",
+                  pb: 1,
+                  display: "flex", flexDirection: "column",
+                  maxHeight: "80vh",
+                }}
+              >
+                {/* Mobile search input row */}
+                <Box sx={{
+                  display: "flex", alignItems: "center", gap: 1,
+                  px: 2, py: 1.5,
+                  borderBottom: `1px solid ${C.g200}`,
+                }}>
+                  <SearchIcon sx={{ fontSize: 18, color: C.g400, flexShrink: 0 }} />
+                  <Box
+                    component="input"
+                    ref={mobileSearchRef}
+                    value={searchVal}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchVal(e.target.value)}
+                    placeholder="Search flights, visas, services…"
+                    sx={{
+                      flex: 1, border: "none", outline: "none", background: "transparent",
+                      fontSize: 15, color: C.g900, fontFamily: "inherit",
+                      "&::placeholder": { color: C.g400 },
+                    }}
+                  />
+                  {searchVal && (
+                    <Box onClick={() => setSearchVal("")}
+                      sx={{ cursor: "pointer", fontSize: 20, color: C.g400, lineHeight: 1, px: 0.5 }}>
+                      ×
+                    </Box>
+                  )}
+                  <Box
+                    onClick={() => { setSearchOpen(false); setSearchVal(""); }}
+                    sx={{ ml: 0.5, fontSize: 13, fontWeight: 600, color: C.brand, cursor: "pointer" }}
+                  >
+                    Cancel
+                  </Box>
+                </Box>
+
+                {/* Mobile results */}
+                <Box sx={{ overflowY: "auto", flex: 1 }}>
+                  {filteredSuggestions.length === 0 ? (
+                    <Box sx={{ px: 2, py: 3, fontSize: 13, color: C.g400, textAlign: "center" }}>
+                      No results for "{searchVal}"
+                    </Box>
+                  ) : filteredSuggestions.map(group => (
+                    <Box key={group.group}>
+                      <Typography sx={{
+                        px: 2, pt: 1.5, pb: 0.5,
+                        fontSize: 10, fontWeight: 700, color: C.g400,
+                        letterSpacing: ".8px", textTransform: "uppercase",
+                      }}>{group.group}</Typography>
+                      {group.items.map(item => (
+                        <Box
+                          key={item.text}
+                          onClick={() => { navigate(item.to); setSearchOpen(false); setSearchVal(""); }}
+                          sx={{
+                            display: "flex", alignItems: "center", gap: 1.5,
+                            px: 2, py: 1.25, cursor: "pointer",
+                            "&:hover": { bgcolor: C.g50 },
+                          }}
+                        >
+                          <Box sx={{ fontSize: 18, width: 24, textAlign: "center", flexShrink: 0 }}>{item.icon}</Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: 14, color: C.g900, fontWeight: 500 }}>{item.text}</Typography>
+                            <Typography sx={{ fontSize: 11.5, color: C.g400 }}>{item.hint}</Typography>
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+          )}
 
           {/* ── SEARCH (desktop) ───────────────────────────────── */}
           <Box
@@ -648,7 +737,7 @@ export const MainLayout: React.FC = () => {
                 position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0,
                 bgcolor: "#fff", border: `1px solid ${C.g200}`, borderRadius: "12px",
                 boxShadow: "0 12px 32px rgba(0,0,0,.12)", zIndex: 200,
-                overflow: "hidden",
+                maxHeight: 400, overflowY: "auto",
               }}>
                 {filteredSuggestions.length === 0 ? (
                   <Box sx={{ px: 2, py: 2, fontSize: 12, color: C.g400, textAlign: "center" }}>
