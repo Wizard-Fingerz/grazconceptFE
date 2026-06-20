@@ -1,753 +1,290 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, CircularProgress, TextField, Typography } from '@mui/material';
+import api from '../../../../../services/api';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  CircularProgress,
-  TextField,
-  Avatar,
-  Fade,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Tabs,
-  Tab,
-} from "@mui/material";
-import { CustomerPageHeader } from "../../../../../components/CustomerPageHeader";
-import api from "../../../../../services/api";
-import { useNavigate } from "react-router-dom";
+  C, BillCtaButton, BillReceiptDialog, ErrorAlert,
+  FormCard, ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
+  SX_FIELD, generateRef,
+} from '../_shared';
 
-/**
- * TYPES -- Providers and Plans
- */
-type PlanCategory = "daily" | "weekly" | "monthly" | "quarterly" | "others";
-const categoryLabels: Record<PlanCategory, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  monthly: "Monthly",
-  quarterly: "3 Months",
-  others: "Others",
+type PlanCat = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'others';
+const CAT_LABELS: Record<PlanCat, string> = {
+  daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', quarterly: '3 Months', others: 'Others',
 };
+const ALL_CATS: PlanCat[] = ['daily', 'weekly', 'monthly', 'quarterly', 'others'];
 
-type RemotePlan = {
-  id: number;
-  label: string;
-  value: string;
-  amount: number;
-  data: string;
-  category: PlanCategory;
+interface RemotePlan {
+  id: number; label: string; value: string; amount: number; data: string; category: PlanCat;
+}
+interface RemoteProvider {
+  id: number; label: string; value: string; accent?: string; logo: string; active: boolean;
+}
+
+const NET_FB: Record<string, { bg: string; color: string }> = {
+  mtn:       { bg: '#fbbf24', color: '#78350f' },
+  airtel:    { bg: '#ef4444', color: '#fff'     },
+  glo:       { bg: '#16a34a', color: '#fff'     },
+  '9mobile': { bg: '#0ea5e9', color: '#fff'     },
 };
+function fb(slug: string) {
+  return NET_FB[slug.toLowerCase()] ?? { bg: C.brand, color: '#fff' };
+}
 
-type RemoteProvider = {
-  id: number;
-  label: string;
-  value: string;
-  accent?: string;
-  logo: string;
-  active: boolean;
-};
-
-const ALL_CATEGORIES: PlanCategory[] = [
-  "daily",
-  "weekly",
-  "monthly",
-  "quarterly",
-  "others",
-];
-
-/**
- * PHONE NUMBER INPUT
- */
-const PhoneNumberInput: React.FC<{
-  phone: string;
-  setPhone: (phone: string) => void;
-  error?: string | null;
-}> = React.memo(({ phone, setPhone, error }) => {
-  return (
-    <Card className="rounded-2xl shadow-md">
-      <CardContent
-        className="flex flex-col items-center justify-center"
-        sx={{ height: { xs: 120, sm: 140 }, width: "100%" }}
-      >
-        <TextField
-          fullWidth
-          label="Phone Number"
-          type="tel"
-          value={phone}
-          onChange={(e) => {
-            let val = e.target.value.replace(/[^0-9]/g, "");
-            if (val.length > 11) val = val.substring(0, 11);
-            setPhone(val);
-          }}
-          InputProps={{
-            sx: { fontWeight: 500 },
-          }}
-          inputProps={{ maxLength: 11, pattern: "^[0-9]{11}$" }}
-          InputLabelProps={{
-            sx: { fontWeight: 500 },
-          }}
-          variant="outlined"
-          required
-          placeholder="e.g 08012345678"
-          error={!!error}
-          helperText={error}
-        />
-      </CardContent>
-    </Card>
-  );
-});
-PhoneNumberInput.displayName = "PhoneNumberInput";
-
-/**
- * MAIN COMPONENT
- */
-export const DataBundleSubscription: React.FC = () => {
-  const [provider, setProvider] = useState<string>("");
-  const [category, setCategory] = useState<PlanCategory>("daily");
-  const [plan, setPlan] = useState<string>("");
-  const [amount, setAmount] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // For fetching providers and related state
-  const [fetchingProviders, setFetchingProviders] = useState(true);
-  const [providersError, setProvidersError] = useState<string | null>(null);
-  const [dataProviders, setDataProviders] = useState<RemoteProvider[]>([]);
-
-  // For fetching plans of the selected provider and related state
+const DataBundleSubscription: React.FC = () => {
+  const [providers,     setProviders]     = useState<RemoteProvider[]>([]);
+  const [fetchingProvs, setFetchingProvs] = useState(true);
+  const [provsError,    setProvsError]    = useState<string | null>(null);
+  const [plans,         setPlans]         = useState<RemotePlan[]>([]);
   const [fetchingPlans, setFetchingPlans] = useState(false);
-  const [plansError, setPlansError] = useState<string | null>(null);
-  const [providerPlans, setProviderPlans] = useState<RemotePlan[]>([]);
+  const [plansError,    setPlansError]    = useState<string | null>(null);
+  const [provider, setProvider] = useState('');
+  const [cat,      setCat]      = useState<PlanCat>('daily');
+  const [plan,     setPlan]     = useState('');
+  const [phone,    setPhone]    = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError,   setApiError]   = useState<string | null>(null);
+  const [receipt,    setReceipt]    = useState(false);
+  const [txRef,      setTxRef]      = useState('');
 
-  const navigate = useNavigate();
-
-  // --- FETCH PROVIDERS ONCE ---
   useEffect(() => {
-    let mounted = true;
-    setFetchingProviders(true);
-    setProvidersError(null);
-
-    (async () => {
-      try {
-        // The API response is assumed to be an array, not wrapped in .results
-        const res = await api.get("/app/airtime-data-plans/providers-with-plans/");
-        let content: any[] = Array.isArray(res.data) ? res.data : [];
-        // Defensive shape-mapping, assumes { id, value, label, accent, logo, active }
-        const mappedProviders: RemoteProvider[] = content.map((p: any) => ({
-          id: p.id,
-          label: p.label,
-          value: p.value,
-          accent: p.accent,
-          logo: p.logo,
-          active: p.active,
-        }));
-        if (mounted) {
-          setDataProviders(mappedProviders);
-        }
-      } catch (err: any) {
-        if (mounted) setProvidersError(
-          err?.response?.data?.detail ||
-          "Could not load providers. Please refresh."
-        );
-      }
-      if (mounted) setFetchingProviders(false);
-    })();
-
-    return () => { mounted = false; };
+    let live = true;
+    api.get('/app/airtime-data-plans/providers-with-plans/')
+      .then(res => {
+        if (!live) return;
+        const data: any[] = Array.isArray(res.data) ? res.data : [];
+        setProviders(data.map((p: any) => ({
+          id: p.id, label: p.label, value: p.value,
+          accent: p.accent, logo: p.logo, active: p.active,
+        })));
+      })
+      .catch(e => { if (live) setProvsError(e?.response?.data?.detail ?? 'Could not load providers.'); })
+      .finally(() => { if (live) setFetchingProvs(false); });
+    return () => { live = false; };
   }, []);
 
-  // --- FETCH PLANS FOR PROVIDER WHEN SELECTED ---
   useEffect(() => {
-    if (!provider) {
-      setProviderPlans([]);
-      setPlansError(null);
-      setFetchingPlans(false);
-      setCategory("daily");
-      setPlan("");
-      return;
-    }
-    const foundProvider = dataProviders.find(p => p.value === provider);
-    if (!foundProvider) {
-      setProviderPlans([]);
-      setCategory("daily");
-      setPlansError(null);
-      setFetchingPlans(false);
-      setPlan("");
-      return;
-    }
-
-    let mounted = true;
-    setFetchingPlans(true);
-    setPlansError(null);
-    setProviderPlans([]);
-    setPlan("");
-    setCategory("daily");
-    (async () => {
-      try {
-        // Note: GET /app/airtime-data-plans/?provider_id=<id>
-        const res = await api.get("/app/airtime-data-plans/", {
-          params: { provider_id: foundProvider.id }
-        });
-        let plans: any[] = Array.isArray(res.data?.results) ? res.data.results : [];
-        // Defensive mapping
-        const mappedPlans: RemotePlan[] = plans.map(pl => ({
-          id: pl.id,
-          label: pl.label,
-          value: pl.value,
-          amount: pl.amount,
-          data: pl.data,
-          category: pl.category,
+    if (!provider) { setPlans([]); setPlan(''); return; }
+    const prov = providers.find(p => p.value === provider);
+    if (!prov) return;
+    let live = true;
+    setFetchingPlans(true); setPlansError(null); setPlans([]); setPlan('');
+    api.get('/app/airtime-data-plans/', { params: { provider_id: prov.id } })
+      .then(res => {
+        if (!live) return;
+        const items: any[] = Array.isArray(res.data?.results) ? res.data.results : [];
+        const mapped: RemotePlan[] = items.map(pl => ({
+          id: pl.id, label: pl.label, value: pl.value,
+          amount: pl.amount, data: pl.data, category: pl.category,
         }));
-        if (mounted) {
-          setProviderPlans(mappedPlans);
-          // Select the first available category for this provider
-          const catSet = new Set((mappedPlans.map(pl => pl.category)).filter(Boolean));
-          const firstCat = [...catSet].filter(cat => ALL_CATEGORIES.includes(cat as PlanCategory))[0] as PlanCategory || "daily";
-          setCategory(firstCat);
-        }
-      } catch (err: any) {
-        if (mounted)
-          setPlansError(
-            err?.response?.data?.detail || "Could not load data plans for this provider."
-          );
-      }
-      if (mounted) setFetchingPlans(false);
-    })();
+        setPlans(mapped);
+        const cats = [...new Set(mapped.map(pl => pl.category))].filter(c => ALL_CATS.includes(c as PlanCat));
+        setCat((cats[0] as PlanCat) ?? 'daily');
+      })
+      .catch(e => { if (live) setPlansError(e?.response?.data?.detail ?? 'Could not load plans.'); })
+      .finally(() => { if (live) setFetchingPlans(false); });
+    return () => { live = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
 
-    return () => { mounted = false; };
-    // eslint-disable-next-line
-  }, [provider, dataProviders]);
-
-  // Memoize objects for rendering, filtering, etc
-  const selectedProvider = useMemo(
-    () => dataProviders.find((p) => p.value === provider),
-    [dataProviders, provider]
-  );
-
-  const plansForCategory = useMemo(
-    () => providerPlans.filter((pl) => pl.category === category) || [],
-    [providerPlans, category]
-  );
-
-  const selectedPlan = useMemo(
-    () => providerPlans.find((pl) => pl.value === plan),
-    [providerPlans, plan]
-  );
-
-  const providerCategories: PlanCategory[] = useMemo(
-    () =>
-      providerPlans.length
-        ? ([
-            ...new Set(providerPlans.map((pl) => pl.category)),
-          ].filter((cat) =>
-            ALL_CATEGORIES.includes(cat as PlanCategory)
-          ) as PlanCategory[])
-        : ALL_CATEGORIES,
-    [providerPlans]
-  );
-
-  // Maintain category/plan state
-  useEffect(() => {
-    if (!!providerPlans.length && !providerCategories.includes(category)) {
-      setCategory(providerCategories[0]);
-      setPlan("");
-    }
-    // eslint-disable-next-line
-  }, [providerPlans, providerCategories, category]);
+  const selectedProvider = useMemo(() => providers.find(p => p.value === provider), [providers, provider]);
+  const selectedPlan     = useMemo(() => plans.find(pl => pl.value === plan), [plans, plan]);
+  const providerCats     = useMemo(() =>
+    [...new Set(plans.map(pl => pl.category))].filter(c => ALL_CATS.includes(c as PlanCat)) as PlanCat[],
+  [plans]);
+  const plansForCat = useMemo(() => plans.filter(pl => pl.category === cat), [plans, cat]);
 
   useEffect(() => {
-    if (!plansForCategory.find((p) => p.value === plan)) {
-      setPlan("");
-    }
-    // eslint-disable-next-line
-  }, [category, plansForCategory, providerPlans, provider]);
+    if (plan && !plansForCat.find(p => p.value === plan)) setPlan('');
+  }, [cat, plansForCat, plan]);
 
-  // Find provider_id and plan_id for current selection
-  const provider_id: number | undefined = selectedProvider?.id;
-  const plan_id: number | undefined = selectedPlan?.id;
+  const canSubmit = !!provider && !!plan && phone.length === 11 && !submitting;
 
-  // --- FORM SUBMIT ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccessMsg(null);
-    setErrorMsg(null);
-    setLoading(true);
-
+    if (!canSubmit || !selectedProvider || !selectedPlan) return;
+    setApiError(null); setSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const payload: Record<string, any> = {
-        provider_id,
-        plan_id,
-        amount: selectedPlan?.amount ?? amount,
+      await api.post('/app/airtime-data-purchases/', {
+        provider_id: selectedProvider.id,
+        plan_id:     selectedPlan.id,
+        amount:      selectedPlan.amount,
         phone,
-      };
-      await api.post(
-        "/app/airtime-data-purchases/",
-        payload,
-        { headers }
-      );
-      setSuccessMsg("Data bundle purchased successfully!");
-      setProvider("");
-      setPlan("");
-      setAmount("");
-      setPhone("");
-      setProviderPlans([]);
+      }, { headers });
+      setTxRef(generateRef());
+      setReceipt(true);
     } catch (err: any) {
-      if (
-        err?.response?.data &&
-        (err.response.data.provider_id || err.response.data.plan_id)
-      ) {
-        const msgs = [];
-        if (Array.isArray(err.response.data.provider_id)) {
-          msgs.push(...err.response.data.provider_id);
-        }
-        if (Array.isArray(err.response.data.plan_id)) {
-          msgs.push(...err.response.data.plan_id);
-        }
-        setErrorMsg(msgs.join(" "));
-      } else {
-        setErrorMsg(
-          err?.response?.data?.detail ||
-          "Failed to process your data bundle purchase. Please try again."
-        );
-      }
+      const d = err?.response?.data;
+      const msg = (d?.provider_id?.[0]) ?? (d?.plan_id?.[0]) ?? d?.detail ?? 'Purchase failed. Try again.';
+      setApiError(msg);
+    } finally {
+      setSubmitting(false);
     }
-    setLoading(false);
   };
 
-  // --- UI SUBCOMPONENTS ---
+  const resetForm = () => {
+    setProvider(''); setPlan(''); setPhone(''); setApiError(null); setReceipt(false);
+  };
 
-  const ProviderSelector = useCallback(() => (
-    <Card className="rounded-2xl shadow-md">
-      <CardContent
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "stretch",
-          justifyContent: "center",
-          py: { xs: 1.5, sm: 2 },
-        }}
-      >
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Select Network Provider
-        </Typography>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 16,
-            justifyContent: "center",
-            marginBottom: 4,
-            position: "relative",
-          }}
-        >
-          {dataProviders.filter(p => p.active).map((p) => (
-            <div
-              key={p.value}
-              style={{
-                flex: "1 1 40%",
-                minWidth: 100,
-                maxWidth: 140,
-                marginBottom: 8,
-                boxSizing: "border-box",
-                display: "flex",
-                justifyContent: "center",
-                position: "relative",
-              }}
-            >
-              <Button
-                onClick={() => {
-                  setProvider(p.value);
-                  setPlan("");
-                  setCategory("daily");
-                  setSuccessMsg(null);
-                  setErrorMsg(null);
-                  setPlansError(null);
-                }}
-                variant={provider === p.value ? "contained" : "outlined"}
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  bgcolor:
-                    provider === p.value ? p.accent || "primary.main" : "#fff",
-                  color: provider === p.value ? "#222" : "inherit",
-                  border:
-                    provider === p.value
-                      ? `2px solid ${p.accent || "#aaa"}`
-                      : "1.5px solid #eee",
-                  boxShadow:
-                    provider === p.value
-                      ? "0 6px 24px 2px rgba(60,60,0,0.08)"
-                      : "none",
-                  transition: "all 0.18s",
-                  borderRadius: 3,
-                  py: 1.5,
-                  px: 0,
-                  minHeight: 80,
-                  gap: 0.5,
-                  "&:hover": {
-                    borderColor: p.accent,
-                    bgcolor: p.accent ? p.accent + "11" : undefined,
-                  },
-                  position: "relative",
-                }}
-                disabled={fetchingPlans && provider === p.value}
-              >
-                {/* If this button is the selected provider and fetchingPlans is true, show loading spinner */}
-                {fetchingPlans && provider === p.value && (
-                  <CircularProgress
-                    size={28}
-                    color="primary"
-                    sx={{
-                      position: "absolute",
-                      top: "10px",
-                      right: "10px",
-                      zIndex: 2,
-                    }}
-                  />
-                )}
-                <Avatar
-                  src={p.logo}
-                  alt={p.label}
-                  sx={{
-                    width: 38,
-                    height: 38,
-                    mb: 0.5,
-                    bgcolor: "white",
-                  }}
-                  imgProps={{
-                    style: { objectFit: "contain" },
-                  }}
-                />
-                <span style={{ fontSize: 15, fontWeight: 500 }}>
-                  {p.label}
-                </span>
-              </Button>
-            </div>
-          ))}
-        </div>
-        {!provider && (
-          <Typography
-            color="error"
-            variant="caption"
-            sx={{ mt: 1, textAlign: "center" }}
-          >
-            Please select a network.
-          </Typography>
-        )}
-      </CardContent>
-    </Card>
-  ), [dataProviders, provider, setProvider, setCategory, setPlan, setSuccessMsg, setErrorMsg, setPlansError, fetchingPlans]);
+  const summaryRows = [
+    { key: 'Bundle',    value: selectedPlan ? `${selectedPlan.data}` : '—' },
+    { key: 'Network',   value: selectedProvider?.label ?? '—' },
+    { key: 'Validity',  value: selectedPlan ? (CAT_LABELS[selectedPlan.category] ?? '—') : '—' },
+    { key: 'Recipient', value: phone.length === 11 ? phone : '—' },
+    { key: 'Delivery',  value: 'Instant ⚡', accent: true },
+  ];
 
-  const CategoryTabs = useCallback(() => (
-    <Card className="rounded-2xl shadow-md">
-      <CardContent
-        sx={{
-          pt: 1,
-          px: 0,
-          pb: 0,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Tabs
-          value={category}
-          onChange={(_e, newVal) => setCategory(newVal)}
-          variant="scrollable"
-          scrollButtons="auto"
-          aria-label="Data Plan Category"
-        >
-          {providerCategories.map((cat) => (
-            <Tab
-              key={cat}
-              value={cat}
-              label={categoryLabels[cat] || cat}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: { xs: 14, sm: 16 },
-                color: category === cat ? "primary.main" : "inherit",
-              }}
-              disableRipple
-            />
-          ))}
-        </Tabs>
-      </CardContent>
-    </Card>
-  ), [category, providerCategories, setCategory]);
-
-  const PlanSelector = useCallback(() => (
-    <Card className="rounded-2xl shadow-md">
-      <CardContent
-        className="flex flex-col items-center justify-center"
-        sx={{ height: { xs: 120, sm: 140 }, width: "100%" }}
-      >
-        <FormControl fullWidth>
-          <InputLabel id="plan-label">Data Plan</InputLabel>
-          <Select
-            labelId="plan-label"
-            label="Data Plan"
-            value={plan}
-            onChange={(e) => {
-              setPlan(e.target.value as string);
-              setAmount("");
-            }}
-            required
-            disabled={!!plansError || !plansForCategory.length || fetchingPlans}
-            MenuProps={{
-              disableRestoreFocus: true,
-            }}
-          >
-            {plansForCategory.map((pl) => (
-              <MenuItem value={pl.value} key={pl.value}>
-                {pl.label} &mdash; <b>&#8358;{pl.amount}</b>
-              </MenuItem>
-            ))}
-            {plansForCategory.length === 0 && (
-              <MenuItem disabled value="">
-                No plans available in this category
-              </MenuItem>
-            )}
-          </Select>
-        </FormControl>
-      </CardContent>
-    </Card>
-  ), [plansForCategory, plan, setPlan, setAmount, plansError, fetchingPlans]);
-
-  // --- LOADING/FAIL STATES ---
-  if (fetchingProviders) {
-    return (
-      <Box sx={{ py: 7, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <CircularProgress color="primary" size={40} />
-        <Typography sx={{ mt: 2, fontWeight: 500 }}>Loading data providers...</Typography>
-      </Box>
-    );
-  }
-  if (providersError) {
-    return (
-      <Box sx={{ py: 7, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <Typography color="error" sx={{ fontWeight: 500 }}>{providersError}</Typography>
-        <Button
-          sx={{ mt: 2 }}
-          onClick={() => {
-            window.location.reload();
-          }}
-          variant="contained"
-        >
-          Retry
-        </Button>
-      </Box>
-    );
-  }
-
-  // Show plan loading/error for per-provider plan fetch
-  let plansFeedback = null;
-  if (fetchingPlans) {
-    plansFeedback = (
-      <Box sx={{ py: 3, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <CircularProgress color="primary" size={36} />
-        <Typography sx={{ mt: 1, fontWeight: 400, fontSize: 16 }}>
-          Loading plans...
-        </Typography>
-      </Box>
-    );
-  } else if (plansError) {
-    plansFeedback = (
-      <Box sx={{ py: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <Typography color="error" sx={{ fontWeight: 500 }}>{plansError}</Typography>
-      </Box>
-    );
-  }
+  if (fetchingProvs) return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
+      <CircularProgress sx={{ color: C.brand }} />
+      <Typography sx={{ color: C.g500 }}>Loading providers…</Typography>
+    </Box>
+  );
 
   return (
-    <Box
-      sx={{
-        px: { xs: 1, sm: 2, md: 4 },
-        py: { xs: 1, sm: 2 },
-        width: "100%",
-        maxWidth: 1400,
-        mx: "auto",
-      }}
-    >
-      <CustomerPageHeader>
-        <Typography
-          variant="h4"
-          className="font-bold mb-6"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            lineHeight: 1.1,
-          }}
-        >
-          Buy Data Bundle
-        </Typography>
-      </CustomerPageHeader>
-
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-        <Typography variant="body1" className="text-gray-700 max-w-md">
-          Purchase affordable data bundles for all networks. Instant delivery to any phone number in Nigeria!
-        </Typography>
-        <Button
-          variant="contained"
-          className="bg-[#e8f8fa] text-black shadow-sm rounded-xl normal-case mt-4 md:mt-0"
-          onClick={() => {
-            navigate("/support/chat");
-          }}
-        >
-          Chat with Agent
-        </Button>
-      </div>
-
-      <form onSubmit={handleSubmit} autoComplete="off">
-        <div className="grid grid-cols-1 gap-6 mb-6">
-          <ProviderSelector />
-          <div>
-            {/* Show a centered loader when fetchingPlans, after a provider is selected but before plans are loaded */}
-            <Fade in={!!provider && fetchingPlans} unmountOnExit mountOnEnter>
-              <Box sx={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                py: 3
-              }}>
-                <CircularProgress color="primary" size={36} />
-                <Typography sx={{ ml: 2, fontWeight: 400, fontSize: 16 }}>
-                  Loading plans...
-                </Typography>
-              </Box>
-            </Fade>
-
-            <Fade in={!!provider && !!providerPlans.length && !fetchingPlans && !plansError} unmountOnExit mountOnEnter>
-              <div>
-                {!!provider && !!providerPlans.length && <CategoryTabs />}
-              </div>
-            </Fade>
-          </div>
-          <div>
-            <Fade in={!!provider && !!providerPlans.length && !fetchingPlans} unmountOnExit mountOnEnter>
-              <div>
-                {plansFeedback || <PlanSelector />}
-              </div>
-            </Fade>
-          </div>
-          {/* 
-            IMPORTANT: To avoid remounting the PhoneNumberInput,
-            always keep the wrapper div in the DOM.
-            Only fade the actual contents inside, so input state/focus is preserved.
-          */}
-          <div>
-            <Fade in={!!provider && !!plan && !!providerPlans.length && !fetchingPlans && !plansError} unmountOnExit mountOnEnter>
-              <div>
-                <PhoneNumberInput
-                  phone={phone}
-                  setPhone={setPhone}
-                  error={
-                    typeof errorMsg === "string"
-                      ? errorMsg
-                      : (
-                          errorMsg && typeof errorMsg === "object" && "phone" in errorMsg
-                            ? (errorMsg as { phone?: string })?.phone
-                            : undefined
-                        )
-                  }
-                />
-              </div>
-            </Fade>
-          </div>
-        </div>
-
-        <Button
-          variant="contained"
-          fullWidth
-          className="bg-blue-700 hover:bg-blue-800 text-white rounded-full py-3 font-semibold normal-case"
-          disabled={!provider || !plan || !phone || loading || !!plansError}
-          type="submit"
-          sx={{
-            mt: 1,
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            borderRadius: 999,
-            minHeight: 48,
-          }}
-        >
-          {loading ? (
-            <CircularProgress size={24} color="inherit" />
-          ) : (
-            <>
-              <span>
-                {selectedPlan
-                  ? `Buy (${selectedPlan.data} for ₦${selectedPlan.amount})`
-                  : "Buy Data"}
-              </span>
-              {selectedProvider && (
-                <Avatar
-                  src={selectedProvider.logo}
-                  alt={selectedProvider.label}
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    ml: 1,
-                    bgcolor: "#fff",
-                  }}
-                  variant="rounded"
-                />
+    <Box>
+      <SplitLayout
+        form={
+          <FormCard iconBg="#eff6ff" icon="📶" title="Buy Data Bundle" subtitle="Discounted rates · Instant activation">
+            <form onSubmit={handleSubmit} autoComplete="off">
+              <SectionLabel>Select Network</SectionLabel>
+              {provsError ? (
+                <Typography sx={{ fontSize: 13, color: C.red, mb: 2 }}>{provsError}</Typography>
+              ) : (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2.5 }}>
+                  {providers.filter(p => p.active).map(p => {
+                    const f = fb(p.value);
+                    return (
+                      <ProviderBtn
+                        key={p.id}
+                        logo={p.logo}
+                        initial={p.label[0]}
+                        initBg={f.bg} initColor={f.color}
+                        name={p.label}
+                        selected={provider === p.value}
+                        loading={fetchingPlans && provider === p.value}
+                        onClick={() => { setProvider(p.value); setApiError(null); }}
+                      />
+                    );
+                  })}
+                </Box>
               )}
-            </>
-          )}
-        </Button>
-      </form>
 
-      {/* Success & error messages */}
-      {successMsg && (
-        <Typography color="success.main" sx={{ mt: 3 }}>
-          {successMsg}
-        </Typography>
-      )}
-      {errorMsg && (
-        <Typography color="error.main" sx={{ mt: 3 }}>
-          {errorMsg}
-        </Typography>
-      )}
+              {provider && !fetchingPlans && plans.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <SectionLabel>Plan Duration</SectionLabel>
+                  <Box sx={{ display: 'flex', bgcolor: C.g100, borderRadius: '10px', p: '3px', gap: '2px', mb: 2 }}>
+                    {providerCats.map(c => (
+                      <Box
+                        key={c}
+                        onClick={() => { setCat(c); setPlan(''); }}
+                        sx={{
+                          flex: 1, py: .875, borderRadius: '8px', textAlign: 'center', cursor: 'pointer',
+                          bgcolor: cat === c ? C.g0 : 'transparent',
+                          boxShadow: cat === c ? '0 1px 3px rgba(0,0,0,.08)' : 'none',
+                          transition: '.15s',
+                        }}
+                      >
+                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: cat === c ? C.g900 : C.g500 }}>
+                          {CAT_LABELS[c] ?? c}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                  <SectionLabel>Choose Plan</SectionLabel>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 1.25, mb: 2.5 }}>
+                    {plansForCat.length === 0 ? (
+                      <Typography sx={{ fontSize: 13, color: C.g400, gridColumn: '1/-1', textAlign: 'center', py: 2 }}>
+                        No plans in this category.
+                      </Typography>
+                    ) : plansForCat.map(pl => {
+                      const sel = plan === pl.value;
+                      return (
+                        <Box
+                          key={pl.value}
+                          onClick={() => { setPlan(pl.value); setApiError(null); }}
+                          sx={{
+                            p: 1.75, borderRadius: '14px', cursor: 'pointer', transition: 'all .18s',
+                            border: `1.5px solid ${sel ? C.brand : C.g200}`,
+                            bgcolor: sel ? C.brandXs : C.g0,
+                            boxShadow: sel ? `0 0 0 3px rgba(139,43,140,.1)` : 'none',
+                            '&:hover': { borderColor: sel ? C.brand : C.g300, bgcolor: sel ? C.brandXs : C.g50 },
+                            position: 'relative',
+                          }}
+                        >
+                          <Typography sx={{ fontSize: 18, fontWeight: 900, color: sel ? C.brandDark : C.g900, mb: .3 }}>{pl.data}</Typography>
+                          <Typography sx={{ fontSize: 11.5, color: C.g400, mb: .6 }}>{CAT_LABELS[pl.category] ?? pl.category}</Typography>
+                          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.brand }}>₦{pl.amount.toLocaleString()}</Typography>
+                          {sel && (
+                            <Box sx={{
+                              position: 'absolute', top: 10, right: 10,
+                              width: 20, height: 20, borderRadius: '50%', bgcolor: C.brand,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <Typography sx={{ fontSize: 11, color: '#fff', fontWeight: 900 }}>✓</Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
 
-      {/* Guide */}
-      <Typography
-        variant="h6"
-        className="font-bold mb-4"
-        sx={{ mt: 4 }}
-      >
-        How it works
-      </Typography>
-      <div className="flex flex-col gap-2">
-        <Typography variant="body2">
-          1. Select your preferred network provider above.
-        </Typography>
-        <Typography variant="body2">
-          2. Choose a category (Daily, Weekly, Monthly, etc.).
-        </Typography>
-        <Typography variant="body2">
-          3. Select the data bundle you would like to buy in that category.
-        </Typography>
-        <Typography variant="body2">
-          4. Enter the Nigerian phone number to receive data.
-        </Typography>
-        <Typography variant="body2">
-          5. Click "Buy Data" and follow prompts. Data is typically delivered instantly!
-        </Typography>
-      </div>
+              {provider && fetchingPlans && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 3, mb: 2 }}>
+                  <CircularProgress size={22} sx={{ color: C.brand }} />
+                  <Typography sx={{ fontSize: 13.5, color: C.g500 }}>Loading plans…</Typography>
+                </Box>
+              )}
+
+              {plansError && <Typography sx={{ fontSize: 13, color: C.red, mb: 2 }}>{plansError}</Typography>}
+
+              <Box sx={{ mb: 2.5 }}>
+                <TextField
+                  fullWidth size="small" label="Phone Number" type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                  placeholder="e.g. 08012345678"
+                  inputProps={{ maxLength: 11 }}
+                  helperText={phone.length > 0 && phone.length < 11 ? `${phone.length}/11 digits` : undefined}
+                  sx={SX_FIELD}
+                />
+              </Box>
+
+              <ErrorAlert message={apiError} />
+              <BillCtaButton disabled={!canSubmit} loading={submitting}>
+                {selectedPlan ? `Buy ${selectedPlan.data} — ₦${selectedPlan.amount.toLocaleString()}` : 'Select a plan to continue'}
+              </BillCtaButton>
+            </form>
+          </FormCard>
+        }
+        summary={
+          <SummaryPanel
+            title="Selected Plan"
+            displayAmt={selectedPlan ? selectedPlan.amount.toLocaleString() : '0'}
+            rows={summaryRows}
+            trustBadges={['🔒 Encrypted', '⚡ Instant', '💯 Best Rates']}
+          />
+        }
+      />
+      <BillReceiptDialog
+        open={receipt} onClose={() => setReceipt(false)} onNew={resetForm}
+        amount={selectedPlan?.amount ?? 0} title="Data Activated!"
+        subtitle={`${selectedPlan?.data ?? ''} data sent to ${phone}`}
+        rows={[
+          { key: 'Network',   value: selectedProvider?.label ?? '—' },
+          { key: 'Bundle',    value: `${selectedPlan?.data ?? '—'} · ${selectedPlan ? CAT_LABELS[selectedPlan.category] : '—'}` },
+          { key: 'Phone',     value: phone },
+          { key: 'Status',    value: '✅ Activated' },
+          { key: 'Reference', value: txRef, mono: true },
+          { key: 'Time',      value: new Date().toLocaleTimeString() },
+        ]}
+      />
     </Box>
   );
 };
 
+export { DataBundleSubscription };
 export default DataBundleSubscription;
