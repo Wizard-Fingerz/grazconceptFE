@@ -113,8 +113,9 @@ const DocSlot: React.FC<{
   services: string[];
   uploading: boolean;
   done: boolean;
+  preExisting?: boolean;
   onFile: (f: File) => void;
-}> = ({ term, accept, hint, services, uploading, done, onFile }) => {
+}> = ({ term, accept, hint, services, uploading, done, preExisting, onFile }) => {
   const ref = useRef<HTMLInputElement>(null);
   return (
     <Paper
@@ -167,9 +168,32 @@ const DocSlot: React.FC<{
             <Typography sx={{ fontSize: 11, color: C.g500 }}>Uploading…</Typography>
           </Box>
         ) : done ? (
-          <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: C.green }}>
-            ✓ Uploaded successfully
-          </Typography>
+          <Box>
+            <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: C.green }}>
+              {preExisting ? "✓ Already uploaded" : "✓ Uploaded successfully"}
+            </Typography>
+            {/* Allow re-upload even if already done */}
+            <>
+              <input
+                ref={ref}
+                type="file"
+                accept={accept}
+                style={{ display: "none" }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }}
+              />
+              <Button
+                size="small"
+                onClick={() => ref.current?.click()}
+                sx={{
+                  fontSize: 10.5, fontWeight: 600, color: C.g500, textTransform: "none",
+                  textDecoration: "underline", p: 0, minWidth: 0, mt: 0.5,
+                  "&:hover": { color: C.brand, bgcolor: "transparent" },
+                }}
+              >
+                Replace file
+              </Button>
+            </>
+          </Box>
         ) : (
           <>
             <input
@@ -231,6 +255,7 @@ const EditProfilePage: React.FC = () => {
   const [docTypes, setDocTypes] = useState<any[]>([]);
   const [docUploading, setDocUploading] = useState<Record<string, boolean>>({});
   const [docSuccess, setDocSuccess] = useState<Record<string, boolean>>({});
+  const [docPreExisting, setDocPreExisting] = useState<Record<string, boolean>>({});
   const [userId, setUserId] = useState<number | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
 
@@ -249,11 +274,29 @@ const EditProfilePage: React.FC = () => {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([authService.getProfile(), userServices.getAllDocumentType()])
-      .then(([profile, types]) => {
+    Promise.all([
+      authService.getProfile(),
+      userServices.getAllDocumentType(),
+      userServices.getAllClientsDocument(),
+    ])
+      .then(([profile, types, clientDocs]) => {
         if (!alive) return;
         setUserId(profile.id);
         const p = profile as any;
+
+        // Pre-mark slots where a document already exists
+        const uploaded = Array.isArray(clientDocs) ? clientDocs : clientDocs?.results ?? [];
+        const preSuccess: Record<string, boolean> = {};
+        DOC_UPLOAD_SLOTS.forEach(slot => {
+          const subTerms = slot.term.toLowerCase().split("/").map(t => t.trim());
+          const found = uploaded.some((d: any) => {
+            const t: string = (d.type_term ?? d.type?.term ?? "").toLowerCase();
+            return subTerms.some(s => t.includes(s) || s.includes(t));
+          });
+          if (found) preSuccess[slot.term] = true;
+        });
+        setDocSuccess(preSuccess);
+        setDocPreExisting(preSuccess);
         setForm(prev => ({
           ...prev,
           first_name: p.first_name ?? "",
@@ -620,7 +663,7 @@ const EditProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════ */}
       <SectionCard title="Upload Documents" subtitle="Upload once — automatically reused in all future applications." icon="📎">
         <Alert severity="info" sx={{ mb: 2.5, borderRadius: "10px", fontSize: 12.5 }}>
-          Service tags show which applications each document is used for. Documents already uploaded on your profile page are not shown here.
+          Service tags show which applications each document is used for. Already-uploaded documents are highlighted in green — you can replace them at any time.
         </Alert>
         <Grid container spacing={2}>
           {DOC_UPLOAD_SLOTS.map(slot => (
@@ -632,6 +675,7 @@ const EditProfilePage: React.FC = () => {
                 services={slot.services}
                 uploading={!!docUploading[slot.term]}
                 done={!!docSuccess[slot.term]}
+                preExisting={!!docPreExisting[slot.term]}
                 onFile={f => handleDocUpload(slot.term, f)}
               />
             </Grid>
