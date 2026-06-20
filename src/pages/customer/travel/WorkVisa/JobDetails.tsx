@@ -4,7 +4,6 @@ import {
   Box, Typography, Card, CardContent, CardMedia, CircularProgress,
   Paper, Divider, Button, TextField, Chip, Link, Breadcrumbs,
   Alert, LinearProgress, Collapse, Avatar,
-  Select, MenuItem, FormControl, InputLabel,
 } from "@mui/material";
 import CheckCircleIcon      from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon     from "@mui/icons-material/ErrorOutline";
@@ -99,7 +98,7 @@ const AppliedPanel: React.FC<{app:any;onViewAll:()=>void}> = ({app,onViewAll}) =
 /* ─── SmartApplyPanel ──────────────────────────────────────────────── */
 interface PanelProps { offer:any; profile:any; clientDocs:any[]; offerId:string; onSuccess:()=>void; }
 
-const SmartApplyPanel: React.FC<PanelProps> = ({offer,profile,clientDocs,offerId,onSuccess}) => {
+const SmartApplyPanel: React.FC<PanelProps> = ({profile,clientDocs,offerId,onSuccess}) => {
   const navigate = useNavigate();
   const [form,setForm] = useState({ visa_type:"", sponsorship_details:"", intended_start_date:"", intended_end_date:"" });
   const [submitting,setSubmitting]   = useState(false);

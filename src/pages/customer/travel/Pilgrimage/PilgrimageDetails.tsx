@@ -98,7 +98,7 @@ const AppliedPanel: React.FC<{app:any; onViewAll:()=>void}> = ({app,onViewAll}) 
 interface PanelProps {
   offer:any; profile:any; clientDocs:any[]; offerId:string; onSuccess:()=>void;
 }
-const SmartApplyPanel: React.FC<PanelProps> = ({offer,profile,clientDocs,offerId,onSuccess}) => {
+const SmartApplyPanel: React.FC<PanelProps> = ({profile,clientDocs,offerId,onSuccess}) => {
   const navigate = useNavigate();
   const ACCOMMODATION_OPTIONS = ["Standard","Deluxe","Shared","Private","Budget","Premium"];
   const PILGRIMAGE_OPTIONS    = ["Hajj","Umrah","Other"];
@@ -131,12 +131,6 @@ const SmartApplyPanel: React.FC<PanelProps> = ({offer,profile,clientDocs,offerId
   const readiness     = Math.round((okItems/totalItems)*100);
   const allReady      = missingFields.length === 0 && missingDocs.length === 0;
   const categories    = ["personal","emergency"];
-
-  const getNationality = () => {
-    const v = profile?.nationality;
-    if (typeof v === "object" && v !== null) return (v as any).code ?? "";
-    return v ?? "";
-  };
 
   const handleSubmit = async () => {
     setSubmitting(true); setSubmitError(null);

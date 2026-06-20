@@ -11,7 +11,7 @@
  * • Withdraw: bank select → account → review → confirm
  * • Animated success / error states
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert, Autocomplete, Box, Button, Chip, CircularProgress,
   Dialog, DialogContent, IconButton, InputAdornment,
@@ -28,7 +28,6 @@ import CheckCircleIcon        from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon       from '@mui/icons-material/ErrorOutline';
 import AccountBalanceIcon     from '@mui/icons-material/AccountBalance';
 import CreditCardIcon         from '@mui/icons-material/CreditCard';
-import PhoneAndroidIcon       from '@mui/icons-material/PhoneAndroid';
 
 import {
   flwInitiatePayment, flwVerifyPayment, flwWithdraw, flwGetBanks,
@@ -119,7 +118,7 @@ type WStep    = 'form' | 'review' | 'done' | 'error';
 /* ══════════════════════════════════════════════════════════════════════════ */
 const HeroHeader: React.FC<{
   tab: Tab; balance?: number; user: any; onClose: () => void;
-}> = ({ tab, balance, user, onClose }) => (
+}> = ({ balance, user, onClose }) => (
   <Box sx={{
     background: 'linear-gradient(135deg, #6d1f6e 0%, #8b2b8c 45%, #a93dab 100%)',
     px: { xs: 2.5, sm: 3 }, pt: { xs: 3, sm: 3.5 }, pb: 2.5,
@@ -369,7 +368,7 @@ const SuccessScreen: React.FC<{
 /* ══════════════════════════════════════════════════════════════════════════ */
 /*  DEPOSIT PANEL                                                             */
 /* ══════════════════════════════════════════════════════════════════════════ */
-const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> = ({ user, onSuccess }) => {
+const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> = ({ onSuccess }) => {
   const [method,  setMethod]  = useState<DepMethod>('flutterwave');
   const [amount,  setAmount]  = useState('');
   const [loading, setLoading] = useState(false);
