@@ -261,9 +261,13 @@ const EditProfilePage: React.FC = () => {
           last_name: p.last_name ?? "",
           phone_number: p.phone_number ?? "",
           date_of_birth: p.date_of_birth ?? "",
-          gender: p.gender ?? "",
-          nationality: p.nationality ?? "",
-          country_of_residence: p.country_of_residence ?? "",
+          gender: p.gender_name ?? "",
+          nationality: (typeof p.nationality === 'object' && p.nationality !== null)
+            ? ((p.nationality as any)?.code ?? "")
+            : (p.nationality ?? ""),
+          country_of_residence: (typeof p.country_of_residence === 'object' && p.country_of_residence !== null)
+            ? ((p.country_of_residence as any)?.code ?? "")
+            : (p.country_of_residence ?? ""),
           current_address: p.current_address ?? "",
           passport_number: p.passport_number ?? "",
           passport_expiry_date: p.passport_expiry_date ?? "",
