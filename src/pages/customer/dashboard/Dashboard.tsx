@@ -11,23 +11,19 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider,
   List,
   ListItem,
   ListItemText,
   Chip,
   CircularProgress,
   IconButton,
-  Tooltip,
-  Snackbar,
 } from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { getAddBanners } from '../../../services/studyVisa';
 import { getMyRecentWalletTransactions, getMyWalletbalance } from '../../../services/walletService';
 import { actionForms } from '../../../components/modals/ActionForms';
 import { submitActionForm } from '../../../services/actionFormService';
 import { toast } from 'react-toastify';
+import WalletModal from '../../../components/wallet/WalletModal';
 
 // ─── Brand tokens ────────────────────────────────────────────────
 const C = {
@@ -82,56 +78,6 @@ const actionResultRoutes: Record<string, string> = {
 };
 
 // ─── Fund Wallet modal body ───────────────────────────────────────
-const FundWalletModalContent = ({ user }: { user: any }) => {
-  const [snack, setSnack] = useState(false);
-  const ACCT = '4000331192';
-  const copy = () => { navigator.clipboard.writeText(ACCT); setSnack(true); };
-  return (
-    <Box>
-      <Typography variant="body2" sx={{ mb: 1 }}>
-        {user?.first_name} {user?.last_name}, transfer to the account below to fund your wallet.
-      </Typography>
-      <Divider sx={{ my: 2 }} />
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="subtitle2" color="text.secondary">Account Name</Typography>
-        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-          GRAZLINKS ENTERPRISE – GRAZ TRAVEL &amp; TOUR SERVICES
-        </Typography>
-      </Box>
-      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary">Account Number</Typography>
-          <Typography variant="body1" sx={{ fontWeight: 700 }}>{ACCT}</Typography>
-        </Box>
-        <Tooltip title="Copy">
-          <IconButton size="small" sx={{ ml: 1 }} onClick={copy}>
-            <ContentCopyIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="subtitle2" color="text.secondary">Bank</Typography>
-        <Typography variant="body1" sx={{ fontWeight: 600 }}>Moniepoint MFB</Typography>
-      </Box>
-      <Divider sx={{ my: 2 }} />
-      <Typography variant="caption" color="text.secondary">
-        After transfer, email your receipt to <b>peter.oluwole@grazconcept.com.ng</b> for wallet update.
-      </Typography>
-      <Box sx={{ mt: 2, bgcolor: '#fffbe6', borderRadius: 1, border: '1px solid #ffe58f', p: 1.5 }}>
-        <Typography variant="subtitle2" color="warning.main" sx={{ fontWeight: 700, mb: 0.5 }}>Refund Policy</Typography>
-        <Typography variant="body2" color="text.secondary">
-          <b>Note:</b> <span style={{ color: '#d48806' }}>15% charges apply to any refunded capital.</span>
-        </Typography>
-      </Box>
-      <Snackbar open={snack} autoHideDuration={2000} onClose={() => setSnack(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <MuiAlert elevation={6} variant="filled" severity="success" onClose={() => setSnack(false)}>
-          Account number copied!
-        </MuiAlert>
-      </Snackbar>
-    </Box>
-  );
-};
 
 // ─── Grid quick-action tile (original v1 style) ──────────────────
 const QATile = ({ emoji, label, badge, iconBg = C.accentXL, onClick }: {
@@ -364,6 +310,7 @@ export const Dashboard: React.FC = () => {
   const [openModal, setOpenModal] = useState(false);
   const [modalLabel, setModalLabel] = useState<string | null>(null);
   const [openFundWallet, setOpenFundWallet] = useState(false);
+  const [walletModalTab, setWalletModalTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [openTransactionsModal, setOpenTransactionsModal] = useState(false);
   const [formState, setFormState] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -680,12 +627,12 @@ export const Dashboard: React.FC = () => {
             </Box>
             <Box sx={{ display: 'flex', gap: 0.8, flexShrink: 0 }}>
               {[
-                { lbl: '↑ Send', i: 0 },
-                { lbl: '↓ Withdraw', i: 1 },
-                { lbl: '+ Fund', i: 2 },
-              ].map(({ lbl, i }) => (
+                { lbl: '↑ Send', tab: 'withdraw' as const },
+                { lbl: '↓ Withdraw', tab: 'withdraw' as const },
+                { lbl: '+ Fund', tab: 'deposit' as const },
+              ].map(({ lbl, tab }, i) => (
                 <Button key={lbl} size="small"
-                  onClick={i === 2 ? () => setOpenFundWallet(true) : undefined}
+                  onClick={() => { setWalletModalTab(tab); setOpenFundWallet(true); }}
                   sx={{
                     minWidth: 0, py: 0.7, px: { xs: 1, sm: 1.3 }, fontSize: { xs: 10, sm: 11 }, fontWeight: 700,
                     textTransform: 'none', borderRadius: '7px', color: '#fff',
@@ -1131,14 +1078,24 @@ export const Dashboard: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Fund Wallet */}
-      <Dialog open={openFundWallet} onClose={() => setOpenFundWallet(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Fund Wallet</DialogTitle>
-        <DialogContent><FundWalletModalContent user={user} /></DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenFundWallet(false)} variant="contained" sx={{ background: C.brand }}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      {/* Wallet Modal — deposit + withdraw via Flutterwave */}
+      <WalletModal
+        open={openFundWallet}
+        onClose={() => setOpenFundWallet(false)}
+        initialTab={walletModalTab}
+        walletBalance={walletBalance.balance != null ? Number(walletBalance.balance) : undefined}
+        user={user}
+        onSuccess={(newBalance) => {
+          if (newBalance !== undefined) {
+            setWalletBalance(prev => ({ ...prev, balance: newBalance }));
+          } else {
+            // Refresh balance
+            getMyWalletbalance().then((d: any) => {
+              if (d) setWalletBalance({ currency: d.currency, balance: d.balance });
+            }).catch(() => {});
+          }
+        }}
+      />
 
       {/* Action modal */}
       <Dialog open={openModal} onClose={() => { setOpenModal(false); setModalLabel(null); setFormState({}); }} maxWidth="sm" fullWidth>

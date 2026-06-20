@@ -1,43 +1,106 @@
-
 import api from './api';
 
-// Get all wallet packages
-export async function getAllWallets(params?: Record<string, any
-  // Get all wallet packages
-  >) {
-  try {
-    const response = await api.get(`/app/wallet-offer`, { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+// ── Existing endpoints ────────────────────────────────────────────────────────
+
+export async function getAllWallets(params?: Record<string, any>) {
+  const response = await api.get('/app/wallet-offer', { params });
+  return response.data;
 }
 
-// Get recent wallet bookings for the current user (limit 5)
-export async function getMyRecentWalletTransactions() {
-  try {
-    const response = await api.get(`/wallet/wallet-transactions/my-recent/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+export async function getMyRecentWalletTransactions(params?: Record<string, any>) {
+  const response = await api.get('/wallet/wallet-transactions/my-recent/', { params });
+  return response.data;
 }
 
-// Get wallet ad banners (limit 3)
 export async function getWalletBanners() {
-  try {
-    const response = await api.get(`/app/wallet-ad-banner/?limit=3`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.get('/app/wallet-ad-banner/?limit=3');
+  return response.data;
 }
 
 export async function getMyWalletbalance() {
-  try {
-    const response = await api.get(`/wallet/wallets/my-balance/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.get('/wallet/wallets/my-balance/');
+  return response.data;
+}
+
+// ── Flutterwave ──────────────────────────────────────────────────────────────
+
+export interface InitiatePaymentPayload {
+  amount: number;
+  currency?: string;
+  transaction_type?: 'deposit' | 'withdrawal' | 'transfer' | 'payment' | 'savings_funding';
+  description?: string;
+  savings_plan_id?: number | null;
+}
+
+export interface InitiatePaymentResponse {
+  reference: string;
+  public_key: string;
+  amount: number;
+  currency: string;
+  email: string;
+  name: string;
+  phone: string;
+  transaction_type: string;
+  description: string;
+}
+
+/** Step 1 — ask backend to create a pending transaction and get a reference. */
+export async function flwInitiatePayment(payload: InitiatePaymentPayload): Promise<InitiatePaymentResponse> {
+  const response = await api.post('/wallet/flutterwave/initiate/', payload);
+  return response.data;
+}
+
+export interface VerifyPaymentPayload {
+  transaction_id: number | string;
+  reference: string;
+}
+
+export interface VerifyPaymentResponse {
+  detail: string;
+  status: 'successful' | 'failed' | string;
+  reference: string;
+  amount: number;
+  currency: string;
+  new_balance: number;
+}
+
+/** Step 2 — after Flutterwave inline checkout succeeds, verify with our backend. */
+export async function flwVerifyPayment(payload: VerifyPaymentPayload): Promise<VerifyPaymentResponse> {
+  const response = await api.post('/wallet/flutterwave/verify/', payload);
+  return response.data;
+}
+
+export interface WithdrawPayload {
+  amount: number;
+  account_bank: string;    // bank code, e.g. "044"
+  account_number: string;
+  beneficiary_name?: string;
+  narration?: string;
+  currency?: string;
+}
+
+export interface WithdrawResponse {
+  detail: string;
+  reference: string;
+  status: string;
+  amount: number;
+  currency: string;
+}
+
+/** Initiate bank transfer withdrawal via Flutterwave. */
+export async function flwWithdraw(payload: WithdrawPayload): Promise<WithdrawResponse> {
+  const response = await api.post('/wallet/flutterwave/withdraw/', payload);
+  return response.data;
+}
+
+export interface BankOption {
+  id: number;
+  code: string;
+  name: string;
+}
+
+/** Fetch list of banks (for withdrawal form). */
+export async function flwGetBanks(country = 'NG'): Promise<BankOption[]> {
+  const response = await api.get('/wallet/flutterwave/banks/', { params: { country } });
+  return response.data.banks ?? [];
 }
