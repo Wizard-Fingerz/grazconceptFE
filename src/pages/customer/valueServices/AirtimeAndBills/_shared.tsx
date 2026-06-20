@@ -64,6 +64,63 @@ export function generateRef(): string {
   return r;
 }
 
+/* ─── PaymentMethodSelector ──────────────────────────────────────────────── */
+export type PaymentMethod = 'wallet' | 'card' | 'bank_transfer' | 'mobile_money';
+
+const PAY_METHODS: { value: PaymentMethod; label: string; sub: string; icon: string }[] = [
+  { value: 'wallet',        label: 'Wallet',        sub: 'Instant · from balance', icon: '👛' },
+  { value: 'card',          label: 'Card',          sub: 'Debit/Credit worldwide', icon: '💳' },
+  { value: 'bank_transfer', label: 'Bank Transfer', sub: 'NG banks · USSD',        icon: '🏦' },
+  { value: 'mobile_money',  label: 'Mobile Money',  sub: 'MoMo & others',          icon: '📱' },
+];
+
+interface PaymentMethodSelectorProps {
+  value: PaymentMethod;
+  onChange: (v: PaymentMethod) => void;
+}
+export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ value, onChange }) => (
+  <Box sx={{ mb: 2.5 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+      {PAY_METHODS.map(m => (
+        <Box
+          key={m.value}
+          onClick={() => onChange(m.value)}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1.25,
+            p: '10px 14px', borderRadius: '12px', cursor: 'pointer',
+            border: `1.5px solid ${value === m.value ? C.brand : C.g200}`,
+            bgcolor: value === m.value ? C.brandXs : C.g0,
+            boxShadow: value === m.value ? `0 0 0 3px rgba(139,43,140,.08)` : 'none',
+            transition: 'all .15s',
+          }}
+        >
+          <Box sx={{
+            width: 32, height: 32, borderRadius: '9px',
+            bgcolor: value === m.value ? C.brandSm : C.g100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, flexShrink: 0,
+          }}>
+            {m.icon}
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: value === m.value ? C.brandDark : C.g900, lineHeight: 1.2 }}>
+              {m.label}
+            </Typography>
+            <Typography sx={{ fontSize: 10, color: C.g400, lineHeight: 1.4, mt: .2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {m.sub}
+            </Typography>
+          </Box>
+          {value === m.value && (
+            <Box sx={{ ml: 'auto', width: 16, height: 16, borderRadius: '50%', bgcolor: C.brand, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#fff' }} />
+            </Box>
+          )}
+        </Box>
+      ))}
+    </Box>
+  </Box>
+);
+
 /* ─── SectionLabel ───────────────────────────────────────────────────────── */
 export const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Typography sx={{

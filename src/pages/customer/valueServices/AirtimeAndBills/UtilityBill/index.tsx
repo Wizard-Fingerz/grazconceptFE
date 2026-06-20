@@ -3,31 +3,32 @@ import { Box, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, AmountDisplay, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
-  generateRef,
+  FormCard, PaymentMethodSelector, type PaymentMethod, ProviderBtn,
+  SectionLabel, SplitLayout, SummaryPanel, generateRef,
 } from '../_shared';
 
 const DISCOS = [
-  { label: 'Ikeja Electric',  value: 'ikeja_electric',  initBg: '#fbbf24', initColor: '#78350f', init: 'IE' },
-  { label: 'Eko Electric',    value: 'eko_electric',    initBg: '#0ea5e9', initColor: '#fff',    init: 'EE' },
-  { label: 'Abuja Electric',  value: 'abuja_electric',  initBg: '#7c3aed', initColor: '#fff',    init: 'AE' },
-  { label: 'Ibadan Electric', value: 'ibadan_electric', initBg: '#1d4ed8', initColor: '#fff',    init: 'IB' },
-  { label: 'Kano Electric',   value: 'kano_electric',   initBg: '#16a34a', initColor: '#fff',    init: 'KE' },
-  { label: 'PH Electric',     value: 'phe',             initBg: '#dc2626', initColor: '#fff',    init: 'PH' },
-  { label: 'Benin Electric',  value: 'benin_electric',  initBg: '#0891b2', initColor: '#fff',    init: 'BE' },
-  { label: 'Enugu Electric',  value: 'enugu_electric',  initBg: '#7e22ce', initColor: '#fff',    init: 'EG' },
+  { label: 'Ikeja Electric',  value: 'ikeja-electric',  initBg: '#fbbf24', initColor: '#78350f', init: 'IE' },
+  { label: 'Eko Electric',    value: 'eko-electric',    initBg: '#0ea5e9', initColor: '#fff',    init: 'EE' },
+  { label: 'Abuja Electric',  value: 'abuja-electric',  initBg: '#7c3aed', initColor: '#fff',    init: 'AE' },
+  { label: 'Ibadan Electric', value: 'ibadan-electric', initBg: '#1d4ed8', initColor: '#fff',    init: 'IB' },
+  { label: 'Kano Electric',   value: 'kano-electric',   initBg: '#16a34a', initColor: '#fff',    init: 'KE' },
+  { label: 'PH Electric',     value: 'portharcourt-electric', initBg: '#dc2626', initColor: '#fff', init: 'PH' },
+  { label: 'Benin Electric',  value: 'benin-electric',  initBg: '#0891b2', initColor: '#fff',    init: 'BE' },
+  { label: 'Enugu Electric',  value: 'enugu-electric',  initBg: '#7e22ce', initColor: '#fff',    init: 'EG' },
 ];
 
 const PayUtilityBill: React.FC = () => {
-  const [utility,    setUtility]    = useState('');
-  const [meterType,  setMeterType]  = useState<'prepaid' | 'postpaid' | ''>('');
-  const [meterNum,   setMeterNum]   = useState('');
-  const [amount,     setAmount]     = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [apiError,   setApiError]   = useState<string | null>(null);
-  const [receipt,    setReceipt]    = useState(false);
-  const [txRef,      setTxRef]      = useState('');
-  const [token,      setToken]      = useState('');
+  const [utility,       setUtility]       = useState('');
+  const [meterType,     setMeterType]     = useState<'prepaid' | 'postpaid' | ''>('');
+  const [meterNum,      setMeterNum]      = useState('');
+  const [amount,        setAmount]        = useState(0);
+  const [payMethod,     setPayMethod]     = useState<PaymentMethod>('wallet');
+  const [submitting,    setSubmitting]    = useState(false);
+  const [apiError,      setApiError]      = useState<string | null>(null);
+  const [receipt,       setReceipt]       = useState(false);
+  const [txRef,         setTxRef]         = useState('');
+  const [token,         setToken]         = useState('');
 
   const selectedDisco = DISCOS.find(d => d.value === utility);
   const canSubmit = !!utility && !!meterType && meterNum.length >= 5 && amount >= 500 && !submitting;
@@ -40,9 +41,20 @@ const PayUtilityBill: React.FC = () => {
       const tok = localStorage.getItem('token');
       const headers = tok ? { Authorization: `Bearer ${tok}` } : {};
       const res = await api.post('/value-services/bills/pay/', {
-        utility, meterType, meterNumber: meterNum, amount,
+        provider: utility,
+        meter_type: meterType,
+        meter_number: meterNum,
+        amount,
+        payment_method: payMethod,
       }, { headers });
-      setTxRef(generateRef());
+
+      if (res.data?.status === 'pending' && res.data?.payment_url) {
+        // Card payment — redirect to Flutterwave checkout
+        window.location.href = res.data.payment_url;
+        return;
+      }
+
+      setTxRef(res.data?.reference ?? generateRef());
       setToken(res.data?.token ?? '');
       setReceipt(true);
     } catch (err: any) {
@@ -58,11 +70,11 @@ const PayUtilityBill: React.FC = () => {
   };
 
   const summaryRows = [
-    { key: 'Provider',    value: selectedDisco?.label ?? '—' },
-    { key: 'Meter type',  value: meterType ? meterType.charAt(0).toUpperCase() + meterType.slice(1) : '—' },
-    { key: 'Meter no.',   value: meterNum || '—' },
-    { key: 'Service fee', value: '₦0 (Free)' },
-    { key: 'Delivery',    value: 'Instant token ⚡', accent: true },
+    { key: 'Provider',   value: selectedDisco?.label ?? '—' },
+    { key: 'Meter type', value: meterType ? meterType.charAt(0).toUpperCase() + meterType.slice(1) : '—' },
+    { key: 'Meter no.',  value: meterNum || '—' },
+    { key: 'Pay via',    value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'bank_transfer' ? '🏦 Bank' : '📱 Mobile' },
+    { key: 'Delivery',   value: 'Instant token ⚡', accent: true },
   ];
 
   return (
@@ -134,6 +146,9 @@ const PayUtilityBill: React.FC = () => {
                 min={500}
               />
 
+              <SectionLabel>Payment Method</SectionLabel>
+              <PaymentMethodSelector value={payMethod} onChange={setPayMethod} />
+
               <Box sx={{
                 bgcolor: C.amberLight, border: `1px solid #fde68a`,
                 borderRadius: '12px', p: '12px 16px', fontSize: 12, color: '#92400e',
@@ -168,7 +183,7 @@ const PayUtilityBill: React.FC = () => {
           { key: 'Meter No.', value: meterNum },
           { key: 'Type',      value: meterType ? meterType.charAt(0).toUpperCase() + meterType.slice(1) : '—' },
           ...(meterType === 'prepaid' && token
-            ? [{ key: 'Token', value: token || '4321-5678-1234-9087', mono: true }]
+            ? [{ key: 'Token', value: token, mono: true }]
             : []),
           { key: 'Status',    value: '✅ Processed' },
           { key: 'Reference', value: txRef, mono: true },

@@ -3,11 +3,11 @@ import { Box, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
-  generateRef,
+  FormCard, PaymentMethodSelector, type PaymentMethod,
+  ProviderBtn, SectionLabel, SplitLayout, SummaryPanel, generateRef,
 } from '../_shared';
 
-interface Package { label: string; amount: number }
+interface Package { label: string; code: string; amount: number }
 const PROVIDERS: {
   label: string; value: string;
   initBg: string; initColor: string; init: string;
@@ -16,55 +16,55 @@ const PROVIDERS: {
   {
     label: 'DSTV', value: 'dstv', initBg: '#003b8e', initColor: '#fff', init: 'DS',
     packages: [
-      { label: 'Premium',      amount: 29500 },
-      { label: 'Compact Plus', amount: 24500 },
-      { label: 'Compact',      amount: 14500 },
-      { label: 'Confam',       amount: 9000  },
-      { label: 'Yanga',        amount: 4200  },
-      { label: 'Padi',         amount: 2500  },
+      { label: 'Premium',      code: 'dstv-premium',      amount: 29500 },
+      { label: 'Compact Plus', code: 'dstv-compactplus',  amount: 24500 },
+      { label: 'Compact',      code: 'dstv-compact',      amount: 14500 },
+      { label: 'Confam',       code: 'dstv-confam',       amount: 9000  },
+      { label: 'Yanga',        code: 'dstv-yanga',        amount: 4200  },
+      { label: 'Padi',         code: 'dstv-padi',         amount: 2500  },
     ],
   },
   {
     label: 'GOtv', value: 'gotv', initBg: '#ff6b00', initColor: '#fff', init: 'GO',
     packages: [
-      { label: 'GOtv Supa Plus', amount: 12500 },
-      { label: 'GOtv Supa',      amount: 9600  },
-      { label: 'GOtv Max',       amount: 8000  },
-      { label: 'GOtv Jolli',     amount: 5500  },
-      { label: 'GOtv Jinja',     amount: 4150  },
-      { label: 'GOtv Smallie',   amount: 1100  },
+      { label: 'GOtv Supa Plus', code: 'gotv-supaplus', amount: 12500 },
+      { label: 'GOtv Supa',      code: 'gotv-supa',     amount: 9600  },
+      { label: 'GOtv Max',       code: 'gotv-max',       amount: 8000  },
+      { label: 'GOtv Jolli',     code: 'gotv-jolli',     amount: 5500  },
+      { label: 'GOtv Jinja',     code: 'gotv-jinja',     amount: 4150  },
+      { label: 'GOtv Smallie',   code: 'gotv-smallie',   amount: 1100  },
     ],
   },
   {
     label: 'Startimes', value: 'startimes', initBg: '#cc0000', initColor: '#fff', init: 'ST',
     packages: [
-      { label: 'Super', amount: 4200 },
-      { label: 'Smart', amount: 2100 },
-      { label: 'Basic', amount: 1850 },
-      { label: 'Nova',  amount: 900  },
+      { label: 'Super', code: 'startimes-super', amount: 4200 },
+      { label: 'Smart', code: 'startimes-smart', amount: 2100 },
+      { label: 'Basic', code: 'startimes-basic', amount: 1850 },
+      { label: 'Nova',  code: 'startimes-nova',  amount: 900  },
     ],
   },
   {
     label: 'Showmax', value: 'showmax', initBg: '#1a0841', initColor: '#fff', init: 'SH',
     packages: [
-      { label: 'Premium',     amount: 2900 },
-      { label: 'Mobile Only', amount: 1500 },
+      { label: 'Premium',     code: 'showmax-premium', amount: 2900 },
+      { label: 'Mobile Only', code: 'showmax-mobile',  amount: 1500 },
     ],
   },
   {
     label: 'Spectranet', value: 'spectranet', initBg: '#2c2e83', initColor: '#fff', init: 'SP',
     packages: [
-      { label: 'Unlimited',     amount: 9999 },
-      { label: 'Monthly 100GB', amount: 7500 },
-      { label: 'Weekly 25GB',   amount: 2500 },
+      { label: 'Unlimited',     code: 'spectranet-unlimited', amount: 9999 },
+      { label: 'Monthly 100GB', code: 'spectranet-100gb',     amount: 7500 },
+      { label: 'Weekly 25GB',   code: 'spectranet-25gb',      amount: 2500 },
     ],
   },
   {
     label: 'Smile', value: 'smile', initBg: '#7bc900', initColor: '#fff', init: 'SM',
     packages: [
-      { label: 'Unlimited', amount: 14999 },
-      { label: '30 GB',     amount: 6999  },
-      { label: '7 GB',      amount: 2999  },
+      { label: 'Unlimited', code: 'smile-unlimited', amount: 14999 },
+      { label: '30 GB',     code: 'smile-30gb',      amount: 6999  },
+      { label: '7 GB',      code: 'smile-7gb',       amount: 2999  },
     ],
   },
 ];
@@ -74,6 +74,7 @@ const CableAndInternetRenewal: React.FC = () => {
   const [pkg,        setPkg]        = useState<Package | null>(null);
   const [iuc,        setIuc]        = useState('');
   const [acctName,   setAcctName]   = useState('');
+  const [payMethod,  setPayMethod]  = useState<PaymentMethod>('wallet');
   const [submitting, setSubmitting] = useState(false);
   const [apiError,   setApiError]   = useState<string | null>(null);
   const [receipt,    setReceipt]    = useState(false);
@@ -83,7 +84,7 @@ const CableAndInternetRenewal: React.FC = () => {
   const canSubmit = !!provider && !!pkg && iuc.length >= 7 && !submitting;
 
   useEffect(() => {
-    if (iuc.length >= 10) setAcctName('ADEWALE OLADITI');
+    if (iuc.length >= 10) setAcctName('CUSTOMER NAME');
     else setAcctName('');
   }, [iuc]);
 
@@ -94,10 +95,23 @@ const CableAndInternetRenewal: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await api.post('/value-services/cable-internet/renew/', {
-        provider, bouquet: pkg.label, accountNumber: iuc, amount: pkg.amount,
+      const res = await api.post('/value-services/cable-internet/renew/', {
+        provider,
+        provider_label: selectedProvider?.label ?? provider,
+        package_code: pkg.code,
+        package_label: pkg.label,
+        iuc_number: iuc,
+        account_name: acctName,
+        amount: pkg.amount,
+        payment_method: payMethod,
       }, { headers });
-      setTxRef(generateRef());
+
+      if (res.data?.status === 'pending' && res.data?.payment_url) {
+        window.location.href = res.data.payment_url;
+        return;
+      }
+
+      setTxRef(res.data?.reference ?? generateRef());
       setReceipt(true);
     } catch (err: any) {
       setApiError(err?.response?.data?.detail ?? 'Renewal failed. Please try again.');
@@ -115,7 +129,7 @@ const CableAndInternetRenewal: React.FC = () => {
     { key: 'Provider', value: selectedProvider?.label ?? '—' },
     { key: 'Package',  value: pkg?.label ?? '—' },
     { key: 'IUC / ID', value: iuc || '—' },
-    { key: 'Duration', value: '30 days' },
+    { key: 'Pay via',  value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'bank_transfer' ? '🏦 Bank' : '📱 Mobile' },
     { key: 'Delivery', value: 'Activated in ~30s ⚡', accent: true },
   ];
 
@@ -151,17 +165,16 @@ const CableAndInternetRenewal: React.FC = () => {
                   <SectionLabel>Select Package</SectionLabel>
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', sm: 'repeat(3,1fr)' }, gap: 1.25, mb: 2.5 }}>
                     {selectedProvider.packages.map(p => {
-                      const sel = pkg?.label === p.label;
+                      const sel = pkg?.code === p.code;
                       return (
                         <Box
-                          key={p.label}
+                          key={p.code}
                           onClick={() => { setPkg(p); setApiError(null); }}
                           sx={{
                             p: 1.75, borderRadius: '14px', cursor: 'pointer', transition: 'all .18s',
                             border: `1.5px solid ${sel ? C.brand : C.g200}`,
                             bgcolor: sel ? C.brandXs : C.g0,
                             boxShadow: sel ? `0 0 0 3px rgba(139,43,140,.1)` : 'none',
-                            '&:hover': { borderColor: sel ? C.brand : C.g300, bgcolor: sel ? C.brandXs : C.g50 },
                             position: 'relative',
                           }}
                         >
@@ -208,9 +221,12 @@ const CableAndInternetRenewal: React.FC = () => {
                   value={acctName}
                   placeholder="Auto-filled after verification"
                   InputProps={{ readOnly: true, sx: { bgcolor: acctName ? C.g50 : C.g100 } }}
-                  sx={{ ...SX_F, '& .MuiOutlinedInput-root': { ...SX_F['& .MuiOutlinedInput-root'], bgcolor: acctName ? C.g50 : C.g100 } }}
+                  sx={SX_F}
                 />
               </Box>
+
+              <SectionLabel>Payment Method</SectionLabel>
+              <PaymentMethodSelector value={payMethod} onChange={setPayMethod} />
 
               <ErrorAlert message={apiError} />
               <BillCtaButton disabled={!canSubmit} loading={submitting}>

@@ -3,8 +3,8 @@ import { Box, FormControl, InputLabel, MenuItem, Select, TextField, Typography }
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, SectionLabel, SplitLayout, SummaryPanel,
-  SX_FIELD, generateRef,
+  FormCard, PaymentMethodSelector, type PaymentMethod,
+  SectionLabel, SplitLayout, SummaryPanel, SX_FIELD, generateRef,
 } from '../_shared';
 
 interface FeeType { label: string; value: string; min: number; defaultAmount?: number }
@@ -56,10 +56,12 @@ const EducationFeePayment: React.FC = () => {
   const [examYear,   setExamYear]   = useState('2025');
   const [phone,      setPhone]      = useState('');
   const [amount,     setAmount]     = useState('');
+  const [payMethod,  setPayMethod]  = useState<PaymentMethod>('wallet');
   const [submitting, setSubmitting] = useState(false);
   const [apiError,   setApiError]   = useState<string | null>(null);
   const [receipt,    setReceipt]    = useState(false);
   const [txRef,      setTxRef]      = useState('');
+  const [pinToken,   setPinToken]   = useState('');
 
   const selectedProvider = EDU_PROVIDERS.find(p => p.value === provider);
   const selectedFeeType  = selectedProvider?.feeTypes.find(f => f.value === feeType);
@@ -82,10 +84,24 @@ const EducationFeePayment: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await api.post('/value-services/education-fees/pay/', {
-        provider, feeType, candidateName: candName, regNo, amount: amtNum,
+      const res = await api.post('/value-services/education-fees/pay/', {
+        provider,
+        provider_label: selectedProvider?.label ?? provider,
+        fee_type: feeType,
+        fee_type_label: selectedFeeType?.label ?? feeType,
+        candidate_name: candName,
+        reg_no: regNo,
+        amount: amtNum,
+        payment_method: payMethod,
       }, { headers });
-      setTxRef(generateRef());
+
+      if (res.data?.status === 'pending' && res.data?.payment_url) {
+        window.location.href = res.data.payment_url;
+        return;
+      }
+
+      setTxRef(res.data?.reference ?? generateRef());
+      setPinToken(res.data?.token ?? '');
       setReceipt(true);
     } catch (err: any) {
       setApiError(err?.response?.data?.detail ?? 'Payment failed. Please try again.');
@@ -96,7 +112,7 @@ const EducationFeePayment: React.FC = () => {
 
   const resetForm = () => {
     setProvider(''); setFeeType(''); setCandName(''); setRegNo('');
-    setAmount(''); setPhone(''); setApiError(null); setReceipt(false);
+    setAmount(''); setPhone(''); setApiError(null); setReceipt(false); setPinToken('');
   };
 
   const summaryRows = [
@@ -104,7 +120,7 @@ const EducationFeePayment: React.FC = () => {
     { key: 'Fee type',    value: selectedFeeType?.label ?? '—' },
     { key: 'Exam year',   value: examYear },
     { key: 'Candidate',   value: candName || '—' },
-    { key: 'Service fee', value: '₦0' },
+    { key: 'Pay via',     value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'bank_transfer' ? '🏦 Bank' : '📱 Mobile' },
   ];
 
   return (
@@ -113,7 +129,6 @@ const EducationFeePayment: React.FC = () => {
         form={
           <FormCard iconBg="#dcfce7" icon="🎓" title="Education & Exam Fees" subtitle="WAEC · NECO · JAMB · NABTEB · University">
             <form onSubmit={handleSubmit}>
-              {/* Exam body grid */}
               <SectionLabel>Select Exam Body</SectionLabel>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1.25, mb: 2.5 }}>
                 {EDU_PROVIDERS.map(p => {
@@ -140,7 +155,6 @@ const EducationFeePayment: React.FC = () => {
                 })}
               </Box>
 
-              {/* Fee type + Year */}
               {selectedProvider && (
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 1.5, mb: 2 }}>
                   <FormControl size="small" sx={SX_FIELD}>
@@ -165,7 +179,6 @@ const EducationFeePayment: React.FC = () => {
                 </Box>
               )}
 
-              {/* Candidate fields */}
               {feeType && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
                   <TextField
@@ -197,6 +210,13 @@ const EducationFeePayment: React.FC = () => {
                 </Box>
               )}
 
+              {feeType && (
+                <>
+                  <SectionLabel>Payment Method</SectionLabel>
+                  <PaymentMethodSelector value={payMethod} onChange={setPayMethod} />
+                </>
+              )}
+
               <ErrorAlert message={apiError} />
               <BillCtaButton disabled={!canSubmit} loading={submitting}>
                 {selectedFeeType
@@ -225,6 +245,7 @@ const EducationFeePayment: React.FC = () => {
           { key: 'Year',        value: examYear },
           { key: 'Candidate',   value: candName },
           { key: 'Reg. No.',    value: regNo || '—' },
+          ...(pinToken ? [{ key: 'PIN / Token', value: pinToken, mono: true }] : []),
           { key: 'Status',      value: '✅ Confirmed' },
           { key: 'Reference',   value: txRef, mono: true },
           { key: 'Time',        value: new Date().toLocaleTimeString() },
