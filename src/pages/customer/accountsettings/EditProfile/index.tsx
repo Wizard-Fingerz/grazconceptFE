@@ -347,11 +347,19 @@ const EditProfilePage: React.FC = () => {
 
   const handleDocUpload = async (typeTerm: string, file: File) => {
     if (!userId) return;
-    const match = docTypes.find(dt =>
-      dt.term.toLowerCase().includes(typeTerm.toLowerCase().split("/")[0].trim()) ||
-      typeTerm.toLowerCase().includes(dt.term.toLowerCase())
-    );
-    if (!match?.id) return;
+    // Split on "/" to get all sub-terms (e.g. "CV / Resume" → ["cv", "resume"])
+    const subTerms = typeTerm.toLowerCase().split("/").map(t => t.trim());
+    const match = docTypes.find(dt => {
+      const dbTerm = dt.term.toLowerCase();
+      return (
+        subTerms.some(s => dbTerm.includes(s) || s.includes(dbTerm)) ||
+        subTerms.some(s => dbTerm === s)
+      );
+    });
+    if (!match?.id) {
+      setError(`Document type "${typeTerm}" is not yet configured in the system. Please contact your administrator.`);
+      return;
+    }
     setDocUploading(prev => ({ ...prev, [typeTerm]: true }));
     try {
       const fd = new FormData();
@@ -360,6 +368,8 @@ const EditProfilePage: React.FC = () => {
       fd.append("type", String(match.id));
       await userServices.uploadClientDocument(fd);
       setDocSuccess(prev => ({ ...prev, [typeTerm]: true }));
+    } catch {
+      setError(`Failed to upload ${typeTerm}. Please try again.`);
     } finally {
       setDocUploading(prev => ({ ...prev, [typeTerm]: false }));
     }
