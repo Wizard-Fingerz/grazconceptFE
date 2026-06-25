@@ -43,6 +43,7 @@ import NotesRemindersPage from "../pages/staff/clients/NotesRemindersPage";
 import ContactClientPage from "../pages/staff/clients/ContactClientPage";
 import { AuthLayout } from "../pages/auth/AuthLayout";
 import { ForgotPassword } from "../pages/auth/ForgotPassword";
+import { ResetPassword } from "../pages/auth/ResetPassword";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
 import PerformanceAnalytics from "../pages/staff/PerformanceAnalytics";
@@ -144,6 +145,15 @@ export const publicRoutes: RouteObject[] = [
     element: (
       <AuthLayout>
         <ForgotPassword />
+      </AuthLayout>
+    ),
+  },
+  {
+    // Backend sends links: /reset-password/:uid/:token/
+    path: "/reset-password/:uid/:token",
+    element: (
+      <AuthLayout>
+        <ResetPassword />
       </AuthLayout>
     ),
   },

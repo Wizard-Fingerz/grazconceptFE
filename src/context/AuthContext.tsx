@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState /*, useEffect*/ } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService, { type UserProfile } from '../services/authService';
+import api from '../services/api';
 
 /**
  * IMPORTANT ANALYSIS:
@@ -198,14 +199,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const resetPassword = async (_email: string) => {
-    try {
-      // TODO: Implement password reset functionality
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      return Promise.resolve();
-    } catch (error) {
-      throw new Error('Password reset failed');
-    }
+  const resetPassword = async (email: string) => {
+    // POST /api/users/password/reset/ — backend always returns 200 (doesn't leak email existence)
+    await api.post('/users/password/reset/', { email });
   };
 
   const logout = () => {
