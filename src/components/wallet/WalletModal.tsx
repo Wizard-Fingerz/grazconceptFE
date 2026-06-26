@@ -566,7 +566,7 @@ type ResolveState = 'idle' | 'loading' | 'success' | 'error';
 
 const WithdrawPanel: React.FC<{
   user: any; walletBalance?: number; onSuccess: (bal?: number) => void;
-}> = ({ user, walletBalance, onSuccess }) => {
+}> = ({ walletBalance, onSuccess }) => {
   const [step,         setStep]        = useState<WStep>('form');
   const [banks,        setBanks]       = useState<BankOption[]>([]);
   const [bkLoad,       setBkLoad]      = useState(false);

@@ -233,79 +233,98 @@ export const protectedRoutes: RouteObject[] = [
 
       {
         path: "notifications/alerts",
-        element: <StaffPlaceholderPage title="Visa Alerts & Deadlines" />,
+        element: <StaffPlaceholderPage title="Visa Alerts & Deadlines" icon="🔔"
+          comingFeatures={["Automated deadline reminders for visa applications","Priority alerts for expiring documents","Customisable alert thresholds per client"]} />,
       },
       {
         path: "notifications/broadcasts",
-        element: <StaffPlaceholderPage title="Broadcasts" />,
+        element: <StaffPlaceholderPage title="Broadcasts" icon="📢"
+          comingFeatures={["Send announcements to all clients or segments","Schedule broadcast campaigns","Track open and engagement rates"]} />,
       },
       {
         path: "notifications/campaigns",
-        element: <StaffPlaceholderPage title="Campaigns" />,
+        element: <StaffPlaceholderPage title="Campaigns" icon="📣"
+          comingFeatures={["Build email & SMS marketing campaigns","Target clients by visa type, region, or status","Campaign performance analytics"]} />,
       },
       {
         path: "notifications/badges",
-        element: <StaffPlaceholderPage title="Badges" />,
+        element: <StaffPlaceholderPage title="Badges & Rewards" icon="🏅"
+          comingFeatures={["Award milestone badges to high-performing agents","Gamified achievement system","Leaderboard integration"]} />,
       },
 
       {
         path: "support/tickets",
-        element: <StaffPlaceholderPage title="Support Tickets" />,
+        element: <StaffPlaceholderPage title="Support Tickets" icon="🎫"
+          comingFeatures={["View and respond to client support tickets","Priority routing and SLA tracking","Ticket history and resolution notes"]} />,
       },
       {
         path: "support/chat",
-        element: <StaffPlaceholderPage title="Live Chat & Email" />,
+        element: <StaffPlaceholderPage title="Live Chat & Email" icon="💬"
+          comingFeatures={["Real-time chat with clients from the portal","Shared inbox for team email management","Chat transcripts and handoff between agents"]} />,
       },
       {
         path: "support/kb",
-        element: <StaffPlaceholderPage title="Knowledge Base" />,
+        element: <StaffPlaceholderPage title="Knowledge Base" icon="📚"
+          comingFeatures={["Publish help articles and FAQs for clients","Internal staff documentation hub","Search-optimised knowledge base editor"]} />,
       },
 
       {
         path: "settings/profile",
-        element: <StaffPlaceholderPage title="Profile & Company" />,
+        element: <StaffPlaceholderPage title="Profile & Company" icon="🏢"
+          comingFeatures={["Update your agency profile and branding","Upload company logo and contact details","Manage public-facing agency page"]} />,
       },
-      { path: "settings/kyc", element: <StaffPlaceholderPage title="KYC" /> },
+      { path: "settings/kyc", element: <StaffPlaceholderPage title="KYC Verification" icon="🪪"
+          comingFeatures={["Submit identity documents for KYC","Track verification status in real time","Receive instant approval notifications"]} /> },
       {
         path: "settings/staff",
-        element: <StaffPlaceholderPage title="Staff" />,
+        element: <StaffPlaceholderPage title="Staff Management" icon="👥"
+          comingFeatures={["Add and manage sub-agents and staff","Set roles and access permissions","Monitor staff activity and performance"]} />,
       },
       {
         path: "settings/notifications",
-        element: <StaffPlaceholderPage title="Notification Preferences" />,
+        element: <StaffPlaceholderPage title="Notification Preferences" icon="🔕"
+          comingFeatures={["Choose which events trigger notifications","Set email, SMS, or in-app preferences","Manage quiet hours and digest mode"]} />,
       },
       {
         path: "settings/bank",
-        element: <StaffPlaceholderPage title="Bank Details" />,
+        element: <StaffPlaceholderPage title="Bank Details" icon="🏦"
+          comingFeatures={["Add and verify your bank account for payouts","Support for multiple bank accounts","Instant payout configuration"]} />,
       },
       {
         path: "settings/upgrade",
-        element: <StaffPlaceholderPage title="Upgrade Tier" />,
+        element: <StaffPlaceholderPage title="Upgrade Your Tier" icon="⬆️"
+          comingFeatures={["View available agent tier plans","Unlock premium features and higher commissions","One-click tier upgrade with payment"]} />,
       },
 
       {
         path: "advanced/ai",
-        element: <StaffPlaceholderPage title="AI Assistant" />,
+        element: <StaffPlaceholderPage title="AI Assistant" icon="🤖"
+          comingFeatures={["AI-powered client matching and visa recommendations","Smart document review and error detection","Automated follow-up message generation"]} />,
       },
       {
         path: "advanced/matching",
-        element: <StaffPlaceholderPage title="Smart Matching" />,
+        element: <StaffPlaceholderPage title="Smart Matching" icon="🎯"
+          comingFeatures={["Auto-match clients to the best visa or study programmes","Scoring based on profile completeness and eligibility","Bulk matching for your entire client base"]} />,
       },
       {
         path: "advanced/white-label",
-        element: <StaffPlaceholderPage title="White-Label" />,
+        element: <StaffPlaceholderPage title="White-Label Portal" icon="🏷️"
+          comingFeatures={["Custom branded portal for your agency","Your domain, logo, and colour scheme","Separate client login experience"]} />,
       },
       {
         path: "advanced/export",
-        element: <StaffPlaceholderPage title="Bulk Data Export" />,
+        element: <StaffPlaceholderPage title="Bulk Data Export" icon="📤"
+          comingFeatures={["Export all client and application data to CSV/Excel","Scheduled auto-exports to email","Filtered exports by date, status, or type"]} />,
       },
       {
         path: "advanced/training-tracker",
-        element: <StaffPlaceholderPage title="Training Tracker" />,
+        element: <StaffPlaceholderPage title="Training Tracker" icon="🎓"
+          comingFeatures={["Track completion of required training modules","Certificates and badges for completed courses","Manager view of team training progress"]} />,
       },
       {
         path: "advanced/leaderboard",
-        element: <StaffPlaceholderPage title="Sales Leaderboard" />,
+        element: <StaffPlaceholderPage title="Sales Leaderboard" icon="🏆"
+          comingFeatures={["Real-time agent performance rankings","Monthly and all-time commission leaderboards","Milestone rewards and recognition"]} />,
       },
     ],
   },
@@ -440,15 +459,21 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "edufinance/parent-loan",
-        element: <CustomerPlaceholderPage title="Parent/Guardian Loan" />,
+        element: <CustomerPlaceholderPage title="Parent/Guardian Loan" icon="👨‍👩‍👧"
+          description="Flexible loan options for parents and guardians financing their child's education abroad."
+          comingFeatures={["Tailored repayment plans for parents and guardians","Fast approval linked to student's admission letter","Low interest rates with flexible tenors"]} />,
       },
       {
         path: "edufinance/personal-loan",
-        element: <CustomerPlaceholderPage title="Personal Loan" />,
+        element: <CustomerPlaceholderPage title="Personal Loan" icon="💼"
+          description="Quick personal loans to support your travel, study, or business goals."
+          comingFeatures={["No collateral required for qualifying applicants","Instant approval decisions","Disbursement directly to your wallet or bank"]} />,
       },
       {
         path: "edufinance/business-loan",
-        element: <CustomerPlaceholderPage title="Business Loan" />,
+        element: <CustomerPlaceholderPage title="Business Loan" icon="🏗️"
+          description="Grow your business with affordable, flexible business financing."
+          comingFeatures={["Loans from ₦500k to ₦50M for SMEs","Business credit scoring and fast underwriting","Dedicated relationship manager"]} />,
       },
       {
         path: "citizenship/europe",
@@ -464,7 +489,9 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "value-added/gift-cards",
-        element: <CustomerPlaceholderPage title="Gift Cards" />,
+        element: <CustomerPlaceholderPage title="Gift Cards" icon="🎁"
+          description="Send and receive gift cards for travel, education, and premium services."
+          comingFeatures={["Buy and send gift cards instantly","Redeem gift cards on any GrazConcept service","Track gift card balance and history"]} />,
       },
       {
         path: "services/airtime",
@@ -524,7 +551,9 @@ export const protectedRoutes: RouteObject[] = [
       },
       {
         path: "settings/support",
-        element: <CustomerPlaceholderPage title="Help & Support" />,
+        element: <CustomerPlaceholderPage title="Help & Support" icon="🆘"
+          description="Get help with your account, applications, and payments — all in one place."
+          comingFeatures={["Integrated ticketing with real-time status updates","Live chat with a GrazConcept agent","AI-powered FAQ and self-service tools"]} />,
       },
       {
         path: "settings/advanced",
@@ -571,8 +600,12 @@ export const protectedRoutes: RouteObject[] = [
       { path: "financial/reports", element: <RevenueReport /> },
       { path: "landing", element: <LandingPageCustomizer /> },
       { path: "content", element: <ContentManagement /> },
-      { path: "content/articles", element: <CustomerPlaceholderPage title="Articles & Blog" /> },
-      { path: "content/campaigns", element: <CustomerPlaceholderPage title="Campaigns" /> },
+      { path: "content/articles", element: <CustomerPlaceholderPage title="Articles & Blog" icon="📝"
+          description="Publish and manage blog articles, travel guides, and visa tips for your users."
+          comingFeatures={["Rich text editor with media uploads","SEO metadata and tagging","Schedule and publish articles"]} /> },
+      { path: "content/campaigns", element: <CustomerPlaceholderPage title="Campaigns" icon="📣"
+          description="Create and manage marketing campaigns across email, SMS, and push."
+          comingFeatures={["Drag-and-drop campaign builder","Audience segmentation and targeting","Performance reports and A/B testing"]} /> },
       { path: "applications", element: <AllApplications /> },
       { path: "applications/study", element: <StudyApplications /> },
       { path: "applications/visa", element: <VisaApplications /> },
@@ -589,8 +622,12 @@ export const protectedRoutes: RouteObject[] = [
       { path: "support/faq", element: <FAQManagement /> },
       { path: "settings", element: <SystemSettings /> },
       { path: "security", element: <SecurityLogs /> },
-      { path: "system/health", element: <CustomerPlaceholderPage title="System Health" /> },
-      { path: "system/notifications", element: <CustomerPlaceholderPage title="System Notifications" /> },
+      { path: "system/health", element: <CustomerPlaceholderPage title="System Health" icon="🩺"
+          description="Monitor platform uptime, API response times, and service availability."
+          comingFeatures={["Real-time service status dashboard","Incident history and resolution logs","Automated alerting for outages"]} /> },
+      { path: "system/notifications", element: <CustomerPlaceholderPage title="System Notifications" icon="📬"
+          description="Manage and review all platform-wide system notifications and alerts."
+          comingFeatures={["Broadcast system alerts to all users","Configure maintenance windows","Notification delivery audit log"]} /> },
     ],
   },
 ];
