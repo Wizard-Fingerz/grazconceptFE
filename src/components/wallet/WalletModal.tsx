@@ -28,9 +28,11 @@ import CheckCircleIcon        from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon       from '@mui/icons-material/ErrorOutline';
 import AccountBalanceIcon     from '@mui/icons-material/AccountBalance';
 import CreditCardIcon         from '@mui/icons-material/CreditCard';
+import VerifiedIcon           from '@mui/icons-material/Verified';
+import PersonSearchIcon       from '@mui/icons-material/PersonSearch';
 
 import {
-  flwInitiatePayment, flwVerifyPayment, flwWithdraw, flwGetBanks,
+  flwInitiatePayment, flwVerifyPayment, flwWithdraw, flwGetBanks, flwResolveAccount,
   type BankOption,
 } from '../../services/walletService';
 import { useAuth } from '../../context/AuthContext';
@@ -560,32 +562,74 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
 /* ══════════════════════════════════════════════════════════════════════════ */
 /*  WITHDRAW PANEL                                                            */
 /* ══════════════════════════════════════════════════════════════════════════ */
+type ResolveState = 'idle' | 'loading' | 'success' | 'error';
+
 const WithdrawPanel: React.FC<{
   user: any; walletBalance?: number; onSuccess: (bal?: number) => void;
 }> = ({ user, walletBalance, onSuccess }) => {
-  const [step,    setStep]    = useState<WStep>('form');
-  const [banks,   setBanks]   = useState<BankOption[]>([]);
-  const [bkLoad,  setBkLoad]  = useState(false);
-  const [bank,    setBank]    = useState<BankOption | null>(null);
-  const [acctNo,  setAcctNo]  = useState('');
-  const [acctName,setAcctName] = useState('');
-  const [amount,  setAmount]  = useState('');
-  const [note,    setNote]    = useState('Wallet withdrawal');
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
-  const [txRef,   setTxRef]   = useState('');
+  const [step,         setStep]        = useState<WStep>('form');
+  const [banks,        setBanks]       = useState<BankOption[]>([]);
+  const [bkLoad,       setBkLoad]      = useState(false);
+  const [bank,         setBank]        = useState<BankOption | null>(null);
+  const [acctNo,       setAcctNo]      = useState('');
+  const [acctName,     setAcctName]    = useState('');
+  const [resolveState, setResolveState] = useState<ResolveState>('idle');
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [amount,       setAmount]      = useState('');
+  const [note,         setNote]        = useState('Wallet withdrawal');
+  const [loading,      setLoading]     = useState(false);
+  const [error,        setError]       = useState<string | null>(null);
+  const [txRef,        setTxRef]       = useState('');
 
+  // Load banks once
   useEffect(() => {
     setBkLoad(true);
     flwGetBanks('NG').then(setBanks).catch(() => setBanks([])).finally(() => setBkLoad(false));
   }, []);
 
+  // Auto-resolve: fires whenever acctNo hits 10 digits AND a bank is selected
+  useEffect(() => {
+    if (acctNo.length !== 10 || !bank) {
+      // Reset resolved name whenever input changes
+      if (resolveState !== 'idle') {
+        setAcctName('');
+        setResolveState('idle');
+        setResolveError(null);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    setResolveState('loading');
+    setResolveError(null);
+    setAcctName('');
+
+    flwResolveAccount({ account_number: acctNo, account_bank: bank.code })
+      .then(res => {
+        if (cancelled) return;
+        setAcctName(res.account_name);
+        setResolveState('success');
+      })
+      .catch((e: any) => {
+        if (cancelled) return;
+        const msg = e?.response?.data?.detail ?? 'Could not verify account. Check the number and bank.';
+        setResolveError(msg);
+        setResolveState('error');
+      });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acctNo, bank]);
+
   const validate = () => {
     const amt = parseFloat(amount);
     if (!amt || amt < 500) { setError('Minimum withdrawal is ₦500.'); return false; }
-    if (walletBalance != null && amt > walletBalance) { setError(`Insufficient balance. You have ₦${walletBalance.toLocaleString()}.`); return false; }
+    if (walletBalance != null && amt > walletBalance) {
+      setError(`Insufficient balance. You have ₦${walletBalance.toLocaleString()}.`); return false;
+    }
     if (!bank) { setError('Select your bank.'); return false; }
     if (acctNo.length < 10) { setError('Enter a valid 10-digit account number.'); return false; }
+    if (resolveState !== 'success') { setError('Account name must be verified before proceeding.'); return false; }
     return true;
   };
 
@@ -600,9 +644,9 @@ const WithdrawPanel: React.FC<{
     try {
       const res = await flwWithdraw({
         amount: parseFloat(amount),
-        account_bank:    bank!.code,
-        account_number:  acctNo,
-        beneficiary_name: acctName || `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim(),
+        account_bank:     bank!.code,
+        account_number:   acctNo,
+        beneficiary_name: acctName,
         narration: note,
         currency: 'NGN',
       });
@@ -624,13 +668,15 @@ const WithdrawPanel: React.FC<{
       amount={parseFloat(amount)}
       ref={txRef}
       ctaLabel="Make another withdrawal"
-      onCta={() => { setStep('form'); setAmount(''); setBank(null); setAcctNo(''); setAcctName(''); }}
+      onCta={() => {
+        setStep('form'); setAmount(''); setBank(null);
+        setAcctNo(''); setAcctName(''); setResolveState('idle'); setResolveError(null);
+      }}
     />
   );
 
   if (step === 'review') return (
     <Box sx={{ px:{ xs:2, sm:2.5 }, py:2 }}>
-      {/* Back */}
       <Button startIcon={<ArrowBackIcon/>} onClick={() => setStep('form')} size="small"
         sx={{ color:C.g500, textTransform:'none', fontWeight:600, mb:2, p:0 }}>
         Edit details
@@ -656,17 +702,22 @@ const WithdrawPanel: React.FC<{
         {[
           { label:'Bank',           value: bank?.name ?? '—' },
           { label:'Account Number', value: acctNo },
-          { label:'Account Name',   value: acctName || `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim() || '—' },
+          { label:'Account Name',   value: acctName },
           { label:'Narration',      value: note },
         ].map((row, i, arr) => (
           <Box key={row.label}
-            sx={{ px:2, py:1.25, display:'flex', justifyContent:'space-between', alignItems:'flex-start',
+            sx={{ px:2, py:1.25, display:'flex', justifyContent:'space-between', alignItems:'center',
               borderBottom: i < arr.length-1 ? `1px solid ${C.g100}` : 'none',
               bgcolor: i % 2 === 0 ? '#fff' : C.g50 }}>
             <Typography sx={{ fontSize:12, color:C.g400, fontWeight:600 }}>{row.label}</Typography>
-            <Typography sx={{ fontSize:13, color:C.g900, fontWeight:700, textAlign:'right', maxWidth:'60%', wordBreak:'break-word' }}>
-              {row.value}
-            </Typography>
+            <Box sx={{ display:'flex', alignItems:'center', gap:0.75 }}>
+              {row.label === 'Account Name' && (
+                <VerifiedIcon sx={{ fontSize:14, color:C.green }}/>
+              )}
+              <Typography sx={{ fontSize:13, color:C.g900, fontWeight:700, textAlign:'right', maxWidth:'60%', wordBreak:'break-word' }}>
+                {row.value}
+              </Typography>
+            </Box>
           </Box>
         ))}
       </Box>
@@ -691,7 +742,7 @@ const WithdrawPanel: React.FC<{
     </Box>
   );
 
-  // Form step
+  // ── Form step ───────────────────────────────────────────────────────────────
   return (
     <Box>
       <AmountInput
@@ -716,11 +767,12 @@ const WithdrawPanel: React.FC<{
         )}
 
         <Box sx={{ display:'flex', flexDirection:'column', gap:1.75 }}>
+          {/* Bank selector */}
           <Autocomplete
             options={banks} loading={bkLoad} size="small"
             getOptionLabel={b => b.name}
             value={bank}
-            onChange={(_, v) => setBank(v)}
+            onChange={(_, v) => { setBank(v); setError(null); }}
             isOptionEqualToValue={(a, b) => a.code === b.code}
             renderInput={params => (
               <TextField {...params} label="Select Bank" sx={SX_INPUT}
@@ -732,19 +784,56 @@ const WithdrawPanel: React.FC<{
             )}
           />
 
+          {/* Account number — triggers auto-resolve */}
           <TextField
             label="Account Number" fullWidth size="small" value={acctNo}
-            onChange={e => setAcctNo(e.target.value.replace(/\D/g,'').slice(0,10))}
+            onChange={e => { setAcctNo(e.target.value.replace(/\D/g,'').slice(0,10)); setError(null); }}
             sx={SX_INPUT}
             inputProps={{ inputMode:'numeric', maxLength:10 }}
             helperText={acctNo.length > 0 ? `${acctNo.length}/10 digits` : '10-digit NUBAN number'}
+            InputProps={{
+              endAdornment: resolveState === 'loading'
+                ? <InputAdornment position="end"><CircularProgress size={16} sx={{ color:C.brand }}/></InputAdornment>
+                : resolveState === 'success'
+                ? <InputAdornment position="end"><VerifiedIcon sx={{ fontSize:18, color:C.green }}/></InputAdornment>
+                : resolveState === 'error'
+                ? <InputAdornment position="end"><ErrorOutlineIcon sx={{ fontSize:18, color:C.red }}/></InputAdornment>
+                : null,
+            }}
           />
 
-          <TextField
-            label="Account Name (optional)" fullWidth size="small" value={acctName}
-            onChange={e => setAcctName(e.target.value)} sx={SX_INPUT}
-            placeholder={`${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim()}
-          />
+          {/* Account name — auto-populated, read-only after resolve */}
+          {resolveState === 'loading' && (
+            <Box sx={{ display:'flex', alignItems:'center', gap:1, px:1.5, py:1.25,
+              borderRadius:'14px', bgcolor:C.g50, border:`1px solid ${C.g200}` }}>
+              <PersonSearchIcon sx={{ fontSize:17, color:C.g400 }}/>
+              <Typography sx={{ fontSize:13, color:C.g400, fontStyle:'italic' }}>
+                Looking up account name…
+              </Typography>
+            </Box>
+          )}
+
+          {resolveState === 'success' && (
+            <Box sx={{ display:'flex', alignItems:'center', gap:1.25, px:1.75, py:1.4,
+              borderRadius:'14px', bgcolor:C.greenLight, border:`1.5px solid ${C.greenBorder}` }}>
+              <VerifiedIcon sx={{ fontSize:18, color:C.green, flexShrink:0 }}/>
+              <Box sx={{ minWidth:0 }}>
+                <Typography sx={{ fontSize:10.5, color:C.green, fontWeight:700,
+                  textTransform:'uppercase', letterSpacing:'0.5px', mb:0.1 }}>
+                  Account verified
+                </Typography>
+                <Typography sx={{ fontSize:14, fontWeight:800, color:'#14532d', letterSpacing:'0.1px' }}>
+                  {acctName}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {resolveState === 'error' && (
+            <Alert severity="error" sx={{ borderRadius:'12px', fontSize:12.5, py:0.75 }}>
+              {resolveError}
+            </Alert>
+          )}
 
           <TextField
             label="Narration" fullWidth size="small" value={note}
@@ -753,13 +842,19 @@ const WithdrawPanel: React.FC<{
         </Box>
 
         <Button variant="contained" fullWidth onClick={handleReview}
-          disabled={!amount || parseFloat(amount) < 500 || !bank || acctNo.length < 10}
+          disabled={
+            !amount || parseFloat(amount) < 500 ||
+            !bank || acctNo.length < 10 ||
+            resolveState !== 'success'
+          }
           sx={{
             mt:2.5, bgcolor:C.brand, fontWeight:800, fontSize:15, borderRadius:'16px', py:1.75,
             textTransform:'none', boxShadow:'0 6px 20px rgba(139,43,140,.4)',
             '&:hover':{ bgcolor:C.brandDark }, '&.Mui-disabled':{ bgcolor:C.g200, color:C.g400, boxShadow:'none' },
           }}>
-          Review Withdrawal
+          {resolveState === 'loading' ? (
+            <><CircularProgress size={16} color="inherit" sx={{ mr:1 }}/> Verifying account…</>
+          ) : 'Review Withdrawal'}
         </Button>
 
         <Typography sx={{ fontSize:11.5, color:C.g400, textAlign:'center', mt:1.5, lineHeight:1.6 }}>

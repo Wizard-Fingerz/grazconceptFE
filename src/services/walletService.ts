@@ -104,3 +104,19 @@ export async function flwGetBanks(country = 'NG'): Promise<BankOption[]> {
   const response = await api.get('/wallet/flutterwave/banks/', { params: { country } });
   return response.data.banks ?? [];
 }
+
+export interface ResolveAccountPayload {
+  account_number: string;
+  account_bank: string;   // bank code e.g. "044"
+}
+
+export interface ResolveAccountResponse {
+  account_name: string;
+  account_number: string;
+}
+
+/** Resolve a 10-digit NUBAN account number to the holder's name. */
+export async function flwResolveAccount(payload: ResolveAccountPayload): Promise<ResolveAccountResponse> {
+  const response = await api.post('/wallet/flutterwave/resolve-account/', payload);
+  return response.data;
+}
