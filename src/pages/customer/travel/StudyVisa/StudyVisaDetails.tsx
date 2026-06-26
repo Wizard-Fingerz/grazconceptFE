@@ -14,6 +14,10 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import SchoolIcon from "@mui/icons-material/School";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import FingerprintIcon from "@mui/icons-material/Fingerprint";
 
 import { getStudyVisaOfferById } from "../../../../services/studyVisa";
 import { useAuth } from "../../../../context/AuthContext";
@@ -174,7 +178,7 @@ const SmartApplyPanel: React.FC<SmartApplyPanelProps> = ({
       fd.append("cgpa",                       profile?.cgpa ?? "");
       fd.append("graduation_year",            String(profile?.graduation_year ?? ""));
       fd.append("destination_country",        offer?.country ?? "");
-      fd.append("institution",                String(offer?.university?.id ?? offer?.institution_name ?? ""));
+      fd.append("institution",                String(offer?.institution ?? ""));
       fd.append("course_of_study",            String(offer?.course_of_study ?? ""));
       fd.append("program_type",               String(offer?.program_type ?? ""));
       fd.append("intended_start_date",        form.intended_start_date);
@@ -484,44 +488,101 @@ const SmartApplyPanel: React.FC<SmartApplyPanelProps> = ({
 };
 
 /* ─── Applied status panel ──────────────────────────────────────────────── */
-const AppliedPanel: React.FC<{ app: any; onViewAll: () => void }> = ({ app, onViewAll }) => {
-  const statusOk = String(app.status ?? "").toLowerCase().includes("approved");
+const AppliedPanel: React.FC<{ app: any; offer: any; onViewAll: () => void }> = ({ app, offer, onViewAll }) => {
+  const statusLabel = app.status_name ?? prettyStatus(app.status);
+  const status   = statusLabel.toLowerCase();
+  const approved = status.includes("approved");
+  const pending  = status.includes("pending") || status.includes("draft") || status === "";
+  const rejected = status.includes("reject") || status.includes("declin");
+
+  const statusColor  = approved ? C.green  : rejected ? "#DC2626" : C.brand;
+  const statusBg     = approved ? C.greenLight : rejected ? "#FEE2E2" : C.accentXL;
+  const statusBorder = approved ? C.greenBorder : rejected ? "#FECACA" : C.accentLight;
+
+  const fmt = (d?: string) =>
+    d ? new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+
+  const rows = [
+    { icon: <FingerprintIcon sx={{ fontSize: 15 }}/>, label: "Application ID", value: `#${app.id}` },
+    { icon: <SchoolIcon sx={{ fontSize: 15 }}/>,      label: "Programme",      value: offer?.course_of_study_name ?? app.course_of_study_name ?? "—" },
+    { icon: <CalendarTodayIcon sx={{ fontSize: 15 }}/>, label: "Submitted",    value: fmt(app.submitted_at ?? app.application_date) },
+    { icon: <CalendarTodayIcon sx={{ fontSize: 15 }}/>, label: "Intended start", value: fmt(app.intended_start_date) },
+  ];
+
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2.5 }}>
-        <Avatar sx={{ bgcolor: statusOk ? C.green : C.brand, width: 40, height: 40 }}>
-          <TaskAltIcon />
+      {/* Header */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+        <Avatar sx={{ bgcolor: statusColor, width: 42, height: 42 }}>
+          <TaskAltIcon sx={{ fontSize: 20 }}/>
         </Avatar>
         <Box>
-          <Typography sx={{ fontWeight: 800, fontSize: 15, color: C.g900 }}>Already Applied</Typography>
-          <Typography sx={{ fontSize: 12, color: C.g400 }}>You've submitted an application for this offer.</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: 15, color: C.g900, lineHeight: 1.2 }}>
+            Application Submitted
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: C.g400 }}>
+            You've applied for this offer
+          </Typography>
         </Box>
       </Box>
-      <Chip
-        label={prettyStatus(app.status)}
-        sx={{
-          mb: 2.5,
-          bgcolor: statusOk ? C.greenLight : C.accentXL,
-          color: statusOk ? C.green : C.brand,
-          fontWeight: 700,
-          border: `1px solid ${statusOk ? C.greenBorder : C.accentLight}`,
-        }}
-      />
-      {app.submitted_at && (
-        <Typography sx={{ fontSize: 12, color: C.g400, mb: 2 }}>
-          Submitted {new Date(app.submitted_at).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+
+      {/* Status badge */}
+      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75,
+        bgcolor: statusBg, border: `1.5px solid ${statusBorder}`,
+        borderRadius: "20px", px: 1.5, py: 0.5, mb: 2 }}>
+        <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: statusColor,
+          ...(pending && { animation: "pulse 1.8s ease-in-out infinite",
+            "@keyframes pulse": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.35 } } }) }}/>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: statusColor }}>
+          {statusLabel}
         </Typography>
+      </Box>
+
+      {/* Detail rows */}
+      <Box sx={{ borderRadius: "12px", border: `1px solid ${C.g200}`, overflow: "hidden", mb: 2 }}>
+        {rows.map((row, i) => (
+          <Box key={row.label} sx={{
+            display: "flex", alignItems: "center", gap: 1.25,
+            px: 1.75, py: 1.1,
+            borderBottom: i < rows.length - 1 ? `1px solid ${C.g100}` : "none",
+            bgcolor: i % 2 === 0 ? "#fff" : C.g50,
+          }}>
+            <Box sx={{ color: C.g400, flexShrink: 0, display: "flex" }}>{row.icon}</Box>
+            <Typography sx={{ fontSize: 12, color: C.g400, fontWeight: 600, minWidth: 110 }}>
+              {row.label}
+            </Typography>
+            <Typography sx={{ fontSize: 13, color: C.g900, fontWeight: 700, ml: "auto", textAlign: "right" }}>
+              {row.value}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Notes from admin, if any */}
+      {app.notes && (
+        <Box sx={{ p: 1.5, borderRadius: "10px", bgcolor: "#fffbe6",
+          border: "1px solid #FDE68A", mb: 2 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#92400E", mb: 0.25 }}>
+            Note from GrazConcept
+          </Typography>
+          <Typography sx={{ fontSize: 12.5, color: "#78350F" }}>{app.notes}</Typography>
+        </Box>
       )}
+
+      {/* CTA */}
       <Button
-        variant="outlined"
+        variant="contained"
         fullWidth
+        endIcon={<OpenInNewIcon sx={{ fontSize: 16 }}/>}
         onClick={onViewAll}
         sx={{
-          borderColor: C.accentLight, color: C.brand, fontWeight: 700, borderRadius: "10px",
-          textTransform: "none", "&:hover": { bgcolor: C.accentXL },
+          bgcolor: C.brand, color: "#fff", fontWeight: 700, borderRadius: "12px",
+          textTransform: "none", py: 1.25, fontSize: 13.5,
+          boxShadow: "0 4px 14px rgba(139,43,140,.35)",
+          "&:hover": { bgcolor: C.brandDark },
         }}
       >
-        View all Applications
+        Track this Application
       </Button>
     </Box>
   );
@@ -800,7 +861,7 @@ const StudyVisaDetails: React.FC = () => {
               </Button>
             </Box>
           ) : latestApp ? (
-            <AppliedPanel app={latestApp} onViewAll={() => navigate("/customer/applications")} />
+            <AppliedPanel app={latestApp} offer={offer} onViewAll={() => navigate("/track-progress")} />
           ) : (
             <SmartApplyPanel
               offer={offer}
