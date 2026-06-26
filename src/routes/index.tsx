@@ -575,6 +575,78 @@ export const protectedRoutes: RouteObject[] = [
         path: "profile-setup",
         element: <CustomerProfileSetup />,
       },
+
+      // ── Financial Hub ────────────────────────────────────────────────────────
+      {
+        path: "finance/travel-now-pay-later",
+        element: <CustomerPlaceholderPage title="Travel Now, Pay Later" icon="🛫"
+          description="Book your trip today and spread the cost over time with flexible installment plans."
+          comingFeatures={["0% interest installment plans for eligible travellers","Instant approval with no collateral","Covers flights, hotels, visas, and travel packages"]} />,
+      },
+      {
+        path: "finance/investment-circle",
+        element: <CustomerPlaceholderPage title="Investment Circle" icon="🤝"
+          description="Join a trusted community savings and investment circle to fund your travel goals together."
+          comingFeatures={["Create or join investment circles with friends and family","Automated contributions and payouts","Real-time circle balance and member tracking"]} />,
+      },
+      {
+        path: "finance/cross-border-payments",
+        element: <CustomerPlaceholderPage title="Cross-Border Payments" icon="💸"
+          description="Send and receive money internationally at competitive exchange rates — fast and secure."
+          comingFeatures={["Send money to 50+ countries in minutes","Live exchange rate tracking","Bank transfers, mobile wallets, and cash pickup"]} />,
+      },
+
+      // ── Learning Hub ─────────────────────────────────────────────────────────
+      {
+        path: "learn/tech",
+        element: <CustomerPlaceholderPage title="Learn Tech, Work Globally" icon="💻"
+          description="Upskill in technology and land remote or international jobs with globally recognised certifications."
+          comingFeatures={["Courses in software, data, cloud, and AI","Globally recognised certificates and badges","Job placement support and career coaching"]} />,
+      },
+      {
+        path: "learn/language",
+        element: <CustomerPlaceholderPage title="Language for Abroad Jobs" icon="🗣️"
+          description="Master the language you need for your destination country — from beginner to job-ready."
+          comingFeatures={["English, French, German, Arabic, and more","Live tutoring sessions with native speakers","IELTS, DELF, and Goethe exam preparation"]} />,
+      },
+      {
+        path: "learn/vocational",
+        element: <CustomerPlaceholderPage title="Vocational Skills" icon="🔧"
+          description="Learn practical, in-demand trades that open doors to international work visas and employment."
+          comingFeatures={["Carpentry, plumbing, welding, healthcare, and more","Hands-on certifications recognised abroad","Partner institutions in the UK, Canada, and Germany"]} />,
+      },
+      {
+        path: "learn/certifications",
+        element: <CustomerPlaceholderPage title="Certifications & Qualifications" icon="🏅"
+          description="Earn professional certifications that boost your eligibility for work and study visas."
+          comingFeatures={["PMP, CISSP, AWS, and 100+ professional certs","Self-paced and instructor-led study tracks","Digital credential wallet linked to your profile"]} />,
+      },
+      {
+        path: "learn/webinars",
+        element: <CustomerPlaceholderPage title="Career Webinars" icon="📅"
+          description="Join live and recorded webinars hosted by immigration lawyers, employers, and global career coaches."
+          comingFeatures={["Weekly live sessions on visa tips and job markets","Q&A with real immigration and career experts","Replay library of past sessions"]} />,
+      },
+
+      // ── Other Hubs ───────────────────────────────────────────────────────────
+      {
+        path: "hubs/events",
+        element: <CustomerPlaceholderPage title="Global Event Services" icon="🎉"
+          description="Plan and attend global events — from international conferences to destination weddings and cultural festivals."
+          comingFeatures={["Event visa assistance and travel coordination","Corporate event planning for international summits","Personalised destination event packages"]} />,
+      },
+      {
+        path: "hubs/branding",
+        element: <CustomerPlaceholderPage title="Business Branding" icon="📢"
+          description="Build a powerful brand identity for your business or agency with professional creative services."
+          comingFeatures={["Logo, identity design, and brand guidelines","Social media content and digital marketing","Branded pitch decks and marketing materials"]} />,
+      },
+      {
+        path: "hubs/franchise-media",
+        element: <CustomerPlaceholderPage title="Franchise & Media" icon="📺"
+          description="Explore franchise opportunities and media production services for African businesses going global."
+          comingFeatures={["GrazConcept franchise licensing for travel agencies","Podcast, video, and content production","PR and media placement for global visibility"]} />,
+      },
     ],
   },
   // Admin routes
