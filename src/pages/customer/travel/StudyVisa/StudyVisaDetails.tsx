@@ -854,7 +854,7 @@ const StudyVisaDetails: React.FC = () => {
               <Button
                 variant="outlined"
                 fullWidth
-                onClick={() => navigate("/customer/applications")}
+                onClick={() => navigate("/track-progress")}
                 sx={{ borderColor: C.accentLight, color: C.brand, fontWeight: 700, borderRadius: "10px", textTransform: "none" }}
               >
                 View my Applications

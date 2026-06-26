@@ -469,12 +469,12 @@ const PilgrimageDetails: React.FC = () => {
               <TaskAltIcon sx={{fontSize:56,color:C.green,mb:1.5}}/>
               <Typography sx={{fontWeight:800,fontSize:18,color:C.g900,mb:0.75}}>Application Submitted!</Typography>
               <Typography sx={{fontSize:13,color:C.g500,mb:3}}>We've received your pilgrimage application.</Typography>
-              <Button variant="outlined" fullWidth onClick={()=>navigate("/customer/applications")}
+              <Button variant="outlined" fullWidth onClick={()=>navigate("/track-progress")}
                 sx={{borderColor:C.accentLight,color:C.brand,fontWeight:700,borderRadius:"10px",textTransform:"none"}}>
                 View my Applications</Button>
             </Box>
           ) : latestApp ? (
-            <AppliedPanel app={latestApp} onViewAll={()=>navigate("/customer/applications")}/>
+              <AppliedPanel app={latestApp} onViewAll={()=>navigate("/track-progress")}/>
           ) : (
             <SmartApplyPanel offer={offer} profile={profile} clientDocs={clientDocs}
               offerId={id??""} onSuccess={()=>setSubmitSuccess(true)}/>
