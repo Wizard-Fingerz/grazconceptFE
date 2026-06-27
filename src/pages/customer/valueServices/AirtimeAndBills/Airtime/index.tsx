@@ -5,8 +5,9 @@ import {
 import api from '../../../../../services/api';
 import {
   C, AmountDisplay, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
-  SX_FIELD, generateRef,
+  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
+  SX_FIELD, generateRef, useFlwBillCheckout,
 } from '../_shared';
 
 /* ─── Network providers hook ─────────────────────────────────────────────── */
@@ -53,60 +54,85 @@ function netFallback(slug: string) {
 const BuyAirtime: React.FC = () => {
   const { providers, loading: pLoading, error: pError } = useAirtimeNetworkProviders();
 
-  const [network, setNetwork] = useState('');
-  const [amount, setAmount] = useState(0);
-  const [phone, setPhone] = useState('');
-  const [forOther, setForOther] = useState(false);
+  const [network,   setNetwork]   = useState('');
+  const [amount,    setAmount]    = useState(0);
+  const [phone,     setPhone]     = useState('');
+  const [forOther,  setForOther]  = useState(false);
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('wallet');
   const [submitting, setSubmitting] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [receipt, setReceipt] = useState(false);
-  const [txRef, setTxRef] = useState('');
+  const [apiError,   setApiError]   = useState<string | null>(null);
+  const [receipt,    setReceipt]    = useState(false);
+  const [txRef,      setTxRef]      = useState('');
+
+  const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
 
   const selected = providers.find(p => p.slug === network);
 
   const canSubmit =
-    !!network && amount >= 50 && amount <= 20000 && phone.length === 11 && !submitting;
+    !!network && amount >= 50 && amount <= 20000 && phone.length === 11 &&
+    !submitting && !flwPaying;
+
+  const submitBill = async (ref?: string) => {
+    const prov = providers.find(p => p.slug === network);
+    if (!prov) throw new Error('Invalid network selected.');
+    const tok = localStorage.getItem('token');
+    const headers = tok ? { Authorization: `Bearer ${tok}` } : {};
+    await api.post('/app/airtime-purchases/', {
+      provider_id:      prov.id,
+      network,
+      phone,
+      amount,
+      ...(ref ? { payment_method: 'wallet', payment_reference: ref } : {}),
+    }, { headers });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    setApiError(null);
-    setSubmitting(true);
+    setApiError(null); clearFlwError();
 
-    const prov = providers.find(p => p.slug === network);
-    if (!prov) { setApiError('Invalid network selected.'); setSubmitting(false); return; }
-
-    try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await api.post('/app/airtime-purchases/', {
-        provider_id: prov.id, network, phone, amount,
-      }, { headers });
-      setTxRef(generateRef());
-      setReceipt(true);
-    } catch (err: any) {
-      const d = err?.response?.data;
-      const msg =
-        (d?.provider_id?.[0]) ??
-        (d?.phone?.[0]) ??
-        d?.detail ??
-        'Failed to purchase airtime. Please try again.';
-      setApiError(msg);
-    } finally {
-      setSubmitting(false);
+    if (payMethod === 'wallet') {
+      setSubmitting(true);
+      try {
+        await submitBill();
+        setTxRef(generateRef());
+        setReceipt(true);
+      } catch (err: any) {
+        const d = err?.response?.data;
+        setApiError(d?.provider_id?.[0] ?? d?.phone?.[0] ?? d?.detail ?? 'Failed to purchase airtime.');
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      // Card / USSD / Bank Transfer — Flutterwave inline checkout
+      await flwCheckout({
+        amount,
+        description: `Airtime top-up · ${network} · ${phone}`,
+        paymentOptions: FLW_OPTIONS[payMethod],
+        onSuccess: async (ref) => {
+          await submitBill(ref);
+          setTxRef(ref);
+          setReceipt(true);
+        },
+      });
     }
   };
 
   const resetForm = () => {
     setNetwork(''); setAmount(0); setPhone(''); setForOther(false);
-    setApiError(null); setReceipt(false);
+    setApiError(null); clearFlwError(); setReceipt(false);
+  };
+
+  const PAY_LABEL: Record<PaymentMethod, string> = {
+    wallet: '👛 Wallet', card: '💳 Card', ussd: '📲 USSD', bank_transfer: '🏦 Bank Transfer',
   };
 
   const summaryRows = [
-    { key: 'Service', value: 'Airtime Top-up' },
-    { key: 'Network', value: selected?.name ?? '—' },
+    { key: 'Service',   value: 'Airtime Top-up' },
+    { key: 'Network',   value: selected?.name ?? '—' },
     { key: 'Recipient', value: phone.length === 11 ? phone : 'Enter phone number' },
-    { key: 'Delivery', value: 'Instant ⚡', accent: true },
+    { key: 'Pay via',   value: PAY_LABEL[payMethod] },
+    { key: 'Delivery',  value: 'Instant ⚡', accent: true },
   ];
 
   return (
@@ -192,20 +218,28 @@ const BuyAirtime: React.FC = () => {
                 />
               </Box>
 
-              <ErrorAlert message={apiError} />
+              {/* Payment method */}
+              <SectionLabel>Payment Method</SectionLabel>
+              <PaymentMethodSelector value={payMethod} onChange={v => { setPayMethod(v); setApiError(null); clearFlwError(); }} />
 
-              <BillCtaButton disabled={!canSubmit} loading={submitting}>
-                Pay ₦{amount > 0 ? amount.toLocaleString() : '0'} Airtime
-                {selected && (
-                  <Chip
-                    label={selected.name}
-                    size="small"
-                    sx={{
-                      ml: 1, height: 22, fontSize: 11, fontWeight: 700,
-                      bgcolor: 'rgba(255,255,255,.2)', color: '#fff',
-                      '& .MuiChip-label': { px: 1 },
-                    }}
-                  />
+              <ErrorAlert message={apiError ?? flwError} />
+
+              <BillCtaButton disabled={!canSubmit} loading={submitting || flwPaying}>
+                {flwPaying ? 'Opening checkout…' : (
+                  <>
+                    Pay ₦{amount > 0 ? amount.toLocaleString() : '0'} Airtime
+                    {selected && (
+                      <Chip
+                        label={selected.name}
+                        size="small"
+                        sx={{
+                          ml: 1, height: 22, fontSize: 11, fontWeight: 700,
+                          bgcolor: 'rgba(255,255,255,.2)', color: '#fff',
+                          '& .MuiChip-label': { px: 1 },
+                        }}
+                      />
+                    )}
+                  </>
                 )}
               </BillCtaButton>
             </form>

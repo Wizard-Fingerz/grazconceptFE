@@ -3,8 +3,9 @@ import { Box, CircularProgress, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
-  SX_FIELD, generateRef,
+  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
+  SX_FIELD, generateRef, useFlwBillCheckout,
 } from '../_shared';
 
 type PlanCat = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'others';
@@ -37,14 +38,17 @@ const DataBundleSubscription: React.FC = () => {
   const [plans,         setPlans]         = useState<RemotePlan[]>([]);
   const [fetchingPlans, setFetchingPlans] = useState(false);
   const [plansError,    setPlansError]    = useState<string | null>(null);
-  const [provider, setProvider] = useState('');
-  const [cat,      setCat]      = useState<PlanCat>('daily');
-  const [plan,     setPlan]     = useState('');
-  const [phone,    setPhone]    = useState('');
+  const [provider,  setProvider]  = useState('');
+  const [cat,       setCat]       = useState<PlanCat>('daily');
+  const [plan,      setPlan]      = useState('');
+  const [phone,     setPhone]     = useState('');
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('wallet');
   const [submitting, setSubmitting] = useState(false);
   const [apiError,   setApiError]   = useState<string | null>(null);
   const [receipt,    setReceipt]    = useState(false);
   const [txRef,      setTxRef]      = useState('');
+
+  const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
 
   useEffect(() => {
     let live = true;
@@ -97,34 +101,58 @@ const DataBundleSubscription: React.FC = () => {
     if (plan && !plansForCat.find(p => p.value === plan)) setPlan('');
   }, [cat, plansForCat, plan]);
 
-  const canSubmit = !!provider && !!plan && phone.length === 11 && !submitting;
+  const canSubmit = !!provider && !!plan && phone.length === 11 && !submitting && !flwPaying;
+
+  const submitBill = async (ref?: string) => {
+    if (!selectedProvider || !selectedPlan) throw new Error('Missing plan.');
+    const tok = localStorage.getItem('token');
+    const headers = tok ? { Authorization: `Bearer ${tok}` } : {};
+    await api.post('/app/airtime-data-purchases/', {
+      provider_id: selectedProvider.id,
+      plan_id:     selectedPlan.id,
+      amount:      selectedPlan.amount,
+      phone,
+      ...(ref ? { payment_method: 'wallet', payment_reference: ref } : {}),
+    }, { headers });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !selectedProvider || !selectedPlan) return;
-    setApiError(null); setSubmitting(true);
-    try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await api.post('/app/airtime-data-purchases/', {
-        provider_id: selectedProvider.id,
-        plan_id:     selectedPlan.id,
-        amount:      selectedPlan.amount,
-        phone,
-      }, { headers });
-      setTxRef(generateRef());
-      setReceipt(true);
-    } catch (err: any) {
-      const d = err?.response?.data;
-      const msg = (d?.provider_id?.[0]) ?? (d?.plan_id?.[0]) ?? d?.detail ?? 'Purchase failed. Try again.';
-      setApiError(msg);
-    } finally {
-      setSubmitting(false);
+    setApiError(null); clearFlwError();
+
+    if (payMethod === 'wallet') {
+      setSubmitting(true);
+      try {
+        await submitBill();
+        setTxRef(generateRef());
+        setReceipt(true);
+      } catch (err: any) {
+        const d = err?.response?.data;
+        setApiError(d?.provider_id?.[0] ?? d?.plan_id?.[0] ?? d?.detail ?? 'Purchase failed. Try again.');
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      await flwCheckout({
+        amount:         selectedPlan.amount,
+        description:    `Data bundle · ${selectedProvider.label} ${selectedPlan.data} · ${phone}`,
+        paymentOptions: FLW_OPTIONS[payMethod],
+        onSuccess: async (ref) => {
+          await submitBill(ref);
+          setTxRef(ref);
+          setReceipt(true);
+        },
+      });
     }
   };
 
   const resetForm = () => {
-    setProvider(''); setPlan(''); setPhone(''); setApiError(null); setReceipt(false);
+    setProvider(''); setPlan(''); setPhone(''); setApiError(null); clearFlwError(); setReceipt(false);
+  };
+
+  const PAY_LABEL: Record<PaymentMethod, string> = {
+    wallet: '👛 Wallet', card: '💳 Card', ussd: '📲 USSD', bank_transfer: '🏦 Bank Transfer',
   };
 
   const summaryRows = [
@@ -132,6 +160,7 @@ const DataBundleSubscription: React.FC = () => {
     { key: 'Network',   value: selectedProvider?.label ?? '—' },
     { key: 'Validity',  value: selectedPlan ? (CAT_LABELS[selectedPlan.category] ?? '—') : '—' },
     { key: 'Recipient', value: phone.length === 11 ? phone : '—' },
+    { key: 'Pay via',   value: PAY_LABEL[payMethod] },
     { key: 'Delivery',  value: 'Instant ⚡', accent: true },
   ];
 
@@ -253,9 +282,17 @@ const DataBundleSubscription: React.FC = () => {
                 />
               </Box>
 
-              <ErrorAlert message={apiError} />
-              <BillCtaButton disabled={!canSubmit} loading={submitting}>
-                {selectedPlan ? `Buy ${selectedPlan.data} — ₦${selectedPlan.amount.toLocaleString()}` : 'Select a plan to continue'}
+              {/* Payment method */}
+              <SectionLabel>Payment Method</SectionLabel>
+              <PaymentMethodSelector value={payMethod} onChange={v => { setPayMethod(v); setApiError(null); clearFlwError(); }} />
+
+              <ErrorAlert message={apiError ?? flwError} />
+              <BillCtaButton disabled={!canSubmit} loading={submitting || flwPaying}>
+                {flwPaying
+                  ? 'Opening checkout…'
+                  : selectedPlan
+                    ? `Buy ${selectedPlan.data} — ₦${selectedPlan.amount.toLocaleString()}`
+                    : 'Select a plan to continue'}
               </BillCtaButton>
             </form>
           </FormCard>

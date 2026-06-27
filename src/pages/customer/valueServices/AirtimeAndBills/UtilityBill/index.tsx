@@ -3,8 +3,9 @@ import { Box, CircularProgress, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, AmountDisplay, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod, ProviderBtn,
-  SectionLabel, SplitLayout, SummaryPanel, generateRef,
+  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  ProviderBtn, SectionLabel, SplitLayout, SummaryPanel, generateRef,
+  useFlwBillCheckout,
 } from '../_shared';
 
 /* ─── DisCo list ─────────────────────────────────────────────────────────── */
@@ -82,6 +83,8 @@ const PayUtilityBill: React.FC = () => {
   const [txRef,      setTxRef]      = useState('');
   const [token,      setToken]      = useState('');
 
+  const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+
   const selectedDisco = DISCOS.find(d => d.value === utility);
 
   // Auto-verify meter when all required fields present + meter is long enough
@@ -100,38 +103,53 @@ const PayUtilityBill: React.FC = () => {
     !!utility && !!meterType &&
     meterNum.length >= 5 &&
     amount >= effectiveMin &&
-    !submitting &&
+    !submitting && !flwPaying &&
     (!verificationRequired || isVerified);
+
+  const submitBill = async (overrideMethod?: string) => {
+    const tok = localStorage.getItem('token');
+    const headers = tok ? { Authorization: `Bearer ${tok}` } : {};
+    const res = await api.post('/value-services/bills/pay/', {
+      provider:     utility,
+      meter_type:   meterType,
+      meter_number: meterNum,
+      amount,
+      payment_method: overrideMethod ?? payMethod,
+    }, { headers });
+    return res;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    setApiError(null);
-    setSubmitting(true);
-    try {
-      const tok = localStorage.getItem('token');
-      const headers = tok ? { Authorization: `Bearer ${tok}` } : {};
-      const res = await api.post('/value-services/bills/pay/', {
-        provider: utility,
-        meter_type: meterType,
-        meter_number: meterNum,
-        amount,
-        payment_method: payMethod,
-      }, { headers });
+    setApiError(null); clearFlwError();
 
-      if (res.data?.status === 'pending' && res.data?.payment_url) {
-        window.location.href = res.data.payment_url;
-        return;
+    if (payMethod === 'wallet') {
+      setSubmitting(true);
+      try {
+        const res = await submitBill();
+        setTxRef(res.data?.reference ?? generateRef());
+        setToken(res.data?.token ?? '');
+        setReceipt(true);
+      } catch (err: any) {
+        const d = err?.response?.data;
+        setApiError(d?.detail ?? d?.non_field_errors?.[0] ?? 'Payment failed. Please try again.');
+      } finally {
+        setSubmitting(false);
       }
-
-      setTxRef(res.data?.reference ?? generateRef());
-      setToken(res.data?.token ?? '');
-      setReceipt(true);
-    } catch (err: any) {
-      const d = err?.response?.data;
-      setApiError(d?.detail ?? d?.non_field_errors?.[0] ?? 'Payment failed. Please try again.');
-    } finally {
-      setSubmitting(false);
+    } else {
+      // Non-wallet: open Flutterwave → verify (credits wallet) → pay bill from wallet
+      await flwCheckout({
+        amount,
+        description: `Electricity · ${selectedDisco?.label ?? utility} · ${meterNum}`,
+        paymentOptions: FLW_OPTIONS[payMethod],
+        onSuccess: async () => {
+          const res = await submitBill('wallet');
+          setTxRef(res.data?.reference ?? generateRef());
+          setToken(res.data?.token ?? '');
+          setReceipt(true);
+        },
+      });
     }
   };
 
@@ -154,7 +172,7 @@ const PayUtilityBill: React.FC = () => {
     { key: 'Meter type', value: meterType ? meterType.charAt(0).toUpperCase() + meterType.slice(1) : '—' },
     { key: 'Meter no.',  value: meterNum || '—' },
     { key: 'Customer',   value: meterInfo?.customer_name || '—' },
-    { key: 'Pay via',    value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'bank_transfer' ? '🏦 Bank' : '📱 Mobile' },
+    { key: 'Pay via',    value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'ussd' ? '📲 USSD' : '🏦 Bank Transfer' },
     { key: 'Delivery',   value: 'Instant token ⚡', accent: true },
   ];
 
@@ -301,12 +319,14 @@ const PayUtilityBill: React.FC = () => {
                 </Box>
               )}
 
-              <ErrorAlert message={apiError} />
+              <ErrorAlert message={apiError ?? flwError} />
 
-              <BillCtaButton disabled={!canSubmit} loading={submitting}>
-                {verificationRequired && verifying
-                  ? 'Verifying meter…'
-                  : `Pay ₦${amount > 0 ? amount.toLocaleString() : '0'} · ${selectedDisco?.label ?? 'Electricity'}`}
+              <BillCtaButton disabled={!canSubmit} loading={submitting || flwPaying}>
+                {flwPaying
+                  ? 'Opening checkout…'
+                  : verificationRequired && verifying
+                    ? 'Verifying meter…'
+                    : `Pay ₦${amount > 0 ? amount.toLocaleString() : '0'} · ${selectedDisco?.label ?? 'Electricity'}`}
               </BillCtaButton>
 
               {verificationRequired && verifyStatus === 'error' && (

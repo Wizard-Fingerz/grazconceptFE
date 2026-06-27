@@ -3,12 +3,15 @@
  * Brand tokens, reusable UI primitives, and layout components.
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Box, Button, CircularProgress, Dialog, DialogContent,
   Slide, Typography,
 } from '@mui/material';
 import type { TransitionProps } from '@mui/material/transitions';
+import {
+  flwInitiatePayment, flwVerifyPayment, openFlwCheckout,
+} from '../../../../services/walletService';
 
 /* ─── Brand & neutral tokens ─────────────────────────────────────────────── */
 export const C = {
@@ -65,13 +68,21 @@ export function generateRef(): string {
 }
 
 /* ─── PaymentMethodSelector ──────────────────────────────────────────────── */
-export type PaymentMethod = 'wallet' | 'card' | 'bank_transfer' | 'mobile_money';
+export type PaymentMethod = 'wallet' | 'card' | 'ussd' | 'bank_transfer';
+
+/** Maps a PaymentMethod to the Flutterwave payment_options string */
+export const FLW_OPTIONS: Record<PaymentMethod, string> = {
+  wallet:        '',
+  card:          'card',
+  ussd:          'ussd',
+  bank_transfer: 'banktransfer',
+};
 
 const PAY_METHODS: { value: PaymentMethod; label: string; sub: string; icon: string }[] = [
-  { value: 'wallet',        label: 'Wallet',        sub: 'Instant · from balance', icon: '👛' },
-  { value: 'card',          label: 'Card',          sub: 'Debit/Credit worldwide', icon: '💳' },
-  { value: 'bank_transfer', label: 'Bank Transfer', sub: 'NG banks · USSD',        icon: '🏦' },
-  { value: 'mobile_money',  label: 'Mobile Money',  sub: 'MoMo & others',          icon: '📱' },
+  { value: 'wallet',        label: 'Wallet',        sub: 'Instant · from balance',   icon: '👛' },
+  { value: 'card',          label: 'Card',          sub: 'Visa · Mastercard · Verve', icon: '💳' },
+  { value: 'ussd',          label: 'USSD',          sub: 'GTB · Access · UBA & more', icon: '📲' },
+  { value: 'bank_transfer', label: 'Bank Transfer', sub: 'Online banking · NIP',      icon: '🏦' },
 ];
 
 interface PaymentMethodSelectorProps {
@@ -494,6 +505,83 @@ export const BillCtaButton: React.FC<BillCtaButtonProps> = ({ children, disabled
     </Typography>
   </Box>
 );
+
+/* ─── useFlwBillCheckout ─────────────────────────────────────────────────── */
+/**
+ * Reusable hook for Flutterwave inline-checkout payments on bill pages.
+ *
+ * Flow:
+ *   1. Calls flwInitiatePayment to get a tx_ref + public_key from the backend
+ *   2. Opens Flutterwave inline checkout (card / USSD / bank transfer)
+ *   3. On success: calls flwVerifyPayment → wallet is credited
+ *   4. Invokes onSuccess(reference) → caller submits the bill API using wallet
+ *
+ * Usage:
+ *   const { checkout, paying, flwError, clearFlwError } = useFlwBillCheckout();
+ *   // when user clicks Pay with card/USSD:
+ *   checkout({ amount, description, paymentOptions: 'card', onSuccess: async (ref) => {
+ *     await api.post('/app/airtime-purchases/', { ...fields, payment_method: 'wallet' });
+ *     setTxRef(ref); setReceipt(true);
+ *   }});
+ */
+interface FlwCheckoutParams {
+  amount: number;
+  description: string;
+  paymentOptions: string;   // 'card' | 'ussd' | 'banktransfer'
+  onSuccess: (reference: string) => Promise<void> | void;
+}
+
+export function useFlwBillCheckout() {
+  const [paying,   setPaying]   = useState(false);
+  const [flwError, setFlwError] = useState<string | null>(null);
+
+  const checkout = useCallback(async ({
+    amount,
+    description,
+    paymentOptions,
+    onSuccess,
+  }: FlwCheckoutParams) => {
+    setPaying(true);
+    setFlwError(null);
+    try {
+      const init = await flwInitiatePayment({
+        amount,
+        currency: 'NGN',
+        transaction_type: 'payment',
+        description,
+      });
+      const pubKey = init.public_key || (import.meta as any).env?.VITE_FLUTTERWAVE_PUBLIC_KEY || '';
+      openFlwCheckout({
+        public_key:      pubKey,
+        tx_ref:          init.reference,
+        amount:          init.amount,
+        currency:        init.currency,
+        payment_options: paymentOptions,
+        customer: { email: init.email, phone_number: init.phone, name: init.name },
+        customizations: { title: 'GrazConcept', description: init.description, logo: '' },
+        callback: async (res: any) => {
+          if (res.status === 'successful' || res.status === 'completed') {
+            try {
+              await flwVerifyPayment({ transaction_id: res.transaction_id, reference: init.reference });
+              await onSuccess(init.reference);
+            } catch (e: any) {
+              setFlwError(e?.response?.data?.detail ?? 'Payment verified but service failed. Contact support.');
+            }
+          } else {
+            setFlwError('Payment was not completed. Please try again.');
+          }
+          setPaying(false);
+        },
+        onclose: () => setPaying(false),
+      });
+    } catch (e: any) {
+      setPaying(false);
+      setFlwError(e?.response?.data?.detail ?? 'Could not start checkout. Try again.');
+    }
+  }, []);
+
+  return { checkout, paying, flwError, clearFlwError: () => setFlwError(null) };
+}
 
 /* ─── BillReceiptDialog ──────────────────────────────────────────────────── */
 interface ReceiptRow { key: string; value: string; mono?: boolean }

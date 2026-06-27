@@ -3,8 +3,9 @@ import { Box, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod,
+  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
   ProviderBtn, SectionLabel, SplitLayout, SummaryPanel, generateRef,
+  useFlwBillCheckout,
 } from '../_shared';
 
 interface Package { label: string; code: string; amount: number }
@@ -80,43 +81,60 @@ const CableAndInternetRenewal: React.FC = () => {
   const [receipt,    setReceipt]    = useState(false);
   const [txRef,      setTxRef]      = useState('');
 
+  const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+
   const selectedProvider = PROVIDERS.find(p => p.value === provider);
-  const canSubmit = !!provider && !!pkg && iuc.length >= 7 && !submitting;
+  const canSubmit = !!provider && !!pkg && iuc.length >= 7 && !submitting && !flwPaying;
 
   useEffect(() => {
     if (iuc.length >= 10) setAcctName('CUSTOMER NAME');
     else setAcctName('');
   }, [iuc]);
 
+  const submitBill = async (overrideMethod?: string) => {
+    if (!pkg) throw new Error('No package selected.');
+    const tok = localStorage.getItem('token');
+    const headers = tok ? { Authorization: `Bearer ${tok}` } : {};
+    const res = await api.post('/value-services/cable-internet/renew/', {
+      provider,
+      provider_label: selectedProvider?.label ?? provider,
+      package_code:   pkg.code,
+      package_label:  pkg.label,
+      iuc_number:     iuc,
+      account_name:   acctName,
+      amount:         pkg.amount,
+      payment_method: overrideMethod ?? payMethod,
+    }, { headers });
+    return res;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !pkg) return;
-    setApiError(null); setSubmitting(true);
-    try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await api.post('/value-services/cable-internet/renew/', {
-        provider,
-        provider_label: selectedProvider?.label ?? provider,
-        package_code: pkg.code,
-        package_label: pkg.label,
-        iuc_number: iuc,
-        account_name: acctName,
-        amount: pkg.amount,
-        payment_method: payMethod,
-      }, { headers });
+    setApiError(null); clearFlwError();
 
-      if (res.data?.status === 'pending' && res.data?.payment_url) {
-        window.location.href = res.data.payment_url;
-        return;
+    if (payMethod === 'wallet') {
+      setSubmitting(true);
+      try {
+        const res = await submitBill();
+        setTxRef(res.data?.reference ?? generateRef());
+        setReceipt(true);
+      } catch (err: any) {
+        setApiError(err?.response?.data?.detail ?? 'Renewal failed. Please try again.');
+      } finally {
+        setSubmitting(false);
       }
-
-      setTxRef(res.data?.reference ?? generateRef());
-      setReceipt(true);
-    } catch (err: any) {
-      setApiError(err?.response?.data?.detail ?? 'Renewal failed. Please try again.');
-    } finally {
-      setSubmitting(false);
+    } else {
+      await flwCheckout({
+        amount:         pkg.amount,
+        description:    `${selectedProvider?.label ?? provider} · ${pkg.label} · ${iuc}`,
+        paymentOptions: FLW_OPTIONS[payMethod],
+        onSuccess: async () => {
+          const res = await submitBill('wallet');
+          setTxRef(res.data?.reference ?? generateRef());
+          setReceipt(true);
+        },
+      });
     }
   };
 
@@ -129,7 +147,7 @@ const CableAndInternetRenewal: React.FC = () => {
     { key: 'Provider', value: selectedProvider?.label ?? '—' },
     { key: 'Package',  value: pkg?.label ?? '—' },
     { key: 'IUC / ID', value: iuc || '—' },
-    { key: 'Pay via',  value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'bank_transfer' ? '🏦 Bank' : '📱 Mobile' },
+    { key: 'Pay via',  value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'ussd' ? '📲 USSD' : '🏦 Bank Transfer' },
     { key: 'Delivery', value: 'Activated in ~30s ⚡', accent: true },
   ];
 
@@ -226,11 +244,15 @@ const CableAndInternetRenewal: React.FC = () => {
               </Box>
 
               <SectionLabel>Payment Method</SectionLabel>
-              <PaymentMethodSelector value={payMethod} onChange={setPayMethod} />
+              <PaymentMethodSelector value={payMethod} onChange={v => { setPayMethod(v); setApiError(null); clearFlwError(); }} />
 
-              <ErrorAlert message={apiError} />
-              <BillCtaButton disabled={!canSubmit} loading={submitting}>
-                {pkg ? `Renew ${selectedProvider?.label ?? ''} — ₦${pkg.amount.toLocaleString()}` : 'Select a package to continue'}
+              <ErrorAlert message={apiError ?? flwError} />
+              <BillCtaButton disabled={!canSubmit} loading={submitting || flwPaying}>
+                {flwPaying
+                  ? 'Opening checkout…'
+                  : pkg
+                    ? `Renew ${selectedProvider?.label ?? ''} — ₦${pkg.amount.toLocaleString()}`
+                    : 'Select a package to continue'}
               </BillCtaButton>
             </form>
           </FormCard>

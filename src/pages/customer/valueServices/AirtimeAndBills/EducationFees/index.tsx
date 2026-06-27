@@ -3,8 +3,9 @@ import { Box, FormControl, InputLabel, MenuItem, Select, TextField, Typography }
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod,
+  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
   SectionLabel, SplitLayout, SummaryPanel, SX_FIELD, generateRef,
+  useFlwBillCheckout,
 } from '../_shared';
 
 interface FeeType { label: string; value: string; min: number; defaultAmount?: number }
@@ -63,6 +64,8 @@ const EducationFeePayment: React.FC = () => {
   const [txRef,      setTxRef]      = useState('');
   const [pinToken,   setPinToken]   = useState('');
 
+  const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+
   const selectedProvider = EDU_PROVIDERS.find(p => p.value === provider);
   const selectedFeeType  = selectedProvider?.feeTypes.find(f => f.value === feeType);
 
@@ -75,38 +78,53 @@ const EducationFeePayment: React.FC = () => {
   const amtNum   = Number(amount);
   const canSubmit =
     !!provider && !!feeType && !!candName && !!phone && phone.length === 11 &&
-    amtNum >= (selectedFeeType?.min ?? 1000) && !submitting;
+    amtNum >= (selectedFeeType?.min ?? 1000) && !submitting && !flwPaying;
+
+  const submitBill = async (overrideMethod?: string) => {
+    const tok = localStorage.getItem('token');
+    const headers = tok ? { Authorization: `Bearer ${tok}` } : {};
+    const res = await api.post('/value-services/education-fees/pay/', {
+      provider,
+      provider_label:  selectedProvider?.label ?? provider,
+      fee_type:        feeType,
+      fee_type_label:  selectedFeeType?.label ?? feeType,
+      candidate_name:  candName,
+      reg_no:          regNo,
+      amount:          amtNum,
+      payment_method:  overrideMethod ?? payMethod,
+    }, { headers });
+    return res;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    setApiError(null); setSubmitting(true);
-    try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await api.post('/value-services/education-fees/pay/', {
-        provider,
-        provider_label: selectedProvider?.label ?? provider,
-        fee_type: feeType,
-        fee_type_label: selectedFeeType?.label ?? feeType,
-        candidate_name: candName,
-        reg_no: regNo,
-        amount: amtNum,
-        payment_method: payMethod,
-      }, { headers });
+    setApiError(null); clearFlwError();
 
-      if (res.data?.status === 'pending' && res.data?.payment_url) {
-        window.location.href = res.data.payment_url;
-        return;
+    if (payMethod === 'wallet') {
+      setSubmitting(true);
+      try {
+        const res = await submitBill();
+        setTxRef(res.data?.reference ?? generateRef());
+        setPinToken(res.data?.token ?? '');
+        setReceipt(true);
+      } catch (err: any) {
+        setApiError(err?.response?.data?.detail ?? 'Payment failed. Please try again.');
+      } finally {
+        setSubmitting(false);
       }
-
-      setTxRef(res.data?.reference ?? generateRef());
-      setPinToken(res.data?.token ?? '');
-      setReceipt(true);
-    } catch (err: any) {
-      setApiError(err?.response?.data?.detail ?? 'Payment failed. Please try again.');
-    } finally {
-      setSubmitting(false);
+    } else {
+      await flwCheckout({
+        amount:         amtNum,
+        description:    `${selectedFeeType?.label ?? feeType} · ${candName}`,
+        paymentOptions: FLW_OPTIONS[payMethod],
+        onSuccess: async () => {
+          const res = await submitBill('wallet');
+          setTxRef(res.data?.reference ?? generateRef());
+          setPinToken(res.data?.token ?? '');
+          setReceipt(true);
+        },
+      });
     }
   };
 
@@ -120,7 +138,7 @@ const EducationFeePayment: React.FC = () => {
     { key: 'Fee type',    value: selectedFeeType?.label ?? '—' },
     { key: 'Exam year',   value: examYear },
     { key: 'Candidate',   value: candName || '—' },
-    { key: 'Pay via',     value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'bank_transfer' ? '🏦 Bank' : '📱 Mobile' },
+    { key: 'Pay via',     value: payMethod === 'wallet' ? '👛 Wallet' : payMethod === 'card' ? '💳 Card' : payMethod === 'ussd' ? '📲 USSD' : '🏦 Bank Transfer' },
   ];
 
   return (
@@ -213,15 +231,17 @@ const EducationFeePayment: React.FC = () => {
               {feeType && (
                 <>
                   <SectionLabel>Payment Method</SectionLabel>
-                  <PaymentMethodSelector value={payMethod} onChange={setPayMethod} />
+                  <PaymentMethodSelector value={payMethod} onChange={v => { setPayMethod(v); setApiError(null); clearFlwError(); }} />
                 </>
               )}
 
-              <ErrorAlert message={apiError} />
-              <BillCtaButton disabled={!canSubmit} loading={submitting}>
-                {selectedFeeType
-                  ? `Pay ₦${amtNum > 0 ? amtNum.toLocaleString() : '0'} — ${selectedFeeType.label}`
-                  : 'Select exam body to continue'}
+              <ErrorAlert message={apiError ?? flwError} />
+              <BillCtaButton disabled={!canSubmit} loading={submitting || flwPaying}>
+                {flwPaying
+                  ? 'Opening checkout…'
+                  : selectedFeeType
+                    ? `Pay ₦${amtNum > 0 ? amtNum.toLocaleString() : '0'} — ${selectedFeeType.label}`
+                    : 'Select exam body to continue'}
               </BillCtaButton>
             </form>
           </FormCard>

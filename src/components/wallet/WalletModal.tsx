@@ -28,11 +28,14 @@ import CheckCircleIcon        from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon       from '@mui/icons-material/ErrorOutline';
 import AccountBalanceIcon     from '@mui/icons-material/AccountBalance';
 import CreditCardIcon         from '@mui/icons-material/CreditCard';
+import PhoneAndroidIcon       from '@mui/icons-material/PhoneAndroid';
+import SwapHorizIcon          from '@mui/icons-material/SwapHoriz';
 import VerifiedIcon           from '@mui/icons-material/Verified';
 import PersonSearchIcon       from '@mui/icons-material/PersonSearch';
 
 import {
   flwInitiatePayment, flwVerifyPayment, flwWithdraw, flwGetBanks, flwResolveAccount,
+  openFlwCheckout,
   type BankOption,
 } from '../../services/walletService';
 import { useAuth } from '../../context/AuthContext';
@@ -83,21 +86,6 @@ const SlideUp = React.forwardRef(function SlideUp(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-/* ─── Flutterwave inline loader ──────────────────────────────────────────── */
-function openFlwCheckout(config: Record<string, any>) {
-  const win = window as any;
-  const fire = () => win.FlutterwaveCheckout(config);
-  if (typeof win.FlutterwaveCheckout === 'function') { fire(); return; }
-  let script = document.getElementById('flw-script') as HTMLScriptElement | null;
-  if (!script) {
-    script = document.createElement('script');
-    script.id  = 'flw-script';
-    script.src = 'https://checkout.flutterwave.com/v3.js';
-    document.head.appendChild(script);
-  }
-  script.addEventListener('load', fire, { once: true });
-}
-
 /* ─── Quick amount chips ─────────────────────────────────────────────────── */
 const QUICK_AMOUNTS = [500, 1_000, 2_000, 5_000, 10_000, 50_000];
 
@@ -112,7 +100,7 @@ interface WalletModalProps {
 }
 
 type Tab      = 'deposit' | 'withdraw';
-type DepMethod = 'flutterwave' | 'manual';
+type DepMethod = 'card' | 'ussd' | 'bank_transfer' | 'manual';
 type WStep    = 'form' | 'review' | 'done' | 'error';
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -370,8 +358,31 @@ const SuccessScreen: React.FC<{
 /* ══════════════════════════════════════════════════════════════════════════ */
 /*  DEPOSIT PANEL                                                             */
 /* ══════════════════════════════════════════════════════════════════════════ */
+/* Deposit method config */
+const DEP_METHODS: {
+  value: DepMethod; title: string; sub: string; badge?: string;
+  icon: React.ReactNode; flwOptions?: string;
+}[] = [
+  {
+    value: 'card', title: 'Pay by Card', sub: 'Visa · Mastercard · Verve', badge: 'Instant',
+    icon: <CreditCardIcon sx={{ fontSize:22 }}/>, flwOptions: 'card',
+  },
+  {
+    value: 'ussd', title: 'Pay via USSD', sub: 'GTB · Access · UBA · Zenith & more',
+    icon: <PhoneAndroidIcon sx={{ fontSize:22 }}/>, flwOptions: 'ussd',
+  },
+  {
+    value: 'bank_transfer', title: 'Bank Transfer', sub: 'Online banking · NIP instant',
+    icon: <SwapHorizIcon sx={{ fontSize:22 }}/>, flwOptions: 'banktransfer',
+  },
+  {
+    value: 'manual', title: 'Manual Transfer', sub: 'Moniepoint · 1–3 business days',
+    icon: <AccountBalanceIcon sx={{ fontSize:22 }}/>,
+  },
+];
+
 const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> = ({ onSuccess }) => {
-  const [method,  setMethod]  = useState<DepMethod>('flutterwave');
+  const [method,  setMethod]  = useState<DepMethod>('card');
   const [amount,  setAmount]  = useState('');
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
@@ -382,6 +393,8 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
   const handlePay = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt < 100) { setError('Minimum deposit is ₦100.'); return; }
+    const cfg = DEP_METHODS.find(m => m.value === method);
+    if (!cfg?.flwOptions) return; // manual branch handled separately
     setError(null); setLoading(true);
     try {
       const init = await flwInitiatePayment({
@@ -390,11 +403,11 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
       });
       const pubKey = init.public_key || (import.meta as any).env?.VITE_FLUTTERWAVE_PUBLIC_KEY || '';
       openFlwCheckout({
-        public_key: pubKey,
-        tx_ref:     init.reference,
-        amount:     init.amount,
-        currency:   init.currency,
-        payment_options: 'card,banktransfer,ussd,mobilemoneynigeria',
+        public_key:      pubKey,
+        tx_ref:          init.reference,
+        amount:          init.amount,
+        currency:        init.currency,
+        payment_options: cfg.flwOptions,
         customer: { email: init.email, phone_number: init.phone, name: init.name },
         customizations: { title:'GrazConcept Wallet', description: init.description, logo:'' },
         callback: async (res: any) => {
@@ -407,7 +420,7 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
               setError(e?.response?.data?.detail ?? 'Verification failed. Contact support.');
             }
           } else {
-            setError('Payment was not completed.');
+            setError('Payment was not completed. Please try again.');
           }
           setLoading(false);
         },
@@ -429,6 +442,9 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
     />
   );
 
+  const isFlw = method !== 'manual';
+  const amt = parseFloat(amount);
+
   return (
     <Box>
       {/* Amount */}
@@ -447,28 +463,33 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
           letterSpacing:'0.7px', mb:1.5 }}>
           Pay with
         </Typography>
-        <Box sx={{ display:'flex', flexDirection:'column', gap:1.25, mb:2.5 }}>
-          <MethodCard
-            active={method === 'flutterwave'}
-            onClick={() => setMethod('flutterwave')}
-            icon={<CreditCardIcon sx={{ fontSize:22 }}/>}
-            title="Card / Bank / USSD"
-            sub="Instant • Powered by Flutterwave"
-            badge="Instant"
-          />
-          <MethodCard
-            active={method === 'manual'}
-            onClick={() => setMethod('manual')}
-            icon={<AccountBalanceIcon sx={{ fontSize:22 }}/>}
-            title="Manual Bank Transfer"
-            sub="1–3 business days"
-          />
+        <Box sx={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1, mb:2.5 }}>
+          {DEP_METHODS.map(m => (
+            <MethodCard
+              key={m.value}
+              active={method === m.value}
+              onClick={() => { setMethod(m.value); setError(null); }}
+              icon={m.icon}
+              title={m.title}
+              sub={m.sub}
+              badge={m.badge}
+            />
+          ))}
         </Box>
 
-        {method === 'flutterwave' ? (
+        {/* USSD hint */}
+        {method === 'ussd' && (
+          <Box sx={{ mb:2, p:'10px 14px', bgcolor:C.amberLight, borderRadius:'12px',
+            border:'1px solid #FDE68A', fontSize:12, color:C.amber, lineHeight:1.65 }}>
+            <strong>How USSD works:</strong> After clicking Pay, select your bank and dial
+            the short code shown on your phone to complete payment.
+          </Box>
+        )}
+
+        {isFlw ? (
           <>
             <Button variant="contained" fullWidth onClick={handlePay}
-              disabled={loading || !amount || parseFloat(amount) < 100}
+              disabled={loading || !amount || amt < 100}
               sx={{
                 bgcolor: C.brand, fontWeight:800, fontSize:15, borderRadius:'16px', py:1.75,
                 textTransform:'none', boxShadow:'0 6px 20px rgba(139,43,140,.4)',
@@ -478,7 +499,7 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
               }}>
               {loading
                 ? <><CircularProgress size={16} color="inherit" sx={{ mr:1 }}/> Opening checkout…</>
-                : `Pay ₦${amount && parseFloat(amount) > 0 ? parseFloat(amount).toLocaleString() : '0'}`}
+                : `Pay ₦${amt > 0 ? amt.toLocaleString() : '0'} via ${DEP_METHODS.find(m => m.value === method)?.title ?? ''}`}
             </Button>
             <Box sx={{ display:'flex', alignItems:'center', justifyContent:'center', gap:0.75, mt:1.5 }}>
               <LockIcon sx={{ fontSize:12, color:C.g300 }}/>

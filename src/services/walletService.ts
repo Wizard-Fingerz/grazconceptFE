@@ -120,3 +120,22 @@ export async function flwResolveAccount(payload: ResolveAccountPayload): Promise
   const response = await api.post('/wallet/flutterwave/resolve-account/', payload);
   return response.data;
 }
+
+// ── Inline checkout loader (shared across wallet + bill pages) ────────────────
+/**
+ * Opens the Flutterwave inline checkout modal.
+ * Lazy-loads v3.js the first time; subsequent calls re-use the cached script.
+ */
+export function openFlwCheckout(config: Record<string, any>): void {
+  const win = window as any;
+  const fire = () => win.FlutterwaveCheckout(config);
+  if (typeof win.FlutterwaveCheckout === 'function') { fire(); return; }
+  let script = document.getElementById('flw-script') as HTMLScriptElement | null;
+  if (!script) {
+    script = document.createElement('script');
+    script.id  = 'flw-script';
+    script.src = 'https://checkout.flutterwave.com/v3.js';
+    document.head.appendChild(script);
+  }
+  script.addEventListener('load', fire, { once: true });
+}
