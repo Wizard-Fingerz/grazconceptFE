@@ -276,47 +276,66 @@ const AmountInput: React.FC<{
 /* ══════════════════════════════════════════════════════════════════════════ */
 /*  PAYMENT METHOD CARD                                                       */
 /* ══════════════════════════════════════════════════════════════════════════ */
+/*  METHOD ROW — full-width single-column list item                           */
+/* ══════════════════════════════════════════════════════════════════════════ */
 const MethodCard: React.FC<{
   active: boolean; onClick: () => void;
-  icon: React.ReactNode; title: string; sub: string; badge?: string;
-}> = ({ active, onClick, icon, title, sub, badge }) => (
+  icon: React.ReactNode; iconBg: string; iconColor: string;
+  title: string; sub: string; badge?: string;
+}> = ({ active, onClick, icon, iconBg, iconColor, title, sub, badge }) => (
   <Box onClick={onClick}
     sx={{
-      display:'flex', alignItems:'center', gap:2, p:2, borderRadius:'16px', cursor:'pointer',
-      border:`2px solid ${active ? C.brand : C.g200}`,
+      display:'flex', alignItems:'center', gap:1.75, px:2, py:1.5,
+      borderRadius:'14px', cursor:'pointer',
+      border:`1.5px solid ${active ? C.brand : C.g200}`,
       bgcolor: active ? C.accentXL : '#fff',
-      transition:'all .18s',
+      boxShadow: active ? `0 0 0 3px rgba(139,43,140,.08)` : 'none',
+      transition:'all .16s',
       '&:hover':{ borderColor: active ? C.brand : C.g300, bgcolor: active ? C.accentXL : C.g50 },
-      position:'relative', overflow:'hidden',
     }}>
-    {/* Left icon box */}
+
+    {/* Coloured icon pill */}
     <Box sx={{
-      width:44, height:44, borderRadius:'12px', flexShrink:0,
+      width:40, height:40, borderRadius:'11px', flexShrink:0,
       display:'flex', alignItems:'center', justifyContent:'center',
-      bgcolor: active ? C.brand : C.g100,
-      color:   active ? '#fff' : C.g500,
-      transition:'all .18s',
+      bgcolor: active ? C.brand : iconBg,
+      color:   active ? '#fff' : iconColor,
+      transition:'all .16s',
     }}>
       {icon}
     </Box>
+
+    {/* Label block */}
     <Box sx={{ flex:1, minWidth:0 }}>
-      <Typography sx={{ fontSize:13.5, fontWeight:700, color:C.g900 }}>{title}</Typography>
-      <Typography sx={{ fontSize:11.5, color:C.g400, mt:0.15 }}>{sub}</Typography>
-    </Box>
-    {badge && (
-      <Chip label={badge} size="small"
-        sx={{ fontSize:10, fontWeight:700, height:20, bgcolor:C.greenLight, color:C.green,
-          border:`1px solid ${C.greenBorder}` }}/>
-    )}
-    {active && (
-      <Box sx={{
-        position:'absolute', right:12, top:'50%', transform:'translateY(-50%)',
-        width:20, height:20, borderRadius:'50%', bgcolor:C.brand,
-        display:'flex', alignItems:'center', justifyContent:'center',
-      }}>
-        <CheckCircleIcon sx={{ fontSize:14, color:'#fff' }}/>
+      <Box sx={{ display:'flex', alignItems:'center', gap:1, flexWrap:'nowrap' }}>
+        <Typography sx={{ fontSize:13.5, fontWeight:700, color: active ? C.brandDark : C.g900, whiteSpace:'nowrap' }}>
+          {title}
+        </Typography>
+        {badge && (
+          <Chip label={badge} size="small"
+            sx={{ fontSize:9.5, fontWeight:800, height:18,
+              bgcolor: active ? 'rgba(139,43,140,.12)' : C.greenLight,
+              color:   active ? C.brand : C.green,
+              border:`1px solid ${active ? 'rgba(139,43,140,.2)' : C.greenBorder}`,
+              '& .MuiChip-label':{ px:0.8 },
+            }}/>
+        )}
       </Box>
-    )}
+      <Typography sx={{ fontSize:11.5, color:C.g400, mt:0.15, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+        {sub}
+      </Typography>
+    </Box>
+
+    {/* Radio dot */}
+    <Box sx={{
+      width:20, height:20, borderRadius:'50%', flexShrink:0,
+      border:`2px solid ${active ? C.brand : C.g300}`,
+      bgcolor: active ? C.brand : 'transparent',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      transition:'all .16s',
+    }}>
+      {active && <Box sx={{ width:7, height:7, borderRadius:'50%', bgcolor:'#fff' }}/>}
+    </Box>
   </Box>
 );
 
@@ -362,23 +381,30 @@ const SuccessScreen: React.FC<{
 /* Deposit method config */
 const DEP_METHODS: {
   value: DepMethod; title: string; sub: string; badge?: string;
-  icon: React.ReactNode; flwOptions?: string;
+  icon: React.ReactNode; iconBg: string; iconColor: string; flwOptions?: string;
 }[] = [
   {
     value: 'card', title: 'Pay by Card', sub: 'Visa · Mastercard · Verve', badge: 'Instant',
-    icon: <CreditCardIcon sx={{ fontSize:22 }}/>, flwOptions: 'card',
+    icon: <CreditCardIcon sx={{ fontSize:20 }}/>,
+    iconBg: '#ede9fe', iconColor: '#6d28d9',
+    flwOptions: 'card',
   },
   {
     value: 'ussd', title: 'Pay via USSD', sub: 'GTB · Access · UBA · Zenith & more',
-    icon: <PhoneAndroidIcon sx={{ fontSize:22 }}/>, flwOptions: 'ussd',
+    icon: <PhoneAndroidIcon sx={{ fontSize:20 }}/>,
+    iconBg: '#fce7f3', iconColor: '#be185d',
+    flwOptions: 'ussd',
   },
   {
     value: 'bank_transfer', title: 'Bank Transfer', sub: 'Online banking · NIP instant',
-    icon: <SwapHorizIcon sx={{ fontSize:22 }}/>, flwOptions: 'banktransfer',
+    icon: <SwapHorizIcon sx={{ fontSize:20 }}/>,
+    iconBg: '#dbeafe', iconColor: '#1d4ed8',
+    flwOptions: 'banktransfer',
   },
   {
     value: 'manual', title: 'Manual Transfer', sub: 'Moniepoint · 1–3 business days',
-    icon: <AccountBalanceIcon sx={{ fontSize:22 }}/>,
+    icon: <AccountBalanceIcon sx={{ fontSize:20 }}/>,
+    iconBg: '#fef3c7', iconColor: '#b45309',
   },
 ];
 
@@ -464,13 +490,15 @@ const DepositPanel: React.FC<{ user: any; onSuccess: (bal?: number) => void }> =
           letterSpacing:'0.7px', mb:1.5 }}>
           Pay with
         </Typography>
-        <Box sx={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1, mb:2.5 }}>
+        <Box sx={{ display:'flex', flexDirection:'column', gap:1, mb:2.5 }}>
           {DEP_METHODS.map(m => (
             <MethodCard
               key={m.value}
               active={method === m.value}
               onClick={() => { setMethod(m.value); setError(null); }}
               icon={m.icon}
+              iconBg={m.iconBg}
+              iconColor={m.iconColor}
               title={m.title}
               sub={m.sub}
               badge={m.badge}
