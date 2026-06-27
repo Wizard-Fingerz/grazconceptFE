@@ -35,9 +35,10 @@ import PersonSearchIcon       from '@mui/icons-material/PersonSearch';
 
 import {
   flwInitiatePayment, flwVerifyPayment, flwWithdraw, flwGetBanks, flwResolveAccount,
-  openFlwCheckout,
+  openFlwCheckout, walletPinStatus,
   type BankOption,
 } from '../../services/walletService';
+import PinPad from './PinPad';
 import { useAuth } from '../../context/AuthContext';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
@@ -101,7 +102,7 @@ interface WalletModalProps {
 
 type Tab      = 'deposit' | 'withdraw';
 type DepMethod = 'card' | 'ussd' | 'bank_transfer' | 'manual';
-type WStep    = 'form' | 'review' | 'done' | 'error';
+type WStep    = 'form' | 'review' | 'setup_pin' | 'enter_pin' | 'done' | 'error';
 
 /* ══════════════════════════════════════════════════════════════════════════ */
 /*  HERO HEADER                                                               */
@@ -660,7 +661,21 @@ const WithdrawPanel: React.FC<{
     setStep('review');
   };
 
+  /** Called from the review step — checks PIN status before advancing */
   const handleConfirm = async () => {
+    setLoading(true); setError(null);
+    try {
+      const { has_pin } = await walletPinStatus();
+      setStep(has_pin ? 'enter_pin' : 'setup_pin');
+    } catch {
+      setError('Could not check PIN status. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Called once we have the verified PIN — execute the actual withdrawal */
+  const doWithdraw = async (pin: string) => {
     setLoading(true); setError(null);
     try {
       const res = await flwWithdraw({
@@ -670,6 +685,7 @@ const WithdrawPanel: React.FC<{
         beneficiary_name: acctName,
         narration: note,
         currency: 'NGN',
+        pin,
       });
       setTxRef(res.reference);
       setStep('done');
@@ -681,6 +697,38 @@ const WithdrawPanel: React.FC<{
       setLoading(false);
     }
   };
+
+  // ── PIN setup (first-time) ────────────────────────────────────────────────
+  if (step === 'setup_pin') return (
+    <Box sx={{ px:{ xs:2, sm:2.5 }, py:2 }}>
+      <Box sx={{ p:1.5, mb:2, bgcolor:C.amberLight, borderRadius:'12px',
+        border:'1px solid #FDE68A', fontSize:12, color:C.amber, lineHeight:1.65 }}>
+        <strong>Set up your wallet PIN</strong> to continue. You'll need this PIN for all
+        wallet withdrawals and deductions going forward.
+      </Box>
+      <PinPad
+        mode="setup"
+        onSuccess={() => setStep('enter_pin')}
+        onCancel={() => setStep('review')}
+      />
+    </Box>
+  );
+
+  // ── PIN entry (existing PIN holders) ─────────────────────────────────────
+  if (step === 'enter_pin') return (
+    <Box sx={{ px:{ xs:2, sm:2.5 }, py:2 }}>
+      {error && (
+        <Alert severity="error" sx={{ mb:2, borderRadius:'12px', fontSize:12.5 }}>{error}</Alert>
+      )}
+      <PinPad
+        mode="verify"
+        title="Enter Your PIN"
+        subtitle="Enter your 4-digit wallet PIN to authorise this withdrawal."
+        onSuccess={(pin) => doWithdraw(pin)}
+        onCancel={() => { setError(null); setStep('review'); }}
+      />
+    </Box>
+  );
 
   if (step === 'done') return (
     <SuccessScreen

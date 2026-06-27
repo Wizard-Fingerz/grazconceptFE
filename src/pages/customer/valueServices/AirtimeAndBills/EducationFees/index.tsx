@@ -3,9 +3,9 @@ import { Box, FormControl, InputLabel, MenuItem, Select, TextField, Typography }
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  FormCard, PaymentMethodSelector, PinVerifyModal, type PaymentMethod, FLW_OPTIONS,
   SectionLabel, SplitLayout, SummaryPanel, SX_FIELD, generateRef,
-  useFlwBillCheckout,
+  useFlwBillCheckout, usePinGate,
 } from '../_shared';
 
 interface FeeType { label: string; value: string; min: number; defaultAmount?: number }
@@ -65,6 +65,7 @@ const EducationFeePayment: React.FC = () => {
   const [pinToken,   setPinToken]   = useState('');
 
   const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+  const pinGate = usePinGate();
 
   const selectedProvider = EDU_PROVIDERS.find(p => p.value === provider);
   const selectedFeeType  = selectedProvider?.feeTypes.find(f => f.value === feeType);
@@ -102,17 +103,20 @@ const EducationFeePayment: React.FC = () => {
     setApiError(null); clearFlwError();
 
     if (payMethod === 'wallet') {
-      setSubmitting(true);
-      try {
-        const res = await submitBill();
-        setTxRef(res.data?.reference ?? generateRef());
-        setPinToken(res.data?.token ?? '');
-        setReceipt(true);
-      } catch (err: any) {
-        setApiError(err?.response?.data?.detail ?? 'Payment failed. Please try again.');
-      } finally {
-        setSubmitting(false);
-      }
+      pinGate.open(async () => {
+        setSubmitting(true);
+        try {
+          const res = await submitBill();
+          setTxRef(res.data?.reference ?? generateRef());
+          setPinToken(res.data?.token ?? '');
+          setReceipt(true);
+        } catch (err: any) {
+          setApiError(err?.response?.data?.detail ?? 'Payment failed. Please try again.');
+        } finally {
+          setSubmitting(false);
+        }
+      });
+      return;
     } else {
       await flwCheckout({
         amount:         amtNum,
@@ -255,6 +259,8 @@ const EducationFeePayment: React.FC = () => {
           />
         }
       />
+      <PinVerifyModal {...pinGate.props} />
+
       <BillReceiptDialog
         open={receipt} onClose={() => setReceipt(false)} onNew={resetForm}
         amount={amtNum} title="Fee Payment Successful!"

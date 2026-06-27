@@ -10,8 +10,9 @@ import {
 } from '@mui/material';
 import type { TransitionProps } from '@mui/material/transitions';
 import {
-  flwInitiatePayment, flwVerifyPayment, openFlwCheckout,
+  flwInitiatePayment, flwVerifyPayment, openFlwCheckout, walletPinStatus,
 } from '../../../../services/walletService';
+import PinPad from '../../../../components/wallet/PinPad';
 
 /* ─── Brand & neutral tokens ─────────────────────────────────────────────── */
 export const C = {
@@ -581,6 +582,135 @@ export function useFlwBillCheckout() {
   }, []);
 
   return { checkout, paying, flwError, clearFlwError: () => setFlwError(null) };
+}
+
+/* ─── PinVerifyModal ─────────────────────────────────────────────────────── */
+/**
+ * Dialog that gates a wallet-deducting payment behind a 4-digit PIN.
+ * If the user hasn't set a PIN yet, the setup flow runs first.
+ *
+ * Usage (with usePinGate):
+ *   const pinGate = usePinGate();
+ *   // in submit handler:
+ *   if (payMethod === 'wallet') {
+ *     pinGate.open(() => submitBill());
+ *     return;
+ *   }
+ *   submitBill();
+ *
+ *   // in JSX:
+ *   <PinVerifyModal {...pinGate.props} />
+ */
+type PinModalStep = 'checking' | 'setup' | 'verify';
+
+interface PinVerifyModalProps {
+  open: boolean;
+  onClose: () => void;
+  onVerified: () => void;
+}
+
+export const PinVerifyModal: React.FC<PinVerifyModalProps> = ({ open, onClose, onVerified }) => {
+  const [pinStep, setPinStep] = useState<PinModalStep>('checking');
+
+  // When the dialog opens, check whether a PIN exists
+  const handleEntered = useCallback(async () => {
+    setPinStep('checking');
+    try {
+      const { has_pin } = await walletPinStatus();
+      setPinStep(has_pin ? 'verify' : 'setup');
+    } catch {
+      setPinStep('verify'); // fail-open; backend will re-check
+    }
+  }, []);
+
+  const handleClose = () => {
+    setPinStep('checking');
+    onClose();
+  };
+
+  const handlePinSuccess = () => {
+    handleClose();
+    onVerified();
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      TransitionComponent={SlideUp}
+      TransitionProps={{ onEntered: handleEntered }}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: { xs: '20px 20px 0 0', sm: '20px' },
+          mx: { xs: 0, sm: 2 },
+          mt: { xs: 'auto', sm: 'auto' },
+          mb: { xs: 0, sm: 'auto' },
+          overflow: 'hidden',
+        },
+      }}
+      sx={{ alignItems: { xs: 'flex-end', sm: 'center' } }}
+    >
+      <DialogContent sx={{ p: 0, py: 2.5 }}>
+        {pinStep === 'checking' ? (
+          <Box sx={{ textAlign: 'center', py: 5 }}>
+            <CircularProgress size={28} sx={{ color: C.brand }} />
+            <Typography sx={{ fontSize: 12.5, color: C.g500, mt: 1.5 }}>Checking PIN status…</Typography>
+          </Box>
+        ) : (
+          <PinPad
+            mode={pinStep === 'setup' ? 'setup' : 'verify'}
+            title={pinStep === 'setup' ? 'Create Your Wallet PIN' : 'Confirm Payment'}
+            subtitle={
+              pinStep === 'setup'
+                ? 'Set a 4-digit PIN to secure your wallet payments.'
+                : 'Enter your 4-digit wallet PIN to authorise this payment.'
+            }
+            onSuccess={handlePinSuccess}
+            onCancel={handleClose}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/**
+ * Convenience hook — manages open state + pending callback for PinVerifyModal.
+ *
+ *   const pinGate = usePinGate();
+ *   // to trigger:  pinGate.open(() => doTheWork());
+ *   // in JSX:      <PinVerifyModal {...pinGate.props} />
+ */
+export function usePinGate() {
+  const [open,    setOpen]    = useState(false);
+  const pendingCb = useRef<(() => void) | null>(null);
+
+  const openGate = useCallback((onVerified: () => void) => {
+    pendingCb.current = onVerified;
+    setOpen(true);
+  }, []);
+
+  const handleVerified = useCallback(() => {
+    setOpen(false);
+    pendingCb.current?.();
+    pendingCb.current = null;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    pendingCb.current = null;
+  }, []);
+
+  return {
+    open: openGate,
+    props: {
+      open,
+      onClose: handleClose,
+      onVerified: handleVerified,
+    } satisfies PinVerifyModalProps,
+  };
 }
 
 /* ─── BillReceiptDialog ──────────────────────────────────────────────────── */

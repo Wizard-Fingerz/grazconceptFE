@@ -77,6 +77,7 @@ export interface WithdrawPayload {
   beneficiary_name?: string;
   narration?: string;
   currency?: string;
+  pin?: string;            // required by backend PIN gate
 }
 
 export interface WithdrawResponse {
@@ -118,6 +119,32 @@ export interface ResolveAccountResponse {
 /** Resolve a 10-digit NUBAN account number to the holder's name. */
 export async function flwResolveAccount(payload: ResolveAccountPayload): Promise<ResolveAccountResponse> {
   const response = await api.post('/wallet/flutterwave/resolve-account/', payload);
+  return response.data;
+}
+
+// ── Wallet PIN ────────────────────────────────────────────────────────────────
+
+/** Returns whether the authenticated user has a wallet PIN set. */
+export async function walletPinStatus(): Promise<{ has_pin: boolean }> {
+  const response = await api.get('/wallet/pin/status/');
+  return response.data;
+}
+
+export interface SetPinPayload {
+  pin: string;
+  confirm_pin: string;
+  current_pin?: string;  // required only when changing an existing PIN
+}
+
+/** Create or change the 4-digit wallet PIN. */
+export async function walletSetPin(payload: SetPinPayload): Promise<{ detail: string }> {
+  const response = await api.post('/wallet/pin/setup/', payload);
+  return response.data;
+}
+
+/** Verify the PIN (used by bill pages before deducting from wallet). */
+export async function walletVerifyPin(pin: string): Promise<{ detail: string }> {
+  const response = await api.post('/wallet/pin/verify/', { pin });
   return response.data;
 }
 

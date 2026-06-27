@@ -3,9 +3,9 @@ import { Box, CircularProgress, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  FormCard, PaymentMethodSelector, PinVerifyModal, type PaymentMethod, FLW_OPTIONS,
   ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
-  SX_FIELD, generateRef, useFlwBillCheckout,
+  SX_FIELD, generateRef, useFlwBillCheckout, usePinGate,
 } from '../_shared';
 
 type PlanCat = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'others';
@@ -49,6 +49,7 @@ const DataBundleSubscription: React.FC = () => {
   const [txRef,      setTxRef]      = useState('');
 
   const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+  const pinGate = usePinGate();
 
   useEffect(() => {
     let live = true;
@@ -122,17 +123,20 @@ const DataBundleSubscription: React.FC = () => {
     setApiError(null); clearFlwError();
 
     if (payMethod === 'wallet') {
-      setSubmitting(true);
-      try {
-        await submitBill();
-        setTxRef(generateRef());
-        setReceipt(true);
-      } catch (err: any) {
-        const d = err?.response?.data;
-        setApiError(d?.provider_id?.[0] ?? d?.plan_id?.[0] ?? d?.detail ?? 'Purchase failed. Try again.');
-      } finally {
-        setSubmitting(false);
-      }
+      pinGate.open(async () => {
+        setSubmitting(true);
+        try {
+          await submitBill();
+          setTxRef(generateRef());
+          setReceipt(true);
+        } catch (err: any) {
+          const d = err?.response?.data;
+          setApiError(d?.provider_id?.[0] ?? d?.plan_id?.[0] ?? d?.detail ?? 'Purchase failed. Try again.');
+        } finally {
+          setSubmitting(false);
+        }
+      });
+      return;
     } else {
       await flwCheckout({
         amount:         selectedPlan.amount,
@@ -306,6 +310,8 @@ const DataBundleSubscription: React.FC = () => {
           />
         }
       />
+      <PinVerifyModal {...pinGate.props} />
+
       <BillReceiptDialog
         open={receipt} onClose={() => setReceipt(false)} onNew={resetForm}
         amount={selectedPlan?.amount ?? 0} title="Data Activated!"

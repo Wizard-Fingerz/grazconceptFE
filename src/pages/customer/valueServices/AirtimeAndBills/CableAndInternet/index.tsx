@@ -3,9 +3,9 @@ import { Box, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  FormCard, PaymentMethodSelector, PinVerifyModal, type PaymentMethod, FLW_OPTIONS,
   ProviderBtn, SectionLabel, SplitLayout, SummaryPanel, generateRef,
-  useFlwBillCheckout,
+  useFlwBillCheckout, usePinGate,
 } from '../_shared';
 
 interface Package { label: string; code: string; amount: number }
@@ -82,6 +82,7 @@ const CableAndInternetRenewal: React.FC = () => {
   const [txRef,      setTxRef]      = useState('');
 
   const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+  const pinGate = usePinGate();
 
   const selectedProvider = PROVIDERS.find(p => p.value === provider);
   const canSubmit = !!provider && !!pkg && iuc.length >= 7 && !submitting && !flwPaying;
@@ -114,16 +115,19 @@ const CableAndInternetRenewal: React.FC = () => {
     setApiError(null); clearFlwError();
 
     if (payMethod === 'wallet') {
-      setSubmitting(true);
-      try {
-        const res = await submitBill();
-        setTxRef(res.data?.reference ?? generateRef());
-        setReceipt(true);
-      } catch (err: any) {
-        setApiError(err?.response?.data?.detail ?? 'Renewal failed. Please try again.');
-      } finally {
-        setSubmitting(false);
-      }
+      pinGate.open(async () => {
+        setSubmitting(true);
+        try {
+          const res = await submitBill();
+          setTxRef(res.data?.reference ?? generateRef());
+          setReceipt(true);
+        } catch (err: any) {
+          setApiError(err?.response?.data?.detail ?? 'Renewal failed. Please try again.');
+        } finally {
+          setSubmitting(false);
+        }
+      });
+      return;
     } else {
       await flwCheckout({
         amount:         pkg.amount,
@@ -266,6 +270,8 @@ const CableAndInternetRenewal: React.FC = () => {
           />
         }
       />
+      <PinVerifyModal {...pinGate.props} />
+
       <BillReceiptDialog
         open={receipt} onClose={() => setReceipt(false)} onNew={resetForm}
         amount={pkg?.amount ?? 0} title="Subscription Renewed!"

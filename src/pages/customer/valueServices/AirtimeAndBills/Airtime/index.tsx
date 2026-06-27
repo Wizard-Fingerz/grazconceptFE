@@ -5,9 +5,9 @@ import {
 import api from '../../../../../services/api';
 import {
   C, AmountDisplay, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  FormCard, PaymentMethodSelector, PinVerifyModal, type PaymentMethod, FLW_OPTIONS,
   ProviderBtn, SectionLabel, SplitLayout, SummaryPanel,
-  SX_FIELD, generateRef, useFlwBillCheckout,
+  SX_FIELD, generateRef, useFlwBillCheckout, usePinGate,
 } from '../_shared';
 
 /* ─── Network providers hook ─────────────────────────────────────────────── */
@@ -65,6 +65,7 @@ const BuyAirtime: React.FC = () => {
   const [txRef,      setTxRef]      = useState('');
 
   const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+  const pinGate = usePinGate();
 
   const selected = providers.find(p => p.slug === network);
 
@@ -92,17 +93,21 @@ const BuyAirtime: React.FC = () => {
     setApiError(null); clearFlwError();
 
     if (payMethod === 'wallet') {
-      setSubmitting(true);
-      try {
-        await submitBill();
-        setTxRef(generateRef());
-        setReceipt(true);
-      } catch (err: any) {
-        const d = err?.response?.data;
-        setApiError(d?.provider_id?.[0] ?? d?.phone?.[0] ?? d?.detail ?? 'Failed to purchase airtime.');
-      } finally {
-        setSubmitting(false);
-      }
+      // Gate with PIN
+      pinGate.open(async () => {
+        setSubmitting(true);
+        try {
+          await submitBill();
+          setTxRef(generateRef());
+          setReceipt(true);
+        } catch (err: any) {
+          const d = err?.response?.data;
+          setApiError(d?.provider_id?.[0] ?? d?.phone?.[0] ?? d?.detail ?? 'Failed to purchase airtime.');
+        } finally {
+          setSubmitting(false);
+        }
+      });
+      return;
     } else {
       // Card / USSD / Bank Transfer — Flutterwave inline checkout
       await flwCheckout({
@@ -254,6 +259,9 @@ const BuyAirtime: React.FC = () => {
           />
         }
       />
+
+      {/* PIN gate */}
+      <PinVerifyModal {...pinGate.props} />
 
       {/* Receipt */}
       <BillReceiptDialog

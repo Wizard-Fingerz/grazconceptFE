@@ -3,9 +3,9 @@ import { Box, CircularProgress, TextField, Typography } from '@mui/material';
 import api from '../../../../../services/api';
 import {
   C, AmountDisplay, BillCtaButton, BillReceiptDialog, ErrorAlert,
-  FormCard, PaymentMethodSelector, type PaymentMethod, FLW_OPTIONS,
+  FormCard, PaymentMethodSelector, PinVerifyModal, type PaymentMethod, FLW_OPTIONS,
   ProviderBtn, SectionLabel, SplitLayout, SummaryPanel, generateRef,
-  useFlwBillCheckout,
+  useFlwBillCheckout, usePinGate,
 } from '../_shared';
 
 /* ─── DisCo list ─────────────────────────────────────────────────────────── */
@@ -84,6 +84,7 @@ const PayUtilityBill: React.FC = () => {
   const [token,      setToken]      = useState('');
 
   const { checkout: flwCheckout, paying: flwPaying, flwError, clearFlwError } = useFlwBillCheckout();
+  const pinGate = usePinGate();
 
   const selectedDisco = DISCOS.find(d => d.value === utility);
 
@@ -125,18 +126,21 @@ const PayUtilityBill: React.FC = () => {
     setApiError(null); clearFlwError();
 
     if (payMethod === 'wallet') {
-      setSubmitting(true);
-      try {
-        const res = await submitBill();
-        setTxRef(res.data?.reference ?? generateRef());
-        setToken(res.data?.token ?? '');
-        setReceipt(true);
-      } catch (err: any) {
-        const d = err?.response?.data;
-        setApiError(d?.detail ?? d?.non_field_errors?.[0] ?? 'Payment failed. Please try again.');
-      } finally {
-        setSubmitting(false);
-      }
+      pinGate.open(async () => {
+        setSubmitting(true);
+        try {
+          const res = await submitBill();
+          setTxRef(res.data?.reference ?? generateRef());
+          setToken(res.data?.token ?? '');
+          setReceipt(true);
+        } catch (err: any) {
+          const d = err?.response?.data;
+          setApiError(d?.detail ?? d?.non_field_errors?.[0] ?? 'Payment failed. Please try again.');
+        } finally {
+          setSubmitting(false);
+        }
+      });
+      return;
     } else {
       // Non-wallet: open Flutterwave → verify (credits wallet) → pay bill from wallet
       await flwCheckout({
@@ -346,6 +350,8 @@ const PayUtilityBill: React.FC = () => {
           />
         }
       />
+
+      <PinVerifyModal {...pinGate.props} />
 
       <BillReceiptDialog
         open={receipt} onClose={() => setReceipt(false)} onNew={resetForm}
