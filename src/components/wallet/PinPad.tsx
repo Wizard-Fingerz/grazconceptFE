@@ -14,7 +14,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import {
-  Box, Button, CircularProgress, IconButton, Typography,
+  Box, Button, CircularProgress, Typography,
 } from '@mui/material';
 import ArrowBackIcon   from '@mui/icons-material/ArrowBack';
 import BackspaceIcon   from '@mui/icons-material/BackspaceOutlined';
